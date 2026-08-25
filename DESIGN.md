@@ -314,12 +314,12 @@ The black-canvas hero and footer chapters are the system's "headline moments" �
 
 **Key Characteristics:**
 - Single-accent system: `{colors.primary}` carries every CTA, active state, and decorative motif. The rest is monochrome black/white/gray.
-- Two-mode surface architecture: `{colors.surface-dark}` for hero/footer chapters; `{colors.canvas}` for body — alternating in a predictable rhythm down the page
+- Two-mode surface architecture: `{colors.surface-dark}` for hero/footer chapters; `{colors.canvas}` for body — alternating in a predictable rhythm down the page. **Current build deviation:** the PalaySigla homepage ships light-only — see [Implementation Deviations](#implementation-deviations).
 - Hyper-angular geometry: `{rounded.sm}` (2px) on every interactive element. There are no pill buttons, no rounded cards, no soft chrome.
 - NVIDIA-EMEA proprietary sans-serif at weights 400 and 700, scaled across a 12-tier hierarchy from `{typography.utility-xs}` (10px) up to `{typography.display-xl}` (48px)
 - Card library leans on hairline `{colors.hairline}` borders and `{colors.surface-soft}` backgrounds rather than shadows for separation
-- Signature decorative element: the small `{component.corner-square}` (~12px green square) anchored to one corner of resource and feature cards
-- Dense multi-column footer with 4–6 link columns on `{colors.surface-dark}` — every page closes with the same structured global navigation
+- Signature decorative element: the small `{component.corner-square}` (~12px green square) anchored to one corner of resource and feature cards. **Current build deviation:** discontinued on cards — see [Implementation Deviations](#implementation-deviations).
+- Dense multi-column footer with 4–6 link columns on `{colors.surface-dark}` — every page closes with the same structured global navigation. **Current build deviation:** rendered light on `{colors.surface-soft}` with a hairline rule.
 
 ## Colors
 
@@ -638,3 +638,14 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
 - **Dialog / modal styling** beyond the locale-selector overlay not visible in the captured surfaces.
 - **Form field styling** for full sign-up / contact forms is not present in the captured surfaces — only inline search and basic text inputs are documented.
 - **Login / authenticated chrome** not in the captured pages.
+
+## Implementation Deviations
+
+> Product decision for the PalaySigla homepage (current build). Token values above remain the single source of truth for color/type/radius; the deviations below only change *where* those tokens are applied.
+
+- **Light-only surfaces.** No page chrome uses `{colors.surface-dark}`. The utility bar, primary nav, hero band, and footer sit on `{colors.canvas}` / `{colors.surface-soft}` with 1px `{colors.hairline}` rules; the dark CTA strip is replaced by a `{colors.surface-soft}` band. `{colors.surface-dark}`, `{colors.surface-elevated}`, `{colors.on-dark}`, and `{colors.on-dark-mute}` remain in the token set for illustration interiors and future dark surfaces, but are not used on the current homepage. Text on light surfaces uses `{colors.ink}` / `{colors.body}` / `{colors.mute}`; `{colors.primary}` remains the only accent (CTAs, links, icons, active indicators).
+- **Hero carousel replaces `{component.hero-card-dark}`.** The homepage hero is a two-column band: headline copy + `{component.button-primary}` / `{component.button-outline}` CTAs on the left, a rotating photo carousel on the right. Carousel slides pair paddy photography (Wikimedia Commons content, CC-licensed, attributed in the `caption-xs` fine print) with variety name, description, and `{component.badge-tag}`-style scan-result chips. Photography colors (golden, red husk tones) are content, not chrome accents. Carousel behavior: auto-advance 6s, pause on hover/focus, square indicator buttons (active = `{colors.primary}`), 44px prev/next buttons, `aria-roledescription="carousel"` + `aria-live="polite"`. The hero band's `{colors.surface-soft}` surface carries a faded backdrop video of a rice field (muted autoplay, loop, `playsinline`, `preload="auto"`, decorative `aria-hidden`, `pointer-events-none`), veiled at ~75% `{colors.surface-soft}` opacity so ink text stays readable; the video freezes for users with `prefers-reduced-motion: reduce`.
+- **`{component.corner-square}` discontinued on cards.** The green corner-square motif read as a rendering artifact on light cards and is removed from the current build. The component token and 12px/16px sizing remain in the front matter for editorial use.
+- **`{component.callout-stat}` band replaced by a sample scan-result mockup.** The homepage's post-hero band is a single hairline card: the paddy photo under a "SAMPLE SCAN" badge on the left, and four readout rows (quality / mold / market grade / variety) on the right — each with an icon, value, and a `{colors.primary}` confidence bar (`{typography.display-lg}`-adjacent percentage in `{colors.primary}`). The mock confidence values are illustrative UI content, not measured data; the photo is Wikimedia Commons content per the hero attribution rule.
+- **`{component.button-outline-on-dark}` unused.** With no dark surfaces, hero secondary CTAs use `{component.button-outline}`.
+- **`{component.utility-bar}` dropped from the current build.** The top tagline strip is redundant with the Login affordance in `{component.primary-nav}` and the brand copy in the footer, so the homepage opens directly with the primary nav.
