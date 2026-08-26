@@ -51,6 +51,7 @@ export async function fetchListings({
     .eq('status', LISTING_STATUSES.ACTIVE)
     .is('deleted_at', null)
     .order(sortSpec.column, { ascending: sortSpec.ascending })
+    .order('position', { referencedTable: 'listing_images', ascending: true })
 
   if (category) {
     query = query.eq('category', category)

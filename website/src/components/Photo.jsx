@@ -11,7 +11,7 @@ function Photo({
 }) {
   const [hasError, setHasError] = useState(false)
 
-  if (hasError) {
+  if (hasError || !src) {
     return (
       <div
         className={`flex w-full items-center justify-center border border-hairline bg-surface-soft ${aspectClass} ${className}`}

@@ -5,11 +5,16 @@ import AuthProvider from './context/AuthProvider.jsx'
 import ToastProvider from './context/ToastProvider.jsx'
 import { useAuth } from './context/authContext.js'
 import Home from './pages/Home.jsx'
+import MarketplacePage from './pages/MarketplacePage.jsx'
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <Home />,
+  },
+  {
+    path: '/marketplace',
+    element: <MarketplacePage />,
   },
 ])
 

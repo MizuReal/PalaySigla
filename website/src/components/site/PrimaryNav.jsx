@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link, NavLink } from 'react-router-dom'
 import Button from '../Button.jsx'
 import Container from '../Container.jsx'
 import Icon from '../Icon.jsx'
@@ -7,17 +8,44 @@ import { getDisplayName } from '../../utils/userProfile.js'
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
+  { label: 'Marketplace', to: '/marketplace' },
   { label: 'How it works', href: '#how-it-works' },
   { label: 'For you', href: '#audience' },
   { label: 'Early access', href: '#cta' },
 ]
 
+const linkClasses =
+  'body-strong text-ink transition-colors hover:text-primary'
+const activeLinkClasses = 'body-strong text-primary'
+
+function NavLinks({ onNavigate }) {
+  return NAV_LINKS.map((link) =>
+    link.to ? (
+      <NavLink
+        key={link.to}
+        to={link.to}
+        end
+        onClick={onNavigate}
+        className={({ isActive }) =>
+          isActive ? activeLinkClasses : linkClasses
+        }
+      >
+        {link.label}
+      </NavLink>
+    ) : (
+      <a key={link.href} href={link.href} onClick={onNavigate} className={linkClasses}>
+        {link.label}
+      </a>
+    )
+  )
+}
+
 function BrandMark() {
   return (
-    <a href="#" className="flex items-center gap-3" aria-label="PalaySigla home">
+    <Link to="/" className="flex items-center gap-3" aria-label="PalaySigla home">
       <span className="h-3 w-3 bg-primary" aria-hidden="true" />
       <span className="body-strong text-ink">PalaySigla</span>
-    </a>
+    </Link>
   )
 }
 
@@ -99,15 +127,7 @@ function PrimaryNav() {
         <BrandMark />
 
         <nav className="hidden items-center gap-8 lg:flex" aria-label="Primary">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="body-strong text-ink transition-colors hover:text-primary"
-            >
-              {link.label}
-            </a>
-          ))}
+          <NavLinks />
         </nav>
 
         <div className="hidden items-center gap-6 lg:flex">
@@ -141,16 +161,32 @@ function PrimaryNav() {
             className="flex flex-1 flex-col gap-2 px-6 py-8"
             aria-label="Mobile"
           >
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsDrawerOpen(false)}
-                className="heading-md border-b border-hairline py-5 text-ink transition-colors hover:text-primary"
-              >
-                {link.label}
-              </a>
-            ))}
+            {NAV_LINKS.map((link) =>
+              link.to ? (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end
+                  onClick={() => setIsDrawerOpen(false)}
+                  className={({ isActive }) =>
+                    `heading-md border-b border-hairline py-5 transition-colors hover:text-primary ${
+                      isActive ? 'text-primary' : 'text-ink'
+                    }`
+                  }
+                >
+                  {link.label}
+                </NavLink>
+              ) : (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="heading-md border-b border-hairline py-5 text-ink transition-colors hover:text-primary"
+                >
+                  {link.label}
+                </a>
+              )
+            )}
           </nav>
           <Container className="pb-10">
             {user ? (

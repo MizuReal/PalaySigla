@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import Icon from './Icon.jsx'
 
 // mounted only while the dialog should be visible; unmounting restores focus
-function Modal({ onClose, labelledBy, children }) {
+function Modal({ onClose, labelledBy, panelClassName = 'max-w-md', children }) {
   const panelRef = useRef(null)
   const previouslyFocusedRef = useRef(null)
 
@@ -40,13 +40,13 @@ function Modal({ onClose, labelledBy, children }) {
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative w-full max-w-md border border-hairline bg-canvas p-6 sm:p-8 focus:outline-none"
+        className={`relative w-full ${panelClassName} border border-hairline bg-canvas p-6 sm:p-8 focus:outline-none`}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close dialog"
-          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center text-mute transition-colors hover:text-ink"
+          className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center text-mute transition-colors hover:text-ink"
         >
           <Icon name="close" className="h-5 w-5" />
         </button>
