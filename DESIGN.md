@@ -302,6 +302,69 @@ components:
     typography: "{typography.caption-md}"
     rounded: "{rounded.sm}"
     padding: 4px 10px
+  modal-backdrop:
+    backgroundColor: "{colors.surface-elevated}"
+    rounded: "{rounded.none}"
+  modal-surface:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.sm}"
+    padding: 24px 24px
+  form-label:
+    textColor: "{colors.ink}"
+    typography: "{typography.caption-md}"
+  form-field:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.sm}"
+    padding: 12px 16px
+    height: 44px
+  form-field-focused:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+  form-field-error:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+  form-alert-error:
+    backgroundColor: "{colors.surface-soft}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.sm}"
+    padding: 16px
+  form-alert-success:
+    backgroundColor: "{colors.surface-soft}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.sm}"
+    padding: 24px
+  toast-surface:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.sm}"
+    padding: 16px
+  toast-success:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.sm}"
+    padding: 16px
+  toast-info:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.sm}"
+    padding: 16px
+  toast-error:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.sm}"
+    padding: 16px
 ---
 
 ## Overview
@@ -635,9 +698,13 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
 
 - **Mobile screenshots not captured** — responsive behavior synthesizes NVIDIA's known mobile pattern (hamburger drawer, accordion footer, 1-up card grid, hero downscale) from desktop evidence and the documented breakpoint stack.
 - **Hover states not documented** by system policy.
-- **Dialog / modal styling** beyond the locale-selector overlay not visible in the captured surfaces.
-- **Form field styling** for full sign-up / contact forms is not present in the captured surfaces — only inline search and basic text inputs are documented.
-- **Login / authenticated chrome** not in the captured pages.
+- **Login / authenticated chrome** beyond the signed-in nav chip (name + sign-out button) not present — the dashboard/app chrome arrives with the product pages.
+
+### Resolved Gaps
+
+- **Dialog / modal styling** — implemented as the auth dialog: `{component.modal-backdrop}` full-viewport fixed overlay (`{colors.surface-elevated}` at 70% opacity), `{component.modal-surface}` panel (max-width 448px, centered, 1px `{colors.hairline}` border, 24px padding mobile / 32px desktop), 44px close affordance top-right, ESC + backdrop-click to dismiss, `role="dialog"` + `aria-modal` with focus returned to the trigger on close.
+- **Form field styling** — implemented for auth forms: `{component.form-label}` (uppercase `caption-md`, 8px below baseline), `{component.form-field}` (44px, 1px `{colors.hairline}` border, 2px radius), `{component.form-field-focused}` (2px `{colors.primary}` border), `{component.form-field-error}` (1px `{colors.error}` border), `{component.form-alert-error}` (1px `{colors.error}` border) / `{component.form-alert-success}` (1px `{colors.primary}` border) banners. Inline link affordances use `{component.link-inline}` (`{colors.link-blue}`).
+- **Toast notifications** — implemented for auth events (logged in, logged out, email verified, verification email sent): `{component.toast-surface}` panel (max-width 384px, stacked top-right, 1px border, 2px radius, 4s auto-dismiss with manual close, 44px close affordance). Variants share the base surface and differ only by accent border + leading icon: `{component.toast-success}` (1px `{colors.primary}` border, check icon), `{component.toast-info}` (1px `{colors.hairline}` border, info icon), `{component.toast-error}` (1px `{colors.error}` border, close icon). Rendered in a `role="status"` + `aria-live="polite"` container above the modal layer.
 
 ## Implementation Deviations
 
@@ -649,3 +716,5 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
 - **`{component.callout-stat}` band replaced by a sample scan-result mockup.** The homepage's post-hero band is a single hairline card: the paddy photo under a "SAMPLE SCAN" badge on the left, and four readout rows (quality / mold / market grade / variety) on the right — each with an icon, value, and a `{colors.primary}` confidence bar (`{typography.display-lg}`-adjacent percentage in `{colors.primary}`). The mock confidence values are illustrative UI content, not measured data; the photo is Wikimedia Commons content per the hero attribution rule.
 - **`{component.button-outline-on-dark}` unused.** With no dark surfaces, hero secondary CTAs use `{component.button-outline}`.
 - **`{component.utility-bar}` dropped from the current build.** The top tagline strip is redundant with the Login affordance in `{component.primary-nav}` and the brand copy in the footer, so the homepage opens directly with the primary nav.
+- **Auth dialog is light-surface.** The `{component.modal-backdrop}` uses `{colors.surface-elevated}` at 70% opacity (the token exists for dark surfaces; here it serves as the dim overlay), while the dialog panel itself follows the light-surface rule: `{colors.canvas}`, 1px `{colors.hairline}` border, no shadow. Focus states follow the global 2px `{colors.primary}` outline rule.
+- **Toasts sit above the modal layer.** The toast viewport renders at a higher z-order than `{component.modal-surface}` so auth-completion notifications remain visible when the dialog closes; toasts otherwise follow the light-surface card treatment (no shadow, hairline border, `{rounded.sm}`).

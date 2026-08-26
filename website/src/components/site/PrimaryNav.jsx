@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import Button from '../Button.jsx'
 import Container from '../Container.jsx'
 import Icon from '../Icon.jsx'
+import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext.js'
+import { getDisplayName } from '../../utils/userProfile.js'
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
@@ -20,8 +22,10 @@ function BrandMark() {
 }
 
 function PrimaryNav() {
+  const { user, isInitializing, openAuthModal, signOut } = useAuth()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [signOutError, setSignOutError] = useState('')
 
   // mount-only scroll listener: keeps the chrome shadow tied to page scroll state
   useEffect(() => {
@@ -30,6 +34,60 @@ function PrimaryNav() {
     window.addEventListener('scroll', updateScrollState, { passive: true })
     return () => window.removeEventListener('scroll', updateScrollState)
   }, [])
+
+  const handleSignOut = async () => {
+    setSignOutError('')
+    try {
+      await signOut()
+    } catch (error) {
+      setSignOutError(error.message)
+    }
+  }
+
+  const openLogin = () => {
+    setIsDrawerOpen(false)
+    openAuthModal(AUTH_MODAL_MODES.LOGIN)
+  }
+
+  const openRegister = () => {
+    setIsDrawerOpen(false)
+    openAuthModal(AUTH_MODAL_MODES.REGISTER)
+  }
+
+  const renderAuthArea = () => {
+    if (isInitializing) {
+      return null
+    }
+    if (user) {
+      return (
+        <div className="flex items-center gap-6">
+          <span className="body-strong max-w-40 truncate text-ink">
+            {getDisplayName(user)}
+          </span>
+          <Button variant="outline" onClick={handleSignOut}>
+            Sign out
+          </Button>
+          {signOutError && (
+            <p className="caption-sm text-error" role="alert">
+              {signOutError}
+            </p>
+          )}
+        </div>
+      )
+    }
+    return (
+      <>
+        <button
+          type="button"
+          onClick={openLogin}
+          className="body-strong text-ink transition-colors hover:text-primary"
+        >
+          Login
+        </button>
+        <Button onClick={openRegister}>Get started</Button>
+      </>
+    )
+  }
 
   return (
     <header
@@ -53,13 +111,7 @@ function PrimaryNav() {
         </nav>
 
         <div className="hidden items-center gap-6 lg:flex">
-          <a
-            href="#cta"
-            className="body-strong text-ink transition-colors hover:text-primary"
-          >
-            Login
-          </a>
-          <Button href="#cta">Get started</Button>
+          {renderAuthArea()}
         </div>
 
         <button
@@ -101,16 +153,38 @@ function PrimaryNav() {
             ))}
           </nav>
           <Container className="pb-10">
-            <Button href="#cta" className="w-full justify-center">
-              Get started
-            </Button>
-            <a
-              href="#cta"
-              onClick={() => setIsDrawerOpen(false)}
-              className="body-strong mt-4 block text-center text-ink transition-colors hover:text-primary"
-            >
-              Login
-            </a>
+            {user ? (
+              <>
+                <p className="body-strong mb-4 text-ink">
+                  {getDisplayName(user)}
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={handleSignOut}
+                  className="w-full justify-center"
+                >
+                  Sign out
+                </Button>
+                {signOutError && (
+                  <p className="caption-sm mt-3 text-error" role="alert">
+                    {signOutError}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <Button onClick={openRegister} className="w-full justify-center">
+                  Get started
+                </Button>
+                <button
+                  type="button"
+                  onClick={openLogin}
+                  className="body-strong mt-4 block w-full text-center text-ink transition-colors hover:text-primary"
+                >
+                  Login
+                </button>
+              </>
+            )}
           </Container>
         </div>
       )}

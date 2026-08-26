@@ -2,8 +2,7 @@ import { useState } from 'react'
 import Button from '../Button.jsx'
 import Container from '../Container.jsx'
 import Icon from '../Icon.jsx'
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { EMAIL_PATTERN } from '../../utils/validation.js'
 
 function EarlyAccessForm() {
   const [email, setEmail] = useState('')

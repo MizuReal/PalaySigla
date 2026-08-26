@@ -9,14 +9,36 @@ const VARIANT_CLASSES = {
 const BASE_CLASSES =
   'inline-flex h-11 items-center justify-center gap-2 rounded-sm px-6 py-[11px] button-md transition-colors duration-150'
 
-function Button({ variant = 'primary', href = '#', className = '', children }) {
+const DISABLED_CLASSES = 'bg-surface-soft text-ash hover:bg-surface-soft'
+
+function Button({
+  variant = 'primary',
+  href = '#',
+  type,
+  onClick,
+  disabled = false,
+  className = '',
+  children,
+}) {
+  const classes = `${BASE_CLASSES} ${VARIANT_CLASSES[variant]} ${className} ${
+    disabled ? DISABLED_CLASSES : ''
+  }`
+  const trailingIcon =
+    variant === 'ghost' ? <Icon name="arrow-right" className="h-4 w-4" /> : null
+
+  if (type === 'submit' || type === 'button' || onClick) {
+    return (
+      <button type={type ?? 'button'} onClick={onClick} disabled={disabled} className={classes}>
+        {children}
+        {trailingIcon}
+      </button>
+    )
+  }
+
   return (
-    <a
-      href={href}
-      className={`${BASE_CLASSES} ${VARIANT_CLASSES[variant]} ${className}`}
-    >
+    <a href={href} className={classes}>
       {children}
-      {variant === 'ghost' && <Icon name="arrow-right" className="h-4 w-4" />}
+      {trailingIcon}
     </a>
   )
 }
