@@ -365,6 +365,30 @@ components:
     typography: "{typography.body-sm}"
     rounded: "{rounded.sm}"
     padding: 16px
+  listing-card:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.sm}"
+    padding: 16px
+  listing-card-title:
+    textColor: "{colors.ink}"
+    typography: "{typography.card-title}"
+  marketplace-filters:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    typography: "{typography.button-sm}"
+    rounded: "{rounded.sm}"
+    padding: 10px 18px
+  image-uploader:
+    backgroundColor: "{colors.surface-soft}"
+    textColor: "{colors.body}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.sm}"
+    padding: 32px
+  map-picker:
+    backgroundColor: "{colors.surface-soft}"
+    rounded: "{rounded.sm}"
 ---
 
 ## Overview
@@ -705,6 +729,7 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
 - **Dialog / modal styling** — implemented as the auth dialog: `{component.modal-backdrop}` full-viewport fixed overlay (`{colors.surface-elevated}` at 70% opacity), `{component.modal-surface}` panel (max-width 448px, centered, 1px `{colors.hairline}` border, 24px padding mobile / 32px desktop), 44px close affordance top-right, ESC + backdrop-click to dismiss, `role="dialog"` + `aria-modal` with focus returned to the trigger on close.
 - **Form field styling** — implemented for auth forms: `{component.form-label}` (uppercase `caption-md`, 8px below baseline), `{component.form-field}` (44px, 1px `{colors.hairline}` border, 2px radius), `{component.form-field-focused}` (2px `{colors.primary}` border), `{component.form-field-error}` (1px `{colors.error}` border), `{component.form-alert-error}` (1px `{colors.error}` border) / `{component.form-alert-success}` (1px `{colors.primary}` border) banners. Inline link affordances use `{component.link-inline}` (`{colors.link-blue}`).
 - **Toast notifications** — implemented for auth events (logged in, logged out, email verified, verification email sent): `{component.toast-surface}` panel (max-width 384px, stacked top-right, 1px border, 2px radius, 4s auto-dismiss with manual close, 44px close affordance). Variants share the base surface and differ only by accent border + leading icon: `{component.toast-success}` (1px `{colors.primary}` border, check icon), `{component.toast-info}` (1px `{colors.hairline}` border, info icon), `{component.toast-error}` (1px `{colors.error}` border, close icon). Rendered in a `role="status"` + `aria-live="polite"` container above the modal layer.
+- **Marketplace** — `{component.listing-card}` (photo, `{component.listing-card-title}`, price + unit, location label, category `{component.badge-tag}`, 1px `{colors.hairline}` border) in a responsive grid; `{component.marketplace-filters}` (category `{component.pill-tab}` / `{component.pill-tab-active}`, search `{component.text-input}`, sort select) on a `{colors.surface-soft}` toolbar; `{component.image-uploader}` dropzone (dashed 1px `{colors.hairline}` border, `{colors.surface-soft}` fill, 44px picker button, indeterminate upload spinner); `{component.map-picker}` embedded Leaflet map (explicit height, OSM tiles, `{colors.primary}` marker accent, search box + result list reusing `{component.form-field}`).
 
 ## Implementation Deviations
 
