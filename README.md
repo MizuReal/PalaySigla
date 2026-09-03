@@ -16,10 +16,11 @@ palay, rice, seeds, and machinery with photos and map-pinned locations.
   and per-IP rate limits — the only sanctioned path for geocoding.
 - **Schema**: `schemas/*.sql` migrations (marketplace tables, RLS, private
   storage bucket) plus a demo seed script.
-- **Mobile** (Expo SDK 57 + React Native, plain JS): the light-only marketing
-  landing screen (hero carousel, sample-scan readout, feature grid, steps,
-  audience cards, footer) styled from the DESIGN.md token set. Auth, scan,
-  and marketplace flows come next.
+- **Mobile** (Expo SDK 57 + React Native, plain JS): intro landing screen
+  with a "Get started" handoff into a bottom-tab shell — Marketplace,
+  Community, Scan (raised center action), Settings, and a Logout action —
+  styled from the DESIGN.md token set. Tab panels are honest placeholders;
+  real flows arrive phase by phase.
 
 ML inference is planned (backend model directory is a stub).
 

@@ -1,9 +1,11 @@
 // Hero band: headline copy + rotating paddy-photo card (the website hero
 // minus the backdrop video and CTA buttons, which have no destination on a
 // content-only landing). Carousel auto-advances every SLIDE_INTERVAL_MS and
-// cross-fades photos on each slide change.
+// fades each freshly mounted photo in via the expo-image transition.
 import { useEffect, useState } from 'react'
-import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image as ExpoImage } from 'expo-image'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import Button from '../Button.jsx'
 import Icon from '../Icon.jsx'
 import PADDY_SLIDES from '../../data/paddySlides.js'
 import {
@@ -15,32 +17,30 @@ import {
 } from '../../theme/designTokens.js'
 
 const SLIDE_INTERVAL_MS = 6000
-const FADE_DURATION_MS = 400
+const PHOTO_TRANSITION_MS = 300
 const PHOTO_ASPECT_RATIO = 4 / 3
 
+const logPhotoError = (url) => (error) => {
+  // RN's stock Image swallows load failures; surface them in dev so a blank
+  // photo is never silent (AGENTS.md: no silent failures)
+  if (__DEV__) {
+    console.warn(`[LandingHero] photo failed to load: ${url}`, error)
+  }
+}
+
 function SlidePhoto({ slide }) {
-  // state-backed Animated.Value: the fade driver must outlive re-renders but
-  // refs are not readable during render
-  const [opacity] = useState(() => new Animated.Value(0))
-
-  // fade the freshly mounted photo in; only the active slide is mounted
-  useEffect(() => {
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: FADE_DURATION_MS,
-      useNativeDriver: true,
-    }).start()
-  }, [opacity, slide.id])
-
+  // remounting per slide replays the expo-image load transition
   return (
-    <Animated.View style={[styles.photoFrame, { opacity }]}>
-      <Image
-        source={{ uri: slide.imageUrl }}
-        style={styles.photo}
-        resizeMode="cover"
-        accessibilityLabel={slide.imageAlt}
-      />
-    </Animated.View>
+    <ExpoImage
+      key={slide.id}
+      source={{ uri: slide.imageUrl }}
+      style={styles.photo}
+      contentFit="cover"
+      transition={PHOTO_TRANSITION_MS}
+      cachePolicy="memory-disk"
+      accessibilityLabel={slide.imageAlt}
+      onError={logPhotoError(slide.imageUrl)}
+    />
   )
 }
 
@@ -158,7 +158,7 @@ function Carousel() {
   )
 }
 
-function LandingHero() {
+function LandingHero({ onGetStarted }) {
   return (
     <View style={styles.hero}>
       <View style={styles.copyColumn}>
@@ -172,6 +172,19 @@ function LandingHero() {
         <Text style={[TYPE.headingLg, styles.subhead]}>
           {'Point your phone at a handful of harvested paddy. PalaySigla returns quality status, mold detection, market grade, and variety classification \u2014 from one photo, before the buyer\u2019s scale even settles.'}
         </Text>
+        {onGetStarted ? (
+          <View style={styles.entryBlock}>
+            <Button
+              label="Enter the app"
+              onPress={onGetStarted}
+              large
+              fullWidth
+            />
+            <Text style={[TYPE.bodySm, styles.entryHint]}>
+              Free to explore — no sign-up needed.
+            </Text>
+          </View>
+        ) : null}
       </View>
       <Carousel />
     </View>
@@ -202,6 +215,13 @@ const styles = StyleSheet.create({
   subhead: {
     color: COLORS.body,
   },
+  entryBlock: {
+    alignSelf: 'stretch',
+    gap: SPACING.md,
+  },
+  entryHint: {
+    color: COLORS.mute,
+  },
   card: {
     alignSelf: 'stretch',
     backgroundColor: COLORS.canvas,
@@ -210,14 +230,10 @@ const styles = StyleSheet.create({
     padding: SPACING.xl,
     gap: 0,
   },
-  photoFrame: {
+  photo: {
     width: '100%',
     aspectRatio: PHOTO_ASPECT_RATIO,
     backgroundColor: COLORS.surfaceSoft,
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
   },
   slideName: {
     color: COLORS.ink,

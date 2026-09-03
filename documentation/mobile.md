@@ -44,27 +44,35 @@ Only `EXPO_PUBLIC_*` variables reach client code.
 ```
 src/
 ├── theme/designTokens.js   All DESIGN.md tokens (colors, type scale, spacing, radius) — the only place raw values appear
-├── components/             BrandBar, Section, SectionHeader, Icon (react-native-svg port of the web icon set)
+├── components/             BrandBar, Section, SectionHeader, Icon (react-native-svg port of the web icon set),
+│   │                       Button, FeatureNotice, TabScreen, AppTabBar (custom bottom tab bar)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
-├── screens/                LandingScreen (the only screen today)
+├── screens/                LandingScreen (intro), MainTabs, Marketplace/Community/Scan/Settings tab screens
 ├── services/               supabaseClient (AsyncStorage session persistence) — used once auth lands
 └── data/                   paddySlides.js — landing slide content, mirrored from website/src/data
 ```
 
 ## Features
 
-### Landing (current)
+### Intro + tab shell (current)
 
-- Light-only surface rhythm (canvas/soft bands, hairline borders) per the
-  DESIGN.md implementation deviations — no dark chrome, no corner squares.
-- Hero headline + auto-advancing paddy-photo carousel (4:3 photos, chips,
-  dot indicators, 44px chevron buttons, Wikimedia Commons content credited in
-  fine print).
-- Sample-scan readout card (four static result rows with confidence bars),
-  feature grid, three how-it-works steps, audience benefit cards, and a
-  brand footer.
-- CTA buttons, nav auth links, and the early-access form are intentionally
-  absent: they would link to flows that do not exist yet.
+- App opens on the **Landing intro** (the full landing content from the
+  previous phase); its "Get started" button enters the tab shell (`Main`).
+- **Bottom tab bar** (custom, token-driven): Marketplace · Community · Scan ·
+  Settings as routes, plus a Logout action cell. Canvas bar, hairline top
+  rule, no elevation; active tab = `{colors.primary}` icon + small green
+  square indicator + micro label; inactive = `{colors.stone}` icon.
+- **Scan** renders as the signature raised `{colors.primary}` square with a
+  black camera glyph, overlapping the bar's top edge.
+- **Logout never navigates** — it confirms via a native alert, then resets
+  the root stack to the Landing intro (the signed-out state until auth
+  exists; a session `signOut` call slots into the same handler later).
+- Tab content is honest, designed placeholder panels (`FeatureNotice`):
+  each states what the phase will bring — no fake data, no dead controls.
+  Real marketplace data, community, scanning, and account flows replace the
+  panels phase by phase.
+- Landing CTA buttons, nav auth links, and the early-access form stay absent:
+  they belong to flows that are still not built.
 
 ## Conventions
 

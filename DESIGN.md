@@ -770,12 +770,27 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   pairs, the early-access form, and the CTA strip are absent until their target
   flows (auth, scanning, marketplace) exist. The footer link columns — all
   page anchors — are likewise omitted; the brand block and fine-print row remain.
+- **Landing entry CTA.** The mobile intro carries exactly one action: a
+  full-width `{component.button-primary}` rendered with `{typography.button-lg}`
+  at 56px height, 2px radius, pressed `{colors.primary-dark}` — the landing's
+  only solid-green CTA per the one-per-fold rule. It hands off into the tab
+  shell's Marketplace tab, with an honest `{typography.body-sm}` hint line
+  underneath ("no sign-up needed"). The 56px scale is documented here rather
+  than tokenized; all colors, radii, and type follow existing tokens.
 - **`{component.corner-square}`.** Continues the web build's discontinued-on-cards
   deviation; the green square survives only as the brand mark block in the top
   bar and footer.
 - **Icons.** The website's stroke icon set (24px viewBox, 1.8 stroke) is ported
   verbatim to `react-native-svg` in `mobile/src/components/Icon.jsx`; glyph
-  geometry stays identical across surfaces.
+  geometry stays identical across surfaces. Tab glyphs (marketplace,
+  community, settings, logout) are added in the same stroke language.
+- **Bottom tab bar.** The app shell's tab bar is custom-built (no platform
+  defaults): `{colors.canvas}` with a 1px `{colors.hairline}` top rule, zero
+  elevation, 56px body + bottom safe inset. Active tab = `{colors.primary}`
+  icon with a small `{rounded.sm}` `{colors.primary}` square indicator and a
+  micro label; inactive icons are `{colors.stone}`. The center **Scan** cell
+  is a raised 48px `{colors.primary}` square (2px radius, black glyph) —
+  depth by geometry, never by shadow. Logout is an action cell, not a route.
 - **Touch.** Interactive elements hold the `>= 44px` WCAG AA target from the
   responsive rules (chevron buttons are exactly 44×44; dot indicators expose
-  44px pressable hit areas).
+  44px pressable hit areas; every tab cell spans the full bar height).

@@ -12,6 +12,7 @@ import { useFonts } from 'expo-font'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import LandingScreen from './src/screens/LandingScreen.jsx'
+import MainTabs from './src/screens/MainTabs.jsx'
 import { COLORS } from './src/theme/designTokens.js'
 
 const Stack = createNativeStackNavigator()
@@ -36,6 +37,7 @@ function RootNavigator() {
     <NavigationContainer theme={NAV_THEME}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Landing" component={LandingScreen} />
+        <Stack.Screen name="Main" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   )

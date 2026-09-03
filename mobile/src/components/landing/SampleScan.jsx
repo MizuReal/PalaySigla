@@ -1,7 +1,8 @@
 // Sample scan readout card: paddy photo beside four static result rows with
 // confidence bars. Confidence values are illustrative UI content, not
 // measured data, mirroring the website's OutputMockup section.
-import { Image, StyleSheet, Text, View } from 'react-native'
+import { Image as ExpoImage } from 'expo-image'
+import { StyleSheet, Text, View } from 'react-native'
 import Section from '../Section.jsx'
 import SectionHeader from '../SectionHeader.jsx'
 import Icon from '../Icon.jsx'
@@ -9,6 +10,15 @@ import { GOLDEN_PADDY_IMAGE } from '../../data/paddySlides.js'
 import { COLORS, SPACING, TYPE } from '../../theme/designTokens.js'
 
 const PHOTO_ASPECT_RATIO = 4 / 3
+const PHOTO_TRANSITION_MS = 300
+
+const logPhotoError = (url) => (error) => {
+  // RN's stock Image swallows load failures; surface them in dev so a blank
+  // photo is never silent (AGENTS.md: no silent failures)
+  if (__DEV__) {
+    console.warn(`[SampleScan] photo failed to load: ${url}`, error)
+  }
+}
 
 const SAMPLE_RESULTS = [
   { icon: 'quality', label: 'Quality status', value: 'Dry · Clean', confidence: 96 },
@@ -54,11 +64,14 @@ function SampleScan() {
       />
       <View style={styles.card}>
         <View style={styles.photoPanel}>
-          <Image
+          <ExpoImage
             source={{ uri: GOLDEN_PADDY_IMAGE }}
             style={styles.photo}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={PHOTO_TRANSITION_MS}
+            cachePolicy="memory-disk"
             accessibilityLabel="Close-up of golden unhulled paddy grains used in a sample scan"
+            onError={logPhotoError(GOLDEN_PADDY_IMAGE)}
           />
           <View style={styles.badge}>
             <Text style={[TYPE.captionMd, styles.badgeText]}>Sample scan</Text>

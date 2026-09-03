@@ -114,6 +114,53 @@ function ChevronRightGlyph({ color }) {
   return <Path d="M9 5l7 7-7 7" {...strokeProps(color)} />
 }
 
+function MarketplaceGlyph({ color }) {
+  return (
+    <>
+      <Path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" {...strokeProps(color)} />
+      <Path d="M3 6h18" {...strokeProps(color)} />
+      <Path d="M16 10a4 4 0 0 1-8 0" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function CommunityGlyph({ color }) {
+  return (
+    <>
+      <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" {...strokeProps(color)} />
+      <Circle cx="9" cy="7" r="4" {...strokeProps(color)} />
+      <Path d="M23 21v-2a4 4 0 0 0-3-3.87" {...strokeProps(color)} />
+      <Path d="M16 3.13a4 4 0 0 1 0 7.75" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function SettingsGlyph({ color }) {
+  return (
+    <>
+      <Path d="M4 21v-7" {...strokeProps(color)} />
+      <Path d="M4 10V3" {...strokeProps(color)} />
+      <Path d="M12 21v-9" {...strokeProps(color)} />
+      <Path d="M12 8V3" {...strokeProps(color)} />
+      <Path d="M20 21v-5" {...strokeProps(color)} />
+      <Path d="M20 12V3" {...strokeProps(color)} />
+      <Path d="M1 14h6" {...strokeProps(color)} />
+      <Path d="M9 8h6" {...strokeProps(color)} />
+      <Path d="M17 16h6" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function LogoutGlyph({ color }) {
+  return (
+    <>
+      <Path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" {...strokeProps(color)} />
+      <Path d="M16 17l5-5-5-5" {...strokeProps(color)} />
+      <Path d="M21 12H9" {...strokeProps(color)} />
+    </>
+  )
+}
+
 const ICON_GLYPHS = {
   camera: CameraGlyph,
   scan: ScanGlyph,
@@ -126,6 +173,10 @@ const ICON_GLYPHS = {
   scale: ScaleGlyph,
   'chevron-left': ChevronLeftGlyph,
   'chevron-right': ChevronRightGlyph,
+  marketplace: MarketplaceGlyph,
+  community: CommunityGlyph,
+  settings: SettingsGlyph,
+  logout: LogoutGlyph,
 }
 
 function Icon({ name, size = 24, color = COLORS.primary }) {
