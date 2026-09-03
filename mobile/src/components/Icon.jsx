@@ -114,6 +114,15 @@ function ChevronRightGlyph({ color }) {
   return <Path d="M9 5l7 7-7 7" {...strokeProps(color)} />
 }
 
+function PinGlyph({ color }) {
+  return (
+    <>
+      <Path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z" {...strokeProps(color)} />
+      <Circle cx="12" cy="10" r="2.5" {...strokeProps(color)} />
+    </>
+  )
+}
+
 function MarketplaceGlyph({ color }) {
   return (
     <>
@@ -173,6 +182,7 @@ const ICON_GLYPHS = {
   scale: ScaleGlyph,
   'chevron-left': ChevronLeftGlyph,
   'chevron-right': ChevronRightGlyph,
+  pin: PinGlyph,
   marketplace: MarketplaceGlyph,
   community: CommunityGlyph,
   settings: SettingsGlyph,

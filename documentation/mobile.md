@@ -1,8 +1,9 @@
 # Mobile (React Native)
 
 Expo SDK 57 (managed workflow) + React Navigation v7 + plain JavaScript —
-no TypeScript. Currently ships the **light-only landing screen**; auth,
-scanning, and marketplace flows arrive in later phases.
+no TypeScript. Ships the **light-only landing screen**, the tab shell, and
+the **marketplace browse feed**; auth, posting, scanning, and community
+flows arrive in later phases.
 
 ## Requirements
 
@@ -45,16 +46,41 @@ Only `EXPO_PUBLIC_*` variables reach client code.
 src/
 ├── theme/designTokens.js   All DESIGN.md tokens (colors, type scale, spacing, radius) — the only place raw values appear
 ├── components/             BrandBar, Section, SectionHeader, Icon (react-native-svg port of the web icon set),
-│   │                       Button, FeatureNotice, TabScreen, AppTabBar (custom bottom tab bar)
+│   │                       Button, FeatureNotice, TabScreen, AppTabBar (custom bottom tab bar), Photo
+│   ├── marketplace/        ListingCard, ListingCardSkeleton, ListingFilters, ListingFeed (marketplace browse UI)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
-├── screens/                LandingScreen (intro), MainTabs, Marketplace/Community/Scan/Settings tab screens
-├── services/               supabaseClient (AsyncStorage session persistence) — used once auth lands
+├── screens/                LandingScreen (intro), MainTabs, Marketplace (feed), ListingDetail (root-stack push),
+│   │                       Community/Scan/Settings tab screens
+├── services/               supabaseClient (AsyncStorage session persistence) + listings (Supabase marketplace queries)
+├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl, usePulseOpacity
+├── utils/                  format.js — listing label maps, PHP price + relative-time formatters
 └── data/                   paddySlides.js — landing slide content, mirrored from website/src/data
 ```
 
 ## Features
 
-### Intro + tab shell (current)
+### Marketplace browse (current)
+
+The **Marketplace** tab is the live, anonymous browse surface (data reads
+ride the anon key + RLS, which allows selecting non-deleted listings):
+
+- Fixed `surface-soft` filter toolbar: debounced (350 ms) search across
+  title/location, horizontally scrollable category pill-tabs, and a
+  three-way sort (newest / price ascending / price descending).
+- Paged feed of `listing-card`s (photo, category chip, price + unit,
+  pin + location + posted time) with pull-to-refresh, on-end infinite
+  scroll, pulsing skeleton loading, and error/empty states with retry.
+- Feed remounts on any filter change (keyed), resetting to page 1 — the
+  same pattern the web page uses.
+- Tapping a listing pushes **ListingDetail** on the root stack above the
+  tab bar: eager 4:3 photo, category badge + "Sold" chip, title, price +
+  unit, optional quantity and description, and the seller block with the
+  map-pinned location label and posted time.
+- **Posting and owner management are deliberately absent** — they require
+  sign-in (RLS insert/update), which ships with the mobile auth phase. The
+  "Post a listing" CTA states this honestly instead of opening a dead form.
+
+### Intro + tab shell
 
 - App opens on the **Landing intro** (the full landing content from the
   previous phase); its "Get started" button enters the tab shell (`Main`).
@@ -69,8 +95,8 @@ src/
   exists; a session `signOut` call slots into the same handler later).
 - Tab content is honest, designed placeholder panels (`FeatureNotice`):
   each states what the phase will bring — no fake data, no dead controls.
-  Real marketplace data, community, scanning, and account flows replace the
-  panels phase by phase.
+  Marketplace is now live; community, scanning, and account flows replace
+  the remaining panels phase by phase.
 - Landing CTA buttons, nav auth links, and the early-access form stay absent:
   they belong to flows that are still not built.
 

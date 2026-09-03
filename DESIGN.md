@@ -791,6 +791,23 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   micro label; inactive icons are `{colors.stone}`. The center **Scan** cell
   is a raised 48px `{colors.primary}` square (2px radius, black glyph) —
   depth by geometry, never by shadow. Logout is an action cell, not a route.
+- **Marketplace browse phase.** The marketplace tab ships the live feed
+  behind the fixed `{component.marketplace-filters}` toolbar on a
+  `{colors.surface-soft}` band (search field at the `{component.search-input}`
+  40px height, category `{component.pill-tab}`/`{component.pill-tab-active}`
+  strip in a horizontal scroll row, and a three-way sort segmented control in
+  the same pill language). Listings render 1-up as `{component.listing-card}`
+  hairline cards — 4:3 photo with a canvas category badge chip overlaid, then
+  `{component.listing-card-title}`, price + unit, and the pin + location +
+  relative-time caption. Load states use `{colors.surface-soft}` pulsing
+  skeleton cards; failure and empty states reuse the hairline-panel
+  treatment with a `{component.button-primary}` Post CTA sitting in the
+  scrollable hero band (posting itself stays gated to the auth phase). The
+  detail view pushes on the root stack above the tab bar as a full-bleed
+  screen (the web detail modal's mobile equivalent) with a 44px back
+  affordance in the top chrome, eager 4:3 photo, category badge + "Sold"
+  chip when `sold`, price/unit, quantity, description, and the seller block
+  under a hairline rule.
 - **Touch.** Interactive elements hold the `>= 44px` WCAG AA target from the
   responsive rules (chevron buttons are exactly 44×44; dot indicators expose
   44px pressable hit areas; every tab cell spans the full bar height).
