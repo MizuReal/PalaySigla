@@ -11,6 +11,7 @@ and how to run it.
 |---|---|
 | Understand the system end to end | [architecture.md](architecture.md) |
 | Run the website locally | [frontend.md](frontend.md) |
+| Run the mobile app locally | [mobile.md](mobile.md) |
 | Run the backend locally | [backend.md](backend.md) |
 | Set up or inspect Supabase (auth, schema, RLS) | [setup-supabase.md](setup-supabase.md) |
 | Call or extend the HTTP API | [api.md](api.md) |
@@ -31,5 +32,8 @@ and how to run it.
   for geocoding requests, with throttling, caching, and rate limits.
 - **Schema**: `listings`, `listing_images`, private `listings` storage bucket,
   RLS policies, demo seed script.
+- **Mobile** (Expo SDK 57 + React Native): the light-only marketing landing
+  screen (hero carousel, sample-scan readout, features, steps, footer),
+  rendered from the DESIGN.md token set via `mobile/src/theme/designTokens.js`.
 
-Mobile app and ML inference are planned; the directories exist as stubs.
+ML inference is planned; the backend model directory exists as a stub.

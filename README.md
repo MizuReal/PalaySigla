@@ -16,8 +16,12 @@ palay, rice, seeds, and machinery with photos and map-pinned locations.
   and per-IP rate limits — the only sanctioned path for geocoding.
 - **Schema**: `schemas/*.sql` migrations (marketplace tables, RLS, private
   storage bucket) plus a demo seed script.
+- **Mobile** (Expo SDK 57 + React Native, plain JS): the light-only marketing
+  landing screen (hero carousel, sample-scan readout, feature grid, steps,
+  audience cards, footer) styled from the DESIGN.md token set. Auth, scan,
+  and marketplace flows come next.
 
-Mobile app and ML inference are planned (stub directories exist).
+ML inference is planned (backend model directory is a stub).
 
 ## Repository layout
 
@@ -25,7 +29,7 @@ Mobile app and ML inference are planned (stub directories exist).
 website/          React web app
 backend/          FastAPI app
 schemas/          Supabase SQL migrations + seed scripts
-mobile/           React Native stub (planned)
+mobile/           React Native app (Expo) — landing screen shipped
 documentation/    Architecture, API, Supabase, and per-app docs
 AGENTS.md         Engineering rules
 DESIGN.md         Design system
@@ -46,6 +50,8 @@ DESIGN.md         Design system
 3. **Website** — `cd website`, `npm install`, copy `.env.example` to `.env`
    and fill in `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
    `VITE_AUTH_REDIRECT_URL`, `VITE_API_URL`, then `npm run dev`.
+4. **Mobile** — `cd mobile`, `npm install`, copy `.env.example` to `.env`,
+   then `npx expo start` and open it in Expo Go / an emulator.
 
 ## Documentation
 

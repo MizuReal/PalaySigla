@@ -8,7 +8,7 @@
 | Backend | FastAPI (async), httpx, pydantic-settings |
 | Database + Auth + Storage | Supabase (PostgreSQL, email/password auth, private buckets) |
 | Geocoding | Nominatim / OpenStreetMap, proxied through the backend |
-| Mobile | Planned stub (React Native/Expo) |
+| Mobile | Expo SDK 57 (React Native), React Navigation v7, Inter typeface — landing screen shipped |
 
 **Key rule:** the backend is the sole gateway to external APIs. The frontend
 never calls Nominatim (or any third-party service) directly — everything
@@ -169,7 +169,7 @@ flowchart LR
 ├── website/          React web app (services, context, hooks, components, pages)
 ├── backend/          FastAPI app (app/, tests/, pyproject.toml)
 ├── schemas/          Supabase SQL migrations + seed scripts
-├── mobile/           React Native stub (planned)
+├── mobile/           React Native app (Expo) — landing screen shipped; flows pending
 ├── documentation/    These docs
 ├── AGENTS.md         Engineering rules
 └── DESIGN.md         Design system

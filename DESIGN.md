@@ -743,3 +743,39 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
 - **`{component.utility-bar}` dropped from the current build.** The top tagline strip is redundant with the Login affordance in `{component.primary-nav}` and the brand copy in the footer, so the homepage opens directly with the primary nav.
 - **Auth dialog is light-surface.** The `{component.modal-backdrop}` uses `{colors.surface-elevated}` at 70% opacity (the token exists for dark surfaces; here it serves as the dim overlay), while the dialog panel itself follows the light-surface rule: `{colors.canvas}`, 1px `{colors.hairline}` border, no shadow. Focus states follow the global 2px `{colors.primary}` outline rule.
 - **Toasts sit above the modal layer.** The toast viewport renders at a higher z-order than `{component.modal-surface}` so auth-completion notifications remain visible when the dialog closes; toasts otherwise follow the light-surface card treatment (no shadow, hairline border, `{rounded.sm}`).
+
+## Mobile (React Native) Implementation Notes
+
+> Product decision for the PalaySigla mobile build (current scaffold). No new
+> tokens are introduced; these notes only state how the existing system renders
+> on phones. Mobile implementation mirrors the light-only deviations above —
+> the current app ships no `{colors.surface-dark}` chrome.
+
+- **Typeface.** NVIDIA-EMEA is proprietary and cannot ship in an app bundle.
+  Mobile loads **Inter (400/700)** — the open-source pairing documented in the
+  "Note on Font Substitutes" — via `@expo-google-fonts/inter` + `expo-font`,
+  registered once in `App.js`. Every typography token renders in Inter.
+- **Token mirror.** The DESIGN.md front matter is mirrored verbatim in
+  `mobile/src/theme/designTokens.js` (colors, spacing, radius, type scale).
+  That module is the only place raw values appear in mobile code; any future
+  token change updates DESIGN.md and the module together.
+- **`{typography.display-xl}` collapse.** Phones always sit inside the
+  `<= 480px` band where DESIGN.md scales the hero display face 48px → 32px;
+  the mobile token file therefore ships `display-xl` at 32px (40px line).
+- **No backdrop video.** The web hero's muted rice-field backdrop video is a
+  battery/data cost with no layout role on phones; the hero carries the
+  carousel card alone and the copy block sits directly on `{colors.surface-soft}`.
+- **Dead anchors removed.** The mobile landing is one scrolling screen, so the
+  nav login button, hero `{component.button-primary}` / `{component.button-outline}`
+  pairs, the early-access form, and the CTA strip are absent until their target
+  flows (auth, scanning, marketplace) exist. The footer link columns — all
+  page anchors — are likewise omitted; the brand block and fine-print row remain.
+- **`{component.corner-square}`.** Continues the web build's discontinued-on-cards
+  deviation; the green square survives only as the brand mark block in the top
+  bar and footer.
+- **Icons.** The website's stroke icon set (24px viewBox, 1.8 stroke) is ported
+  verbatim to `react-native-svg` in `mobile/src/components/Icon.jsx`; glyph
+  geometry stays identical across surfaces.
+- **Touch.** Interactive elements hold the `>= 44px` WCAG AA target from the
+  responsive rules (chevron buttons are exactly 44×44; dot indicators expose
+  44px pressable hit areas).
