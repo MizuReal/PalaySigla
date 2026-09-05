@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.api.chat import router as chat_router
 from app.api.geocode import router as geocode_router
 from app.core.config import get_settings
 
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
         return HealthResponse(status="ok")
 
     app.include_router(geocode_router)
+    app.include_router(chat_router)
     return app
 
 

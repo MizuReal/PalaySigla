@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import AuthModal from './components/AuthModal.jsx'
 import AuthToasts from './components/AuthToasts.jsx'
+import ChatWidget from './components/chat/ChatWidget.jsx'
 import AuthProvider from './context/AuthProvider.jsx'
 import ToastProvider from './context/ToastProvider.jsx'
 import { useAuth } from './context/authContext.js'
@@ -31,6 +32,7 @@ export function App() {
         <RouterProvider router={router} />
         <AppModals />
         <AuthToasts />
+        <ChatWidget />
       </AuthProvider>
     </ToastProvider>
   )

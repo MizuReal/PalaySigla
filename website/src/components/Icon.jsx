@@ -81,6 +81,22 @@ const ICON_PATHS = {
       <path d="M18 6L6 18" />
     </>
   ),
+  chat: <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />,
+  send: (
+    <>
+      <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+      <path d="M22 2 11 13" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </>
+  ),
   info: (
     <>
       <circle cx="12" cy="12" r="9" />
