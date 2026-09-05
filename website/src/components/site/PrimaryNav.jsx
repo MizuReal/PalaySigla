@@ -4,7 +4,8 @@ import Button from '../Button.jsx'
 import Container from '../Container.jsx'
 import Icon from '../Icon.jsx'
 import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext.js'
-import { getDisplayName } from '../../utils/userProfile.js'
+import useAvatar from '../../hooks/useAvatar.js'
+import { getDisplayName, getInitials } from '../../utils/userProfile.js'
 
 const PAGE_LINKS = [
   { label: 'Marketplace', to: '/marketplace' },
@@ -112,8 +113,24 @@ function BrandMark() {
   )
 }
 
+function AccountAvatar({ avatarUrl, fallbackName, sizeClass }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-hairline bg-surface-soft ${sizeClass}`}
+    >
+      {avatarUrl ? (
+        <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <span className="caption-xs text-ink">{getInitials(fallbackName)}</span>
+      )}
+    </span>
+  )
+}
+
 function PrimaryNav() {
   const { user, isInitializing, openAuthModal, signOut } = useAuth()
+  const { avatarUrl } = useAvatar()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [signOutError, setSignOutError] = useState('')
@@ -154,9 +171,20 @@ function PrimaryNav() {
     if (user) {
       return (
         <div className="flex items-center gap-6">
-          <span className="body-strong max-w-40 truncate text-ink">
-            {getDisplayName(user)}
-          </span>
+          <Link
+            to="/profile"
+            className="group flex items-center gap-2.5"
+            aria-label={`Open your profile (${getDisplayName(user)})`}
+          >
+            <AccountAvatar
+              avatarUrl={avatarUrl}
+              fallbackName={getDisplayName(user)}
+              sizeClass="h-8 w-8"
+            />
+            <span className="body-strong max-w-40 truncate text-ink transition-colors group-hover:text-primary">
+              {getDisplayName(user)}
+            </span>
+          </Link>
           <Button variant="outline" onClick={handleSignOut}>
             Sign out
           </Button>
@@ -260,9 +288,20 @@ function PrimaryNav() {
           <Container className="pb-10">
             {user ? (
               <>
-                <p className="body-strong mb-4 text-ink">
-                  {getDisplayName(user)}
-                </p>
+                <Link
+                  to="/profile"
+                  onClick={closeDrawer}
+                  className="mb-4 flex items-center gap-3"
+                >
+                  <AccountAvatar
+                    avatarUrl={avatarUrl}
+                    fallbackName={getDisplayName(user)}
+                    sizeClass="h-10 w-10"
+                  />
+                  <span className="body-strong truncate text-ink transition-colors hover:text-primary">
+                    {getDisplayName(user)}
+                  </span>
+                </Link>
                 <Button
                   variant="outline"
                   onClick={handleSignOut}

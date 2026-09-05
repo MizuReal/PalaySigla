@@ -8,6 +8,7 @@ import { useAuth } from './context/authContext.js'
 import Home from './pages/Home.jsx'
 import MarketplacePage from './pages/MarketplacePage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
 import RouteErrorPage from './pages/RouteErrorPage.jsx'
 
 const router = createBrowserRouter([
@@ -21,6 +22,10 @@ const router = createBrowserRouter([
       {
         path: '/marketplace',
         element: <MarketplacePage />,
+      },
+      {
+        path: '/profile',
+        element: <ProfilePage />,
       },
       {
         path: '*',

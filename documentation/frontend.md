@@ -42,9 +42,9 @@ npm run dev            # http://localhost:5173
 src/
 ├── services/     All Supabase + backend calls (nothing calls supabase.auth/from/storage outside here)
 ├── context/      AuthProvider, ToastProvider (+ their context/hook modules)
-├── hooks/        useListings, usePostListing, useListingDetail
-├── components/   Modal, AuthModal, AuthToasts, Toast, Button, Icon, marketplace/*
-├── pages/        Home (marketing), MarketplacePage
+├── hooks/        useListings, usePostListing, useListingDetail, useProfile
+├── components/   Modal, AuthModal, AuthToasts, Toast, Button, Icon, marketplace/*, profile/*
+├── pages/        Home (marketing), MarketplacePage, ProfilePage
 └── utils/        validation patterns, image compression, formatting, auth URL hints
 ```
 
@@ -67,6 +67,27 @@ src/
   uses a Leaflet map with Nominatim search routed through the backend.
 - **Owner actions:** mark as sold, remove (soft delete, inline confirm).
 - Everything goes through `services/listings.js` and `services/geocode.js`.
+
+### Profile
+
+- **`/profile`** — signed-out visitors get a sign-in pitch panel; signed-in
+  users manage their photo, display name, and PH contact number.
+- Avatar: JPEG/PNG ≤ 10 MB, compressed client-side to ≤ 512 px (EXIF
+  stripped), staged until one Save commits photo + fields together; stored in
+  the private `avatars` bucket at `{user_id}/avatar.jpg` and served via
+  cached signed URLs. Name edits sync to `user_metadata` so the nav chip and
+  mobile stay consistent.
+- Contact number accepts `09…`, `+63…`, and `63…` forms with any separator
+  style and is normalized to E.164 (`+63`) — validated client-side and
+  constrained by a DB `CHECK` (`^\+63[0-9]{10}$`).
+- The signed-in navbar chip shows the avatar (32 px desktop / 40 px drawer,
+  initials monogram fallback) beside the name and links to `/profile`; the
+  URL is fetched via `services/profile.js#getOwnAvatarUrl` (~60 s per-user
+  cache) through `hooks/useAvatar.js`.
+- Ratings & reviews is a schema-backed placeholder: `rating_avg` /
+  `rating_count` on `profiles` render an empty state until a future reviews
+  table populates them.
+- Everything goes through `services/profile.js`.
 
 ## Conventions
 

@@ -2,6 +2,7 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
 
 const MAX_IMAGE_DIMENSION = 1600
+export const MAX_AVATAR_DIMENSION = 512
 const JPEG_QUALITY = 0.82
 
 export function validateImageFile(file) {
@@ -24,9 +25,9 @@ function loadImage(file) {
   })
 }
 
-export async function compressImage(file) {
+export async function compressImage(file, maxDimension = MAX_IMAGE_DIMENSION) {
   const image = await loadImage(file)
-  const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(image.width, image.height))
+  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(image.width * scale)
   canvas.height = Math.round(image.height * scale)

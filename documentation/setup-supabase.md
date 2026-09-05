@@ -49,6 +49,7 @@ Current migrations:
 | File | Contents |
 |---|---|
 | `schemas/001_marketplace.sql` | `listings`, `listing_images`, private `listings` bucket, indexes, `updated_at` trigger, RLS policies |
+| `schemas/002_profiles.sql` | `profiles` (name, PH contact number in E.164, avatar path, rating aggregates), private `avatars` bucket, signup-trigger row creation, RLS policies |
 | `schemas/seed_demo_listings.sql` | Demo rows for local testing (idempotent inserts; safe to run anytime) |
 
 ## Row-level security model
@@ -61,11 +62,15 @@ there is no implicit public access.
 | `listings` | Everyone, but only `status = 'active'` and `deleted_at IS NULL` | Insert/update: owner (`user_id = auth.uid()`). No hard-delete policy — removals are soft deletes via `UPDATE`. |
 | `listing_images` | Everyone | Insert/update/delete: must own the parent listing |
 | `storage.objects` (`listings` bucket) | Everyone (object metadata) | Insert/update/delete: path must start with `auth.uid()::text/` |
+| `profiles` | Owner only (`auth.uid() = id`, `deleted_at IS NULL`) | Insert/update: owner. A row is created by trigger on `auth.users` insert; pre-existing users get one on their first profile save (upsert). |
+| `storage.objects` (`avatars` bucket) | Owner only | Insert/update/delete: path must start with `auth.uid()::text/` |
 
 Consequences:
 
 - Anyone (signed out) can browse listings and see photos via signed URLs.
 - Only the logged-in owner can post, mark sold, or remove their listing.
+- Profile rows and avatars are private to their owner; avatar photos are
+  served through the same signed-URL path as listing photos.
 - The backend can read any listing image later via the service-role key
   (e.g. for ML inference).
 
