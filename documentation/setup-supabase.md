@@ -1,13 +1,18 @@
 # Supabase Setup
 
 The project uses one Supabase project for auth, PostgreSQL, and Storage. The
-frontend talks to it with the anon key; the backend will use the service-role
-key once it needs admin access.
+frontend talks to it with the anon key; the backend uses the **service-role
+key** for server-side session validation on protected routes (`POST
+/api/chat` validates the caller's JWT against Supabase's `auth/v1/user`
+endpoint).
 
 ## One-time dashboard configuration
 
 1. **Project Settings → API** — copy **Project URL** and the **anon public**
-   key into `website/.env` (see `documentation/frontend.md`).
+   key into `website/.env` and `mobile/.env` (see `documentation/frontend.md`
+   and `documentation/mobile.md`). Copy the **service_role** key into
+   `backend/.env` as `SUPABASE_SERVICE_ROLE_KEY` (`SUPABASE_SECRET_KEY` is
+   accepted as an alias) together with `SUPABASE_URL`.
 2. **Authentication → Sign In / Up → Providers → Email**
    - **Confirm email: ON** — registration requires a verified email; the UI
      relies on the "check your inbox" flow.
@@ -71,8 +76,10 @@ Consequences:
 - Only the logged-in owner can post, mark sold, or remove their listing.
 - Profile rows and avatars are private to their owner; avatar photos are
   served through the same signed-URL path as listing photos.
-- The backend can read any listing image later via the service-role key
-  (e.g. for ML inference).
+- The backend already uses the service-role key for server-side JWT checks
+  (`/api/chat`); the same key will let it read listing/profile objects later
+  (e.g. for ML inference). It never leaves the server — see the key layout
+  notes in `documentation/backend.md`.
 
 ## Storage usage
 

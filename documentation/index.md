@@ -26,17 +26,26 @@ and how to run it.
 
 - **Website** (React 19 + Vite + Tailwind 4): marketing landing page, Supabase
   email/password auth in a modal (login / register / forgot password), toast
-  notifications, and the **Marketplace** — browse, filter, sort, view, and post
-  listings (photo + price + unit + category + map-pinned location).
+  notifications, the **Marketplace** — browse, filter, sort, view, and post
+  listings (photo + price + unit + category + map-pinned location), owner
+  actions (mark sold / remove), the **Profile** page (photo, display name, PH
+  contact number), a **Palay Assistant** floating chat widget (signed-in,
+  per-user history), and full-page 404 / route-error states.
 - **Backend** (FastAPI): Nominatim geocoding proxy — the only sanctioned path
-  for geocoding requests, with throttling, caching, and rate limits.
-- **Schema**: `listings`, `listing_images`, private `listings` storage bucket,
-  RLS policies, demo seed script.
-- **Mobile** (Expo SDK 57 + React Native): an intro landing screen handing
-  off into a bottom-tab shell — Marketplace, Community, Scan (raised center
-  action), Settings, and a fifth session action cell (Login signed-out /
-  Logout signed-in) keeping the bar at five even cells — all rendered from
-  the DESIGN.md token set via `mobile/src/theme/designTokens.js`. Tab panels
-  are designed placeholders; flows arrive phase by phase.
+  for geocoding requests, with throttling, caching, and rate limits — plus the
+  **Palay Assistant** chat endpoint (Groq-hosted `openai/gpt-oss-20b` behind
+  a two-stage topic guard) with server-side Supabase JWT validation.
+- **Schema**: `listings`, `listing_images`, `profiles`, private `listings`
+  and `avatars` storage buckets, RLS policies, demo seed script.
+- **Mobile** (Expo SDK 57 + React Native): intro landing screen handing off
+  into a bottom-tab shell — Marketplace (live anonymous browse feed),
+  Community, Scan (raised center action), Settings (account), and a fifth
+  session action cell (Login signed-out / Logout signed-in) keeping the bar
+  at five even cells — full email/password auth with in-app email-link
+  returns, and the **Palay Assistant** bottom-sheet chat (root-level overlay
+  over the tabs) — all rendered from the DESIGN.md token set via
+  `mobile/src/theme/designTokens.js`. Community and Scan panels are designed
+  placeholders; posting arrives in a later phase.
 
-ML inference is planned; the backend model directory exists as a stub.
+ML inference (quality, mold, grade, variety from photos) is planned and not
+yet implemented — no model artifacts or inference endpoints exist.

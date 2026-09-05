@@ -3,16 +3,18 @@
 ## Stack
 
 | Layer | Technology |
-|---|---|
+|---|---|---|
 | Website | React 19, react-router v7, Tailwind CSS v4, Leaflet (react-leaflet v5), plain JavaScript |
 | Backend | FastAPI (async), httpx, pydantic-settings |
 | Database + Auth + Storage | Supabase (PostgreSQL, email/password auth, private buckets) |
 | Geocoding | Nominatim / OpenStreetMap, proxied through the backend |
-| Mobile | Expo SDK 57 (React Native), React Navigation v7, Inter typeface — intro landing + bottom-tab shell + full email/password auth shipped |
+| Palay Assistant | Groq-hosted `openai/gpt-oss-20b` (chat-completions), proxied through the backend |
+| Mobile | Expo SDK 57 (React Native), React Navigation v7, Inter typeface — intro landing + bottom-tab shell + marketplace browse + full email/password auth + Palay Assistant shipped |
 
-**Key rule:** the backend is the sole gateway to external APIs. The frontend
-never calls Nominatim (or any third-party service) directly — everything
-routes through FastAPI.
+**Key rules:** the backend is the sole gateway to external APIs. The frontend
+never calls Nominatim, Groq, or any third-party service directly — everything
+routes through FastAPI. Protected backend routes validate the caller's
+Supabase JWT server-side; no client-supplied identity is trusted.
 
 ## Authentication flow
 
@@ -69,6 +71,101 @@ Notes:
 > feedback is the dialog itself, the chat sheet, and the Settings account
 > summary. The Supabase dashboard must allow-list the app return URL (see the
 > ACTION REQUIRED marker in `setup-supabase.md`).
+
+## Backend authentication
+
+Protected routes (currently `/api/chat`) never trust the client payload for
+identity. A reusable FastAPI dependency (`app/core/auth.py#get_current_user`)
+reads the `Authorization: Bearer <token>` header and validates the JWT
+server-side by calling `GET {SUPABASE_URL}/auth/v1/user` with the
+service-role key:
+
+```mermaid
+sequenceDiagram
+    participant F as Frontend service
+    participant R as POST /api/chat
+    participant D as get_current_user
+    participant SB as Supabase auth/v1/user
+    F->>R: Authorization: Bearer <session JWT>
+    R->>D: Depends(get_current_user)
+    D->>SB: GET /auth/v1/user (apikey: service role)
+    SB-->>D: 200 { id } or 400/401/403 bad_jwt
+    alt invalid / missing token
+        D-->>R: HTTPException 401
+    else Supabase down / not configured
+        D-->>R: HTTPException 503
+    else valid
+        D-->>R: user_id (injected, unused by the handler today)
+    end
+```
+
+The frontend gets its token from `supabase.auth.getSession()` at call time —
+no token is ever stored outside the Supabase session. Supabase reports
+malformed/expired/unknown JWTs as `400`/`401`/`403`; all three map to a `401`
+"sign in again" response so a session outage is never confused with an auth
+failure.
+
+## Palay Assistant (chat)
+
+Both apps expose the same assistant behind a signed-in gate. The website
+floats a launcher + panel on every route; the mobile app floats a launcher
+over the tab shell that opens a root-level bottom sheet. Both keep a per-user
+history (localStorage on web, AsyncStorage on mobile) under a
+`palaysigla:chat:<user_id>` key, capped at 20 turns like the server.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as ChatWidget / ChatSheet
+    participant S as services/chatbot.js
+    participant A as POST /api/chat
+    participant D as get_current_user
+    participant B as services/chatbot.py
+    participant G as Groq
+
+    U->>W: sends a question
+    W->>S: sendChatMessage(messages) + access token
+    S->>A: POST /api/chat { messages } (Bearer token)
+    A->>D: validate JWT against Supabase
+    D-->>A: user_id (401 when signed out / expired)
+    A->>B: Chatbot.respond(turns)
+    B->>B: classify_turn — topic keyword guard
+    alt off-topic
+        B-->>A: canned refusal (never reaches Groq)
+    else in scope / greeting / context follow-up
+        B->>G: /chat/completions (system prompt + last 20 turns)
+        G-->>B: completion
+        B->>B: strip markdown → plain text
+        B-->>A: reply
+    end
+    A-->>S: { data: { reply }, error: null }
+    S-->>W: reply appended + persisted
+```
+
+Notes:
+
+- **Two-stage safeguard.** Stage 1 is a word-boundary Tagalog/English
+  vocabulary (`palay`, `bigas`, moisture, `amag`, storage, grading, prices,
+  …) plus greetings; clearly off-topic turns get a fixed polite refusal and
+  never cost a model call. Contextual short follow-ups ("Paano pa?", "Bakit?")
+  count as in-scope only when an earlier user turn matched a topic term.
+  Stage 2 is the system prompt: rice/palay scope only, mirror the user's
+  language, plain text, no emojis/markdown, cite PhilRice when unsure.
+- **Replies are plain text.** The backend strips markdown markers from model
+  output; clients render plain-text bubbles (line breaks preserved) with no
+  markdown parser.
+- **History and limits.** Server: 1–20 turns, each 1–2000 chars, roles
+  `user`/`assistant` only, last turn must be from the user. Client inputs cap
+  at 2000 chars and send at most the newest 20 turns.
+- **Metered, so throttled twice.** Per-IP API limiter defaults to 6 requests
+  per 60 s, and Groq HTTP 429 surfaces as `429 RATE_LIMITED` ("busy") rather
+  than a 502.
+- **Signed-out behaviour.** Web: tapping the launcher opens the auth modal in
+  Login mode (chat opens only on the next tap after sign-in). Mobile: the
+  launcher opens the auth dialog with a `chatIntent`; a successful sign-in
+  closes the dialog and opens the chat sheet automatically. Sign-out closes
+  any open sheet; per-user keys mean an account switch never exposes the
+  previous user's history.
 
 ## Marketplace — browse
 
@@ -176,13 +273,22 @@ flowchart LR
 - The service raises `HTTPException(502)` when Nominatim is unreachable or
   errors; 429 when rate limited.
 
+## ML inference (not yet implemented)
+
+The four scan outputs (quality status, mold detection, market grade, variety
+classification) and the mobile Scan tab are planned but unstarted: no model
+artifacts, no `app/ml/` module, and no inference endpoints exist. The
+intended shape (load-once via lifespan, run inference off the event loop,
+per-class confidence with a `needs_review` flag) is documented in
+`AGENTS.md`, not in this file, until code lands.
+
 ## Repository layout
 
 ```
 ├── website/          React web app (services, context, hooks, components, pages)
 ├── backend/          FastAPI app (app/, tests/, pyproject.toml)
 ├── schemas/          Supabase SQL migrations + seed scripts
-├── mobile/           React Native app (Expo) — intro landing + tab shell + auth; posting/scanning pending
+├── mobile/           React Native app (Expo) — landing + tab shell + marketplace browse + auth + assistant
 ├── documentation/    These docs
 ├── AGENTS.md         Engineering rules
 └── DESIGN.md         Design system

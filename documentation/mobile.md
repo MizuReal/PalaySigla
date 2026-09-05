@@ -2,9 +2,10 @@
 
 Expo SDK 57 (managed workflow) + React Navigation v7 + plain JavaScript —
 no TypeScript. Ships the **light-only landing screen**, the tab shell, the
-**marketplace browse feed**, and **full email/password auth** (login /
-register / forgot password with in-app email-link returns); posting,
-scanning, and community flows arrive in later phases.
+**marketplace browse feed**, **full email/password auth** (login / register /
+forgot password with in-app email-link returns), and the **Palay Assistant
+chat** (root-level bottom sheet over the tabs); posting, scanning, and
+community flows arrive in later phases.
 
 ## Requirements
 
@@ -27,7 +28,7 @@ npx expo start         # press a / i, or scan the QR code with Expo Go
 | `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL (Project Settings → API) |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase **anon public** key — never the service-role key |
 | `EXPO_PUBLIC_AUTH_REDIRECT_URL` | Optional fixed target for verification / password-reset email links. **Leave empty** so links return to the app's own deep link (`palaysigla://auth/callback`, `Linking.createURL` at runtime). See the ACTION REQUIRED marker in `setup-supabase.md` |
-| `EXPO_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — for future API calls |
+| `EXPO_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — used by the Palay Assistant (`services/chatbot.js`); future API calls too |
 
 `.env` is gitignored; `.env.example` documents every key with empty values.
 Only `EXPO_PUBLIC_*` variables reach client code.
@@ -48,14 +49,17 @@ Only `EXPO_PUBLIC_*` variables reach client code.
 src/
 ├── theme/designTokens.js   All DESIGN.md tokens (colors, type scale, spacing, radius) — the only place raw values appear
 ├── components/             BrandBar, Section, SectionHeader, Icon (react-native-svg port of the web icon set),
-│   │                       Button, FeatureNotice, TabScreen, AppTabBar (custom bottom tab bar), Photo
+│   │                       Button, FeatureNotice, TabScreen, AppTabBar (custom bottom tab bar), Photo,
+│   │                       AuthModal (multi-view auth dialog)
+│   ├── chat/               ChatLauncher (floating button over the tabs), ChatModal (root bottom-sheet overlay)
 │   ├── marketplace/        ListingCard, ListingCardSkeleton, ListingFilters, ListingFeed (marketplace browse UI)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
 ├── screens/                LandingScreen (intro), MainTabs, Marketplace (feed), ListingDetail (root-stack push),
 │   │                       Community/Scan/Settings tab screens
 ├── services/               supabaseClient (AsyncStorage session persistence), auth
-│   │                       (sign-in/up/out, reset, deep-link hand-off), chatbot, listings
-├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl, usePulseOpacity
+│   │                       (sign-in/up/out, reset, deep-link hand-off), chatbot (sendChatMessage), listings
+├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
+│   │                       usePalayAssistant (chat state + history), usePulseOpacity
 ├── utils/                  format.js — listing label maps, PHP price + relative-time formatters;
 │   │                       validation.js — NAME/EMAIL_PATTERN ports; userProfile.js — display-name
 │   │                       resolution; authUrlHint.js — auth return-URL builder/parser
@@ -84,9 +88,46 @@ ride the anon key + RLS, which allows selecting non-deleted listings):
   tab bar: eager 4:3 photo, category badge + "Sold" chip, title, price +
   unit, optional quantity and description, and the seller block with the
   map-pinned location label and posted time.
-- **Posting and owner management are deliberately absent** — they require
-  sign-in (RLS insert/update), which ships with the mobile auth phase. The
-  "Post a listing" CTA states this honestly instead of opening a dead form.
+- **Posting and owner management are deliberately absent.** Sign-in has
+  shipped but posting is not wired to it yet (RLS insert/update would allow
+  it); the "Post a listing" CTA states this honestly instead of opening a
+  dead form. Posting arrives in a later phase.
+
+### Palay Assistant (current)
+
+The same backend assistant as the website (`POST /api/chat`, Groq model,
+server-side JWT check), with mobile-specific presentation:
+
+- **Launcher.** A floating 48 px primary square (`ChatLauncher.jsx`) sits
+  above the custom tab bar on all four tabs — it is rendered by the
+  `MainTabs` shell, not per-screen, and does not exist on the Landing intro.
+  Taps while `isInitializing` (cold-start session restore) are ignored so a
+  restore never misroutes to sign-in.
+- **Sheet.** `ChatModal` is a root-level native `Modal` bottom sheet mounted
+  once in `App.js` beside `AuthModal` — above the tab bar and the
+  `ListingDetail` push, closed by the backdrop or the X. Sheet height clamps
+  to 320–512 px and the composer rides the keyboard (manual offset on iOS;
+  Android resizes via `adjustResize`). Tapping the message list never
+  dismisses the keyboard (`keyboardShouldPersistTaps="handled"`).
+- **Conversation.** Mirrors the web widget: Tagalog welcome bubble + three
+  suggested-question chips on empty history, plain-text bubbles (user
+  right / assistant left), pulsing typing indicator with an accessibility
+  alert, error banner with "Try again" (resubmits from the failed turn),
+  header clear-history button needing a second confirm tap within 4 s, input
+  capped at 2000 chars, history trimmed to the newest 20 turns.
+- **Auth gate & intent.** Signed out, the launcher opens the auth dialog in
+  Login mode with a `chatIntent`; a successful sign-in closes the dialog and
+  opens the chat sheet automatically (the intent is cleared if the dialog is
+  dismissed). Signed in, history loads from AsyncStorage keyed
+  `palaysigla:chat:<user_id>`; the sheet re-renders per user id, so an
+  account switch never shows a previous owner's conversation. `signOut()`
+  closes the sheet first.
+- **Sending.** `services/chatbot.js#sendChatMessage` reads the Supabase
+  session token and POSTs `{ messages }` to
+  `{EXPO_PUBLIC_API_URL}/api/chat`. Failure keeps the user's message visible
+  with a friendly error; replies are plain text (no markdown rendering).
+- History is device- and account-local (AsyncStorage) — it does not sync to
+  the website, which keeps its own localStorage copy.
 
 ### Sign-in & accounts (auth phase)
 
@@ -142,7 +183,8 @@ password-reset links return into the app via its URL scheme:
 - Tab content is honest, designed placeholder panels (`FeatureNotice`):
   each states what the phase will bring — no fake data, no dead controls.
   Marketplace and Settings (account) are now live; community and scanning
-  flows replace the remaining panels phase by phase.
+  flows replace the remaining panels phase by phase. The assistant launcher
+  floats over all tabs and the auth dialog overlays everything when open.
 - Landing CTA buttons, nav auth links, and the early-access form stay absent:
   sign-in lives behind the assistant launcher and the Settings tab.
 
