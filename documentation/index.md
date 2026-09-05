@@ -34,8 +34,9 @@ and how to run it.
   RLS policies, demo seed script.
 - **Mobile** (Expo SDK 57 + React Native): an intro landing screen handing
   off into a bottom-tab shell — Marketplace, Community, Scan (raised center
-  action), Settings, and a Logout action cell — all rendered from the
-  DESIGN.md token set via `mobile/src/theme/designTokens.js`. Tab panels are
-  designed placeholders; flows arrive phase by phase.
+  action), Settings, and a fifth session action cell (Login signed-out /
+  Logout signed-in) keeping the bar at five even cells — all rendered from
+  the DESIGN.md token set via `mobile/src/theme/designTokens.js`. Tab panels
+  are designed placeholders; flows arrive phase by phase.
 
 ML inference is planned; the backend model directory exists as a stub.

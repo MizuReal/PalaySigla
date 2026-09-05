@@ -34,8 +34,8 @@ function MarketplaceScreen({ navigation }) {
 
   const handlePostPress = () => {
     Alert.alert(
-      'Posting comes with sign-in',
-      'Posting a listing needs a PalaySigla account. Sign-in and posting ship together in the next phase — until then, every active listing stays open to browse here.'
+      'Posting arrives in a later phase',
+      'Posting a listing needs the full marketplace flow, which ships later. Until then, every active listing stays open to browse here.'
     )
   }
 

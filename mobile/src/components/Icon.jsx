@@ -83,6 +83,25 @@ function CheckGlyph({ color }) {
   return <Path d="M5 13l4 4L19 7" {...strokeProps(color)} />
 }
 
+function CloseGlyph({ color }) {
+  return (
+    <>
+      <Path d="M6 6l12 12" {...strokeProps(color)} />
+      <Path d="M18 6L6 18" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function InfoGlyph({ color }) {
+  return (
+    <>
+      <Circle cx="12" cy="12" r="9" {...strokeProps(color)} />
+      <Path d="M12 11v5" {...strokeProps(color)} />
+      <Circle cx="12" cy="8" r="0.5" {...filledDotProps(color)} />
+    </>
+  )
+}
+
 function ShieldGlyph({ color }) {
   return (
     <>
@@ -112,6 +131,14 @@ function ChevronLeftGlyph({ color }) {
 
 function ChevronRightGlyph({ color }) {
   return <Path d="M9 5l7 7-7 7" {...strokeProps(color)} />
+}
+
+function ChevronDownGlyph({ color }) {
+  return <Path d="M5 9l7 7 7-7" {...strokeProps(color)} />
+}
+
+function ChevronUpGlyph({ color }) {
+  return <Path d="M19 15l-7-7-7 7" {...strokeProps(color)} />
 }
 
 function PinGlyph({ color }) {
@@ -170,6 +197,43 @@ function LogoutGlyph({ color }) {
   )
 }
 
+function LoginGlyph({ color }) {
+  return (
+    <>
+      <Path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" {...strokeProps(color)} />
+      <Path d="M10 17l5-5-5-5" {...strokeProps(color)} />
+      <Path d="M15 12H3" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function ChatGlyph({ color }) {
+  return (
+    <Path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" {...strokeProps(color)} />
+  )
+}
+
+function SendGlyph({ color }) {
+  return (
+    <>
+      <Path d="M22 2l-7 20-4-9-9-4 20-7z" {...strokeProps(color)} />
+      <Path d="M22 2 11 13" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function TrashGlyph({ color }) {
+  return (
+    <>
+      <Path d="M3 6h18" {...strokeProps(color)} />
+      <Path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" {...strokeProps(color)} />
+      <Path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" {...strokeProps(color)} />
+      <Path d="M10 11v6" {...strokeProps(color)} />
+      <Path d="M14 11v6" {...strokeProps(color)} />
+    </>
+  )
+}
+
 const ICON_GLYPHS = {
   camera: CameraGlyph,
   scan: ScanGlyph,
@@ -178,15 +242,23 @@ const ICON_GLYPHS = {
   grade: GradeGlyph,
   variety: VarietyGlyph,
   check: CheckGlyph,
+  close: CloseGlyph,
+  info: InfoGlyph,
   shield: ShieldGlyph,
   scale: ScaleGlyph,
   'chevron-left': ChevronLeftGlyph,
   'chevron-right': ChevronRightGlyph,
+  'chevron-down': ChevronDownGlyph,
+  'chevron-up': ChevronUpGlyph,
   pin: PinGlyph,
   marketplace: MarketplaceGlyph,
   community: CommunityGlyph,
   settings: SettingsGlyph,
   logout: LogoutGlyph,
+  login: LoginGlyph,
+  chat: ChatGlyph,
+  send: SendGlyph,
+  trash: TrashGlyph,
 }
 
 function Icon({ name, size = 24, color = COLORS.primary }) {

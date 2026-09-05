@@ -18,20 +18,31 @@ function Button({
   accessibilityLabel,
   large = false,
   fullWidth = false,
+  disabled = false,
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.button,
         large && styles.buttonLarge,
         fullWidth && styles.buttonFullWidth,
-        pressed && styles.buttonPressed,
+        disabled && styles.buttonDisabled,
+        pressed && !disabled && styles.buttonPressed,
       ]}
     >
-      <Text style={[TYPE.buttonMd, large && TYPE.buttonLg, styles.label]}>
+      <Text
+        style={[
+          TYPE.buttonMd,
+          large && TYPE.buttonLg,
+          styles.label,
+          disabled && styles.labelDisabled,
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -57,8 +68,14 @@ const styles = StyleSheet.create({
   buttonPressed: {
     backgroundColor: COLORS.primaryDark,
   },
+  buttonDisabled: {
+    backgroundColor: COLORS.surfaceSoft,
+  },
   label: {
     color: COLORS.onPrimary,
+  },
+  labelDisabled: {
+    color: COLORS.ash,
   },
 })
 

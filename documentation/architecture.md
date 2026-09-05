@@ -8,7 +8,7 @@
 | Backend | FastAPI (async), httpx, pydantic-settings |
 | Database + Auth + Storage | Supabase (PostgreSQL, email/password auth, private buckets) |
 | Geocoding | Nominatim / OpenStreetMap, proxied through the backend |
-| Mobile | Expo SDK 57 (React Native), React Navigation v7, Inter typeface — intro landing + bottom-tab shell shipped |
+| Mobile | Expo SDK 57 (React Native), React Navigation v7, Inter typeface — intro landing + bottom-tab shell + full email/password auth shipped |
 
 **Key rule:** the backend is the sole gateway to external APIs. The frontend
 never calls Nominatim (or any third-party service) directly — everything
@@ -56,6 +56,19 @@ Notes:
 - Returning from an email confirmation link is detected by snapshotting
   `location.hash` at module load (`utils/authUrlHint.js`) — supabase-js strips
   the hash shortly after.
+
+> **Mobile branch.** supabase-js never detects sessions from a URL on React
+> Native, so the mobile `AuthProvider` keeps its own deep-link listener on the
+> app scheme (`palaysigla://auth/callback`, built by the mobile
+> `utils/authUrlHint.js`). `services/auth.js#completeAuthRedirect` performs the
+> hand-off — PKCE `?code=` via `exchangeCodeForSession`, or the implicit
+> fragment tokens via `setSession` — and reopens the auth dialog in the
+> matching mode (verified panel for `type=signup`, a new-password form for
+> `type=recovery`). Entry modes and the chat open-intent travel through
+> `openAuthModal(mode, options)`; mobile ships no toast layer, so auth
+> feedback is the dialog itself, the chat sheet, and the Settings account
+> summary. The Supabase dashboard must allow-list the app return URL (see the
+> ACTION REQUIRED marker in `setup-supabase.md`).
 
 ## Marketplace — browse
 
@@ -169,7 +182,7 @@ flowchart LR
 ├── website/          React web app (services, context, hooks, components, pages)
 ├── backend/          FastAPI app (app/, tests/, pyproject.toml)
 ├── schemas/          Supabase SQL migrations + seed scripts
-├── mobile/           React Native app (Expo) — landing intro + tab shell; flows pending
+├── mobile/           React Native app (Expo) — intro landing + tab shell + auth; posting/scanning pending
 ├── documentation/    These docs
 ├── AGENTS.md         Engineering rules
 └── DESIGN.md         Design system

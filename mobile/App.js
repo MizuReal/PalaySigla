@@ -1,7 +1,8 @@
 // App shell: typeface loading gate, then the landing screen in a native
-// stack. Auth gating, tabs, and the remaining flows attach here in later
-// phases; nothing renders until Inter is ready so the first paint never
-// falls back to the system font.
+// stack. The sign-in dialog and assistant chat bottom sheet mount at the
+// root beside the navigator (mirroring the website's AppModals + ChatWidget)
+// so they overlay every screen natively; nothing renders until Inter is ready
+// so the first paint never falls back to the system font.
 // Subpath imports bundle only the 400/700 weights the token set uses —
 // the package root would pull every Inter cut into the app.
 import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular'
@@ -11,6 +12,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useFonts } from 'expo-font'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import AuthModal from './src/components/AuthModal.jsx'
+import ChatModal from './src/components/chat/ChatModal.jsx'
+import AuthProvider from './src/context/AuthProvider.jsx'
 import LandingScreen from './src/screens/LandingScreen.jsx'
 import ListingDetailScreen from './src/screens/ListingDetailScreen.jsx'
 import MainTabs from './src/screens/MainTabs.jsx'
@@ -60,7 +64,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <RootNavigator />
+      <AuthProvider>
+        <RootNavigator />
+        <AuthModal />
+        <ChatModal />
+      </AuthProvider>
     </SafeAreaProvider>
   )
 }

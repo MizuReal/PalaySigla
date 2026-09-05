@@ -1,13 +1,16 @@
 // Custom bottom tab bar per DESIGN.md chrome rules: canvas bar, 1px hairline
 // top rule, zero elevation, 56px body (the sub-nav-strip height) plus the
-// bottom safe-area inset. Cells: four navigable tabs + one action cell
-// (Logout) that never navigates — it confirms and resets the root stack to
-// the Landing intro, which is the signed-out state until auth lands.
+// bottom safe-area inset. Cells: four navigable tabs + one action cell that
+// never navigates, so the bar always holds five even cells with Scan centered.
+// Signed out the action cell is Login — it opens the auth dialog in Login
+// mode. Signed in it becomes Logout — it confirms, signs the session out, and
+// resets the root stack to the Landing intro.
 //
 // The center Scan cell renders as a raised 48px `{colors.primary}` square
 // with a black camera glyph, the signature hero slot of a photo-first app.
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { AUTH_MODAL_MODES, useAuth } from '../context/authContext.js'
 import Icon from './Icon.jsx'
 import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens.js'
 
@@ -15,7 +18,7 @@ const ICON_SIZE = 22
 const ACTIVE_INDICATOR_SIZE = 4
 const SCAN_BUTTON_SIZE = 48
 const SCAN_BUTTON_RAISE = 20
-const BAR_HEIGHT = 56
+export const TAB_BAR_HEIGHT = 56
 
 // route names double as the React keys of the mapped cells below
 const TAB_CELLS = [
@@ -80,19 +83,29 @@ function Cell({
 
 function AppTabBar({ state, navigation }) {
   const insets = useSafeAreaInsets()
+  const { user, signOut, openAuthModal } = useAuth()
+
+  const handleLoginPress = () => {
+    openAuthModal(AUTH_MODAL_MODES.LOGIN)
+  }
 
   const handleLogoutPress = () => {
     Alert.alert(
       'Sign out of PalaySigla?',
-      'You\u2019ll return to the intro screen. Your account and scans stay on this device until a real session exists.',
+      "You'll return to the intro screen. Marketplace browsing stays open without an account.",
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Sign out',
           style: 'destructive',
-          onPress: () => {
-            // signed-out state today = back to the Landing intro; a session
-            // signOut call slots in here once auth exists
+          onPress: async () => {
+            try {
+              await signOut()
+            } catch (error) {
+              Alert.alert('Could not sign out', error.message)
+              return
+            }
+            // signed-out state = back to the Landing intro
             navigation.getParent()?.reset({
               index: 0,
               routes: [{ name: 'Landing' }],
@@ -111,7 +124,7 @@ function AppTabBar({ state, navigation }) {
     <View
       style={[
         styles.bar,
-        { paddingBottom: insets.bottom, height: BAR_HEIGHT + insets.bottom },
+        { paddingBottom: insets.bottom, height: TAB_BAR_HEIGHT + insets.bottom },
       ]}
     >
       <View style={styles.cellRow}>
@@ -136,12 +149,21 @@ function AppTabBar({ state, navigation }) {
             />
           )
         })}
-        <Cell
-          icon="logout"
-          label="Logout"
-          onPress={handleLogoutPress}
-          accessibilityRole="button"
-        />
+        {user === null ? (
+          <Cell
+            icon="login"
+            label="Login"
+            onPress={handleLoginPress}
+            accessibilityRole="button"
+          />
+        ) : (
+          <Cell
+            icon="logout"
+            label="Logout"
+            onPress={handleLogoutPress}
+            accessibilityRole="button"
+          />
+        )}
       </View>
     </View>
   )
@@ -158,14 +180,14 @@ const styles = StyleSheet.create({
   cellRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    height: BAR_HEIGHT,
+    height: TAB_BAR_HEIGHT,
     overflow: 'visible',
   },
   cell: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: BAR_HEIGHT,
+    height: TAB_BAR_HEIGHT,
     overflow: 'visible',
   },
   cellContent: {

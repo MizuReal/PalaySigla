@@ -768,9 +768,10 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   carousel card alone and the copy block sits directly on `{colors.surface-soft}`.
 - **Dead anchors removed.** The mobile landing is one scrolling screen, so the
   nav login button, hero `{component.button-primary}` / `{component.button-outline}`
-  pairs, the early-access form, and the CTA strip are absent until their target
-  flows (auth, scanning, marketplace) exist. The footer link columns — all
-  page anchors — are likewise omitted; the brand block and fine-print row remain.
+  pairs, the early-access form, and the CTA strip stay absent from the intro;
+  sign-in lives behind the assistant launcher and the Settings tab, not the
+  landing. The footer link columns — all page anchors — are likewise omitted;
+  the brand block and fine-print row remain.
 - **Landing entry CTA.** The mobile intro carries exactly one action: a
   full-width `{component.button-primary}` rendered with `{typography.button-lg}`
   at 56px height, 2px radius, pressed `{colors.primary-dark}` — the landing's
@@ -791,13 +792,22 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   icon with a small `{rounded.sm}` `{colors.primary}` square indicator and a
   micro label; inactive icons are `{colors.stone}`. The center **Scan** cell
   is a raised 48px `{colors.primary}` square (2px radius, black glyph) —
-  depth by geometry, never by shadow. Logout is an action cell, not a route.
+  depth by geometry, never by shadow. The fifth cell is a session action, not
+  a route: **Login** (signed out, opens the auth dialog in Login mode) or
+  **Logout** (signed in), so the bar always holds five even cells with Scan
+  centered.
 - **Marketplace browse phase.** The marketplace tab ships the live feed
   behind the fixed `{component.marketplace-filters}` toolbar on a
-  `{colors.surface-soft}` band (search field at the `{component.search-input}`
-  40px height, category `{component.pill-tab}`/`{component.pill-tab-active}`
-  strip in a horizontal scroll row, and a three-way sort segmented control in
-  the same pill language). Listings render 1-up as `{component.listing-card}`
+  `{colors.surface-soft}` band. The search field (at the
+  `{component.search-input}` 40px height) is always visible, with an inline
+  Filters chip beside it (40px pill-family, chevron-down/up, 2px hit slop to
+  the 44px touch rule) that expands/collapses the category
+  `{component.pill-tab}`/`{component.pill-tab-active}` strip in a horizontal
+  scroll row and the three-way sort segmented control in the same pill
+  language. The filter region starts collapsed; while a non-default category
+  or sort is applied a `{colors.primary}` dot on the chip keeps the applied
+  state visible with the region closed. Listings render 1-up as
+  `{component.listing-card}`
   hairline cards — 4:3 photo with a canvas category badge chip overlaid, then
   `{component.listing-card-title}`, price + unit, and the pin + location +
   relative-time caption. Load states use `{colors.surface-soft}` pulsing
@@ -812,3 +822,82 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
 - **Touch.** Interactive elements hold the `>= 44px` WCAG AA target from the
   responsive rules (chevron buttons are exactly 44×44; dot indicators expose
   44px pressable hit areas; every tab cell spans the full bar height).
+- **Auth dialog (login / register / forgot password).** Rendered at the root
+  beside the navigator like the website's `AppModals`, so it overlays every
+  screen natively (no route). It is the literal web auth dialog treatment at
+  phone scale: full-screen `{component.modal-backdrop}`
+  (`{colors.surface-elevated}` at ~70% opacity, tap-to-close + Android back)
+  with a centered `{component.modal-surface}` panel (~`min(88%, 448px)`,
+  canvas, 1px `{colors.hairline}` border, 2px radius, no shadow,
+  `{spacing.xl}` padding). Panel content mirrors the web's forms — login
+  (email + password + "Forgot password?" link), register (full name + email +
+  password; `full_name` goes into `user_metadata`), and forgot password —
+  each under a `{typography.caption-md}` primary eyebrow with a heading, a
+  lead, and a 44px close. Fields use the `{component.form-field}` treatment
+  (44px, uppercase `{typography.caption-md}` labels; focus = `{colors.primary}`
+  border, error = `{colors.error}` border + inline `caption-sm` error line);
+  service failures surface in a `{component.form-alert-error}` banner and the
+  submit action is a full-width `{component.button-primary}` with a busy
+  label. Validation follows the website conventions exactly (shared regexes
+  in `utils/validation.js`: blur errors only once a field has content,
+  change clears the field error, submit validates everything and focuses the
+  first invalid field). The dialog remounts on every open and mode change
+  (provider `authModalNonce`), so forms always start fresh. Accounts are
+  created in the app now — email confirmation is enforced, and register /
+  reset flows complete through the email link (below).
+- **Auth email returns (deep links).** Verification and password-reset emails
+  point at the app's own scheme (`palaysigla://auth/callback` via
+  `Linking.createURL`, or `EXPO_PUBLIC_AUTH_REDIRECT_URL` when set). The
+  AuthProvider listener performs the session hand-off (PKCE `?code=`
+  exchange or fragment `#access_token=` restore) and reopens the dialog in
+  the matching state: a sign-up confirmation shows the "Email verified"
+  success panel, and a recovery link opens a "set a new password" form
+  (8–72 characters, `updateUser`). Confirmation and sent states use the
+  `{component.form-alert-success}` treatment (1px `{colors.primary}` border
+  on `{colors.surface-soft}`, check glyph). The Supabase dashboard must
+  allow-list the app's return URLs — marked ACTION REQUIRED in
+  `documentation/setup-supabase.md`.
+- **Account surface (Settings tab).** Signed-out Settings shows an honest
+  account pitch with a full-width "Sign in" `{component.button-primary}` and
+  a `{component.link-inline}`-style "Create an account" link; signed-in
+  Settings shows the account summary (display name from
+  `user_metadata.full_name`, email under a hairline card). Session actions
+  live in the tab bar's fifth cell — **Login** while signed out (a tap opens
+  the auth dialog in Login mode, same entry as the chat launcher without a
+  chat intent) and **Logout** while signed in: Logout performs a real session
+  `signOut()` — closing any open overlay first — before resetting to the
+  intro.
+- **Assistant chat (web widget parity, modal).** The floating launcher — the
+  `{colors.primary}` 48px square family of the raised Scan cell, unraised,
+  with the black chat glyph — sits bottom-right above the tab bar on all four
+  tabs (56px bar height + bottom inset + 16px gap). Signed-out taps open the
+  auth dialog in Login mode with a chat intent, so a successful sign-in
+  closes the dialog and opens the chat sheet (other auth entry points —
+  Settings — simply close the dialog). The chat itself is a root-level **bottom-sheet modal** (the web
+  floating panel's phone-native equivalent): canvas sheet with 1px hairline
+  border, 2px corners, level-3 soft shadow as floating chrome, side gutters
+  `{spacing.xl}`, anchored above the tab bar while idle and ~8px above the
+  keyboard while typing (keyboard-height tracking on iOS; Android's
+  `adjustResize` needs only a small gap), height `min(512, viewport-fit)`,
+  over a light dim backdrop (`{colors.surface-elevated}` at ~35%) that
+  dismisses on tap. Chrome mirrors the web panel: 40px `{colors.primary}`
+  brand tile, `{typography.card-title}` name, `{typography.caption-sm}` scope
+  line, a 44px two-tap clear button (trash glyph; confirm state inverts to
+  the check glyph with a 1px `{colors.error}` border, auto-resetting after
+  ~4s, disabled while a reply is in flight) and a 44px close. Bubbles reuse
+  the web chat treatments: user turns on `{colors.primary}` with
+  `{colors.on-primary}` text, assistant turns on `{colors.surface-soft}` with
+  a 1px `{colors.hairline}` border, 2px radius, `{typography.body-sm}`. The
+  empty state carries the Taglish intro and three tap-to-ask chips; in-flight
+  state is three pulsing dots; failures render as a
+  `{component.form-alert-error}`-style banner with a Try-again affordance.
+  The composer is a 44px `{component.form-field}` input plus a 44px
+  `{colors.primary}` send square. The sheet unmounts on close, so every open
+  reloads history — conversation history persists per user in AsyncStorage
+  under the `palaysigla:chat:<userId>` key (newest 20 turns), wiped only by
+  the clear control. Model replies need no markdown scrubbing on this
+  surface: the backend plain-text rule and sanitizer shipped before the
+  mobile chat existed, so no legacy history requires repair.
+- **Icon additions.** The stroke set gains `chat`, `send`, `trash`, `close`,
+  and `info` glyphs in the same geometry as the web build's additions (24px
+  viewBox, 1.8 stroke).

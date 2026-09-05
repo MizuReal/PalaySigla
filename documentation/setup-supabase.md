@@ -15,7 +15,22 @@ key once it needs admin access.
 3. **Authentication → URL Configuration**
    - **Site URL:** `http://localhost:5173` (dev).
    - **Redirect URLs:** add the same value — the password-reset email link
-     bounces here.
+     bounces here (website).
+
+> **ACTION REQUIRED — mobile auth return URLs.** The mobile app completes
+> email-verification and password-reset links *inside the app* (deep links on
+> the `palaysigla` scheme, handled by `utils/authUrlHint.js` +
+> `services/auth.js#completeAuthRedirect`). Without the entry below those
+> email links resolve in a browser instead of returning to the app:
+> 1. Run `npx expo start` inside `mobile/` and read the printed dev URL.
+> 2. Append `/--/auth/callback` (e.g. `exp://192.168.1.10:8081/--/auth/callback`)
+>    and add it to **Redirect URLs**.
+> 3. Also add `palaysigla://auth/callback` for standalone/dev builds.
+>
+> The exact runtime target is `EXPO_PUBLIC_AUTH_REDIRECT_URL` when set in
+> `mobile/.env`, otherwise `Linking.createURL('auth/callback')`. PKCE and
+> implicit flow types are both handled automatically by the mobile session
+> hand-off — no dashboard flow-type change is needed.
 4. No OAuth providers are enabled; email/password only.
 
 ## Schema changes
