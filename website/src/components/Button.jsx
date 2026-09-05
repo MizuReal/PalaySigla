@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import Icon from './Icon.jsx'
 
 const VARIANT_CLASSES = {
@@ -14,6 +15,7 @@ const DISABLED_CLASSES = 'bg-surface-soft text-ash hover:bg-surface-soft'
 function Button({
   variant = 'primary',
   href = '#',
+  to,
   type,
   onClick,
   disabled = false,
@@ -25,6 +27,15 @@ function Button({
   }`
   const trailingIcon =
     variant === 'ghost' ? <Icon name="arrow-right" className="h-4 w-4" /> : null
+
+  if (to) {
+    return (
+      <Link to={to} className={classes}>
+        {children}
+        {trailingIcon}
+      </Link>
+    )
+  }
 
   if (type === 'submit' || type === 'button' || onClick) {
     return (

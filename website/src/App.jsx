@@ -7,15 +7,26 @@ import ToastProvider from './context/ToastProvider.jsx'
 import { useAuth } from './context/authContext.js'
 import Home from './pages/Home.jsx'
 import MarketplacePage from './pages/MarketplacePage.jsx'
+import NotFoundPage from './pages/NotFoundPage.jsx'
+import RouteErrorPage from './pages/RouteErrorPage.jsx'
 
 const router = createBrowserRouter([
   {
-    path: '/',
-    element: <Home />,
-  },
-  {
-    path: '/marketplace',
-    element: <MarketplacePage />,
+    errorElement: <RouteErrorPage />,
+    children: [
+      {
+        path: '/',
+        element: <Home />,
+      },
+      {
+        path: '/marketplace',
+        element: <MarketplacePage />,
+      },
+      {
+        path: '*',
+        element: <NotFoundPage />,
+      },
+    ],
   },
 ])
 

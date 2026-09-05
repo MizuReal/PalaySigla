@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import Button from '../Button.jsx'
 import Container from '../Container.jsx'
@@ -6,37 +6,100 @@ import Icon from '../Icon.jsx'
 import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext.js'
 import { getDisplayName } from '../../utils/userProfile.js'
 
-const NAV_LINKS = [
-  { label: 'Features', href: '#features' },
+const PAGE_LINKS = [
   { label: 'Marketplace', to: '/marketplace' },
+  { label: 'Rice Husk Analysis', to: '/rice-husk-analysis' },
+  { label: 'Profile', to: '/profile' },
+]
+
+const MORE_LINKS = [
+  { label: 'Features', href: '#features' },
   { label: 'How it works', href: '#how-it-works' },
   { label: 'For you', href: '#audience' },
   { label: 'Early access', href: '#cta' },
 ]
 
-const linkClasses =
-  'body-strong text-ink transition-colors hover:text-primary'
+const linkClasses = 'body-strong text-ink transition-colors hover:text-primary'
 const activeLinkClasses = 'body-strong text-primary'
+const drawerItemClasses =
+  'heading-md border-b border-hairline py-5 transition-colors hover:text-primary'
 
-function NavLinks({ onNavigate }) {
-  return NAV_LINKS.map((link) =>
-    link.to ? (
-      <NavLink
-        key={link.to}
-        to={link.to}
-        end
-        onClick={onNavigate}
-        className={({ isActive }) =>
-          isActive ? activeLinkClasses : linkClasses
-        }
+function RouteLink({ link, onNavigate, getClassName }) {
+  return (
+    <NavLink
+      to={link.to}
+      end
+      onClick={onNavigate}
+      className={({ isActive }) => getClassName(isActive)}
+    >
+      {link.label}
+    </NavLink>
+  )
+}
+
+function MoreMenu({ links }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  // listeners only matter while the panel is open: outside click and Escape dismiss it
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined
+    }
+    const handlePointerDown = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        aria-label="More links"
+        className="flex items-center gap-1.5"
       >
-        {link.label}
-      </NavLink>
-    ) : (
-      <a key={link.href} href={link.href} onClick={onNavigate} className={linkClasses}>
-        {link.label}
-      </a>
-    )
+        <span className={isOpen ? activeLinkClasses : linkClasses}>More</span>
+        <Icon
+          name={isOpen ? 'chevron-up' : 'chevron-down'}
+          className={`h-4 w-4 ${isOpen ? 'text-primary' : 'text-ink'}`}
+        />
+      </button>
+      {isOpen && (
+        <ul
+          role="menu"
+          className="absolute right-0 top-full mt-2 min-w-48 border border-hairline bg-canvas shadow-chrome"
+        >
+          {links.map((link) => (
+            <li key={link.href} role="none">
+              <a
+                role="menuitem"
+                href={link.href}
+                onClick={() => setIsOpen(false)}
+                className="block whitespace-nowrap px-5 py-3 text-ink transition-colors hover:bg-surface-soft hover:text-primary"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -62,6 +125,8 @@ function PrimaryNav() {
     window.addEventListener('scroll', updateScrollState, { passive: true })
     return () => window.removeEventListener('scroll', updateScrollState)
   }, [])
+
+  const closeDrawer = () => setIsDrawerOpen(false)
 
   const handleSignOut = async () => {
     setSignOutError('')
@@ -127,7 +192,16 @@ function PrimaryNav() {
         <BrandMark />
 
         <nav className="hidden items-center gap-8 lg:flex" aria-label="Primary">
-          <NavLinks />
+          {PAGE_LINKS.map((link) => (
+            <RouteLink
+              key={link.to}
+              link={link}
+              getClassName={(isActive) =>
+                isActive ? activeLinkClasses : linkClasses
+              }
+            />
+          ))}
+          <MoreMenu links={MORE_LINKS} />
         </nav>
 
         <div className="hidden items-center gap-6 lg:flex">
@@ -151,7 +225,7 @@ function PrimaryNav() {
             <button
               type="button"
               className="text-ink"
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={closeDrawer}
               aria-label="Close menu"
             >
               <Icon name="close" className="h-7 w-7" />
@@ -161,32 +235,27 @@ function PrimaryNav() {
             className="flex flex-1 flex-col gap-2 px-6 py-8"
             aria-label="Mobile"
           >
-            {NAV_LINKS.map((link) =>
-              link.to ? (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end
-                  onClick={() => setIsDrawerOpen(false)}
-                  className={({ isActive }) =>
-                    `heading-md border-b border-hairline py-5 transition-colors hover:text-primary ${
-                      isActive ? 'text-primary' : 'text-ink'
-                    }`
-                  }
-                >
-                  {link.label}
-                </NavLink>
-              ) : (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="heading-md border-b border-hairline py-5 text-ink transition-colors hover:text-primary"
-                >
-                  {link.label}
-                </a>
-              )
-            )}
+            {PAGE_LINKS.map((link) => (
+              <RouteLink
+                key={link.to}
+                link={link}
+                onNavigate={closeDrawer}
+                getClassName={(isActive) =>
+                  `${drawerItemClasses} ${isActive ? 'text-primary' : 'text-ink'}`
+                }
+              />
+            ))}
+            <span className="mt-8 border-t border-hairline" aria-hidden="true" />
+            {MORE_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={closeDrawer}
+                className={`${drawerItemClasses} text-ink`}
+              >
+                {link.label}
+              </a>
+            ))}
           </nav>
           <Container className="pb-10">
             {user ? (
