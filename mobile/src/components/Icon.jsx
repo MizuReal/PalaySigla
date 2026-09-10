@@ -3,7 +3,7 @@
 // surfaces. Icons are aria-hidden equivalents: they never announce alone and
 // always sit beside text.
 import { Circle, Path, Rect, Svg } from 'react-native-svg'
-import { COLORS } from '../theme/designTokens.js'
+import { COLORS } from '../theme/designTokens'
 
 const strokeProps = (color) => ({
   stroke: color,

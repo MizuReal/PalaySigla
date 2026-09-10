@@ -31,10 +31,10 @@ import {
   sendPasswordReset,
   updatePassword,
 } from '../services/auth'
-import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation.js'
+import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation'
 import Button from './Button.jsx'
 import Icon from './Icon.jsx'
-import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens.js'
+import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens'
 
 const MODAL_MAX_WIDTH = 448
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.'

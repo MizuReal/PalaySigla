@@ -21,8 +21,8 @@ import {
   formatPrice,
   formatRelativeTime,
   UNIT_LABELS,
-} from '../utils/format.js'
-import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../theme/designTokens.js'
+} from '../utils/format'
+import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../theme/designTokens'
 
 function DetailSkeleton() {
   const opacity = usePulseOpacity()

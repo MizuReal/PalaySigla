@@ -3,7 +3,7 @@
 // FeatureNotice supplies its own gutters.
 import { ScrollView, StyleSheet, View } from 'react-native'
 import BrandBar from './BrandBar.jsx'
-import { COLORS } from '../theme/designTokens.js'
+import { COLORS } from '../theme/designTokens'
 
 function TabScreen({ children }) {
   return (

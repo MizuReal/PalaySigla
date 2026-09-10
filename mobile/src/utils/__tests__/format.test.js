@@ -1,4 +1,4 @@
-import { CATEGORY_LABELS, UNIT_LABELS, formatPrice, formatRelativeTime } from '../format.js'
+import { CATEGORY_LABELS, UNIT_LABELS, formatPrice, formatRelativeTime } from '../format'
 
 describe('formatPrice', () => {
   it('formats PHP amounts with the en-PH peso symbol', () => {

@@ -3,7 +3,7 @@
 // and anchor navigation are absent until real flows exist.
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { COLORS, GUTTER, SPACING, TYPE } from '../theme/designTokens.js'
+import { COLORS, GUTTER, SPACING, TYPE } from '../theme/designTokens'
 
 function BrandBar() {
   const insets = useSafeAreaInsets()

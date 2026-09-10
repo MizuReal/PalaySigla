@@ -12,7 +12,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import Icon from './Icon.jsx'
-import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens.js'
+import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens'
 
 const ICON_SIZE = 22
 const ACTIVE_INDICATOR_SIZE = 4

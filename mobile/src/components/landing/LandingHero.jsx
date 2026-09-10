@@ -7,14 +7,14 @@ import { Image as ExpoImage } from 'expo-image'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Button from '../Button.jsx'
 import Icon from '../Icon.jsx'
-import PADDY_SLIDES from '../../data/paddySlides.js'
+import PADDY_SLIDES from '../../data/paddySlides'
 import {
   COLORS,
   GUTTER,
   RADIUS,
   SPACING,
   TYPE,
-} from '../../theme/designTokens.js'
+} from '../../theme/designTokens'
 
 const SLIDE_INTERVAL_MS = 6000
 const PHOTO_TRANSITION_MS = 300

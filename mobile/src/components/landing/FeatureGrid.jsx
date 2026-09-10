@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import Section from '../Section.jsx'
 import SectionHeader from '../SectionHeader.jsx'
 import Icon from '../Icon.jsx'
-import { COLORS, CARD_GAP, SPACING, TYPE } from '../../theme/designTokens.js'
+import { COLORS, CARD_GAP, SPACING, TYPE } from '../../theme/designTokens'
 
 const FEATURES = [
   {

@@ -11,7 +11,7 @@ import CommunityScreen from './CommunityScreen.jsx'
 import MarketplaceScreen from './MarketplaceScreen.jsx'
 import ScanScreen from './ScanScreen.jsx'
 import SettingsScreen from './SettingsScreen.jsx'
-import { COLORS } from '../theme/designTokens.js'
+import { COLORS } from '../theme/designTokens'
 
 const Tab = createBottomTabNavigator()
 

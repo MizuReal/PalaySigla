@@ -26,7 +26,7 @@ import { useAuth } from '../../context/authContext'
 import usePalayAssistant, { MAX_MESSAGE_CHARS } from '../../hooks/usePalayAssistant'
 import usePulseOpacity from '../../hooks/usePulseOpacity'
 import Icon from '../Icon.jsx'
-import { BORDER_WIDTH, COLORS, RADIUS, SPACING, TYPE } from '../../theme/designTokens.js'
+import { BORDER_WIDTH, COLORS, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
 
 const CLEAR_CONFIRM_RESET_MS = 4000
 const SHEET_MAX_HEIGHT = 512

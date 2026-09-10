@@ -11,7 +11,7 @@ import FeatureGrid from '../components/landing/FeatureGrid.jsx'
 import HowItWorks from '../components/landing/HowItWorks.jsx'
 import LandingHero from '../components/landing/LandingHero.jsx'
 import SampleScan from '../components/landing/SampleScan.jsx'
-import { COLORS } from '../theme/designTokens.js'
+import { COLORS } from '../theme/designTokens'
 
 const FIRST_TAB = { screen: 'Marketplace' }
 

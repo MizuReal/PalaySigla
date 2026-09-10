@@ -1,7 +1,7 @@
 // Eyebrow + display heading + supporting copy block that opens every landing
 // section, mirroring the website SectionHeader component.
 import { StyleSheet, Text, View } from 'react-native'
-import { COLORS, SPACING, TYPE } from '../theme/designTokens.js'
+import { COLORS, SPACING, TYPE } from '../theme/designTokens'
 
 function SectionHeader({ eyebrow, title, sub }) {
   return (

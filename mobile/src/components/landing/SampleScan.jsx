@@ -6,8 +6,8 @@ import { StyleSheet, Text, View } from 'react-native'
 import Section from '../Section.jsx'
 import SectionHeader from '../SectionHeader.jsx'
 import Icon from '../Icon.jsx'
-import { GOLDEN_PADDY_IMAGE } from '../../data/paddySlides.js'
-import { COLORS, SPACING, TYPE } from '../../theme/designTokens.js'
+import { GOLDEN_PADDY_IMAGE } from '../../data/paddySlides'
+import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
 
 const PHOTO_ASPECT_RATIO = 4 / 3
 const PHOTO_TRANSITION_MS = 300

@@ -25,7 +25,7 @@ import {
   RADIUS,
   SPACING,
   TYPE,
-} from '../../theme/designTokens.js'
+} from '../../theme/designTokens'
 
 const SKELETON_COUNT = 6
 

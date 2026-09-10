@@ -7,7 +7,7 @@
 // stretches it across its parent so the entry action reads as the page's
 // single obvious action.
 import { Pressable, StyleSheet, Text } from 'react-native'
-import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens.js'
+import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens'
 
 // Landing entry CTA height (DESIGN.md mobile notes — no token added)
 const ENTRY_BUTTON_HEIGHT = 56

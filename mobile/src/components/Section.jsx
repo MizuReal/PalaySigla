@@ -5,7 +5,7 @@ import {
   COLORS,
   GUTTER,
   SECTION_VERTICAL_PADDING,
-} from '../theme/designTokens.js'
+} from '../theme/designTokens'
 
 const TONE_STYLES = {
   canvas: { backgroundColor: COLORS.canvas },

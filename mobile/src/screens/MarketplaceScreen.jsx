@@ -8,7 +8,7 @@ import BrandBar from '../components/BrandBar.jsx'
 import ListingFeed from '../components/marketplace/ListingFeed.jsx'
 import ListingFilters from '../components/marketplace/ListingFilters.jsx'
 import { LISTING_SORTS } from '../services/listings'
-import { COLORS } from '../theme/designTokens.js'
+import { COLORS } from '../theme/designTokens'
 
 const SEARCH_DEBOUNCE_MS = 350
 

@@ -2,14 +2,15 @@
 // spacing, radius) plus the light-only implementation deviations the web
 // build ships. This module is the only place raw design values may appear;
 // components reference tokens, never literal colors or sizes.
+import type { TextStyle } from 'react-native'
 
 // Inter 400/700 is the documented open-source pairing for the proprietary
 // NVIDIA-EMEA face (DESIGN.md, "Note on Font Substitutes"). Both weights are
-// bundled via @expo-google-fonts/inter and registered in App.js.
+// bundled via @expo-google-fonts/inter and registered in App.tsx.
 export const FONTS = Object.freeze({
   regular: 'Inter_400Regular',
   bold: 'Inter_700Bold',
-})
+} as const)
 
 // Values copied verbatim from the DESIGN.md colors front matter. Dark-surface
 // and editorial accents stay in the set (they are referenced by future
@@ -79,15 +80,23 @@ export const GUTTER = 24
 export const SECTION_VERTICAL_PADDING = 32
 export const CARD_GAP = 16
 
+interface TypeTokenInput {
+  weight: number
+  size: number
+  lineHeightScale: number
+  letterSpacing?: number
+  textTransform?: TextStyle['textTransform']
+}
+
 const typeToken = ({
   weight,
   size,
   lineHeightScale,
   letterSpacing = 0,
   textTransform = 'none',
-}) => ({
+}: TypeTokenInput): TextStyle => ({
   fontFamily: weight === 700 ? FONTS.bold : FONTS.regular,
-  fontWeight: weight,
+  fontWeight: weight === 700 ? '700' : '400',
   fontSize: size,
   lineHeight: Math.round(size * lineHeightScale * 100) / 100,
   letterSpacing,
@@ -133,5 +142,3 @@ export const TYPE = Object.freeze({
     textTransform: 'uppercase',
   }),
 })
-
-Object.freeze(TYPE)

@@ -1,10 +1,12 @@
 // Listing label maps and time/price formatters shared by the feed and the
-// detail screen — mirrored from website/src/utils/format.js.
+// detail screen — mirrored from website/src/utils/format.ts.
+import type { ListingCategory, ListingUnit } from '../services/listings'
+
 const MINUTE_MS = 60_000
 const HOUR_MS = 60 * MINUTE_MS
 const DAY_MS = 24 * HOUR_MS
 
-export const CATEGORY_LABELS = Object.freeze({
+export const CATEGORY_LABELS: Record<ListingCategory, string> = Object.freeze({
   palay: 'Palay',
   rice: 'Rice',
   seeds: 'Seeds',
@@ -12,7 +14,7 @@ export const CATEGORY_LABELS = Object.freeze({
   other: 'Other',
 })
 
-export const UNIT_LABELS = Object.freeze({
+export const UNIT_LABELS: Record<ListingUnit, string> = Object.freeze({
   kg: 'per kg',
   sack: 'per sack',
   cavan: 'per cavan',
@@ -26,11 +28,11 @@ const priceFormatter = new Intl.NumberFormat('en-PH', {
   maximumFractionDigits: 2,
 })
 
-export function formatPrice(price) {
+export function formatPrice(price: number): string {
   return priceFormatter.format(price)
 }
 
-export function formatRelativeTime(isoTimestamp) {
+export function formatRelativeTime(isoTimestamp: string): string {
   const elapsedMs = Date.now() - new Date(isoTimestamp).getTime()
   if (elapsedMs < MINUTE_MS) {
     return 'just now'

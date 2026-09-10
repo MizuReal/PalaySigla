@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
-import { COLORS, SPACING, TYPE } from '../theme/designTokens.js'
+import { COLORS, SPACING, TYPE } from '../theme/designTokens'
 
 function Photo({ uri = '', alt = '', fallbackLabel = '', loading = false, style }) {
   // error state is keyed to the URI itself so a new source always retries:

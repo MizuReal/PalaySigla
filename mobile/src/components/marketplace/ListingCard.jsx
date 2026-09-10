@@ -10,8 +10,8 @@ import {
   formatPrice,
   formatRelativeTime,
   UNIT_LABELS,
-} from '../../utils/format.js'
-import { COLORS, SPACING, TYPE } from '../../theme/designTokens.js'
+} from '../../utils/format'
+import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
 
 const PIN_ICON_SIZE = 16
 

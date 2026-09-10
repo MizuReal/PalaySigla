@@ -3,7 +3,7 @@
 // primitives — SectionHeader treatment, a hairline benefit card, and a
 // badge-tag "Next phase" chip. Real flows replace the panel phase by phase.
 import { StyleSheet, Text, View } from 'react-native'
-import { COLORS, GUTTER, SPACING, TYPE } from '../theme/designTokens.js'
+import { COLORS, GUTTER, SPACING, TYPE } from '../theme/designTokens'
 
 function FeatureNotice({ eyebrow, title, sub, points, status }) {
   return (
