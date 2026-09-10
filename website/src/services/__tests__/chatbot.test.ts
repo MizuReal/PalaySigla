@@ -1,18 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetSupabaseMock } from '../../test/supabaseMock.js'
+import type { SupabaseMock } from '../../test/supabaseMock.js'
+import type { ChatTurn } from '../../types/api.js'
 
 vi.mock('../supabaseClient.js', async () => {
   const { createSupabaseMock } = await import('../../test/supabaseMock.js')
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase } from '../supabaseClient.js'
+import { supabase as supabaseClient } from '../supabaseClient.js'
 import { sendChatMessage } from '../chatbot.js'
 
-const API_BASE_URL = 'https://api.palaysigla.test'
-const MESSAGES = [{ role: 'user', content: 'Hello' }]
+// vi.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
+const supabase = supabaseClient as unknown as SupabaseMock
 
-function jsonResponse(body, ok = true) {
+const API_BASE_URL = 'https://api.palaysigla.test'
+const MESSAGES: ChatTurn[] = [{ role: 'user', content: 'Hello' }]
+
+function jsonResponse(body: unknown, ok = true) {
   return { ok, json: async () => body }
 }
 

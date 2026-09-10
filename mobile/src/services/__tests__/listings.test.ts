@@ -1,11 +1,15 @@
-import { createQueryBuilder, createStorageBucketMock, resetSupabaseMock } from '../../test/supabaseMock.js'
+/// <reference types="jest" />
+import { createQueryBuilder, createStorageBucketMock, resetSupabaseMock } from '../../test/supabaseMock'
 
 jest.mock('../supabaseClient', () => {
-  const { createSupabaseMock } = jest.requireActual('../../test/supabaseMock.js')
+  const { createSupabaseMock } = jest.requireActual<typeof import('../../test/supabaseMock')>(
+    '../../test/supabaseMock'
+  )
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase } from '../supabaseClient'
+import type { SupabaseMock } from '../../test/supabaseMock'
+import { supabase as supabaseClient } from '../supabaseClient'
 import {
   fetchListings,
   getListing,
@@ -14,6 +18,10 @@ import {
   LISTING_SORTS,
   LISTING_UNITS,
 } from '../listings'
+import type { ListingSort } from '../listings'
+
+// jest.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
+const supabase = supabaseClient as unknown as SupabaseMock
 
 beforeEach(() => {
   resetSupabaseMock(supabase)
@@ -83,7 +91,11 @@ describe('fetchListings', () => {
     const builder = createQueryBuilder({ data: null, error: null, count: null })
     supabase.from.mockReturnValue(builder)
 
-    await expect(fetchListings({ sort: 'bogus' })).resolves.toEqual({ data: null, total: 0 })
+    // stale persisted sort values are not part of the type but must be handled
+    await expect(fetchListings({ sort: 'bogus' as ListingSort })).resolves.toEqual({
+      data: null,
+      total: 0,
+    })
     expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false })
   })
 

@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { renderHook, waitFor } from '@testing-library/react-native'
 
 jest.mock('../../services/listings', () => ({
@@ -5,8 +6,12 @@ jest.mock('../../services/listings', () => ({
   getListingImageUrl: jest.fn(),
 }))
 
+import type { ListingWithImages } from '../../types/domain'
 import { getListing, getListingImageUrl } from '../../services/listings'
 import useListingDetail from '../useListingDetail'
+
+const mockedGetListing = jest.mocked(getListing)
+const mockedGetListingImageUrl = jest.mocked(getListingImageUrl)
 
 beforeEach(() => {
   jest.resetAllMocks()
@@ -14,13 +19,14 @@ beforeEach(() => {
 
 describe('useListingDetail', () => {
   it('loads the listing and resolves its first image URL', async () => {
+    // the listing double only carries the fields the hook reads
     const listing = {
       id: 'L1',
       title: 'Palay',
       listing_images: [{ storage_path: 'u1/L1/0.jpg' }],
-    }
-    getListing.mockResolvedValue(listing)
-    getListingImageUrl.mockResolvedValue('https://signed.test/L1')
+    } as unknown as ListingWithImages
+    mockedGetListing.mockResolvedValue(listing)
+    mockedGetListingImageUrl.mockResolvedValue('https://signed.test/L1')
 
     const { result } = await renderHook(() => useListingDetail('L1'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -33,7 +39,10 @@ describe('useListingDetail', () => {
   })
 
   it('resolves an empty image URL when the listing has no photos', async () => {
-    getListing.mockResolvedValue({ id: 'L2', listing_images: [] })
+    // partial listing double without photos
+    mockedGetListing.mockResolvedValue(
+      { id: 'L2', listing_images: [] } as unknown as ListingWithImages
+    )
 
     const { result } = await renderHook(() => useListingDetail('L2'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -44,7 +53,8 @@ describe('useListingDetail', () => {
   })
 
   it('handles listings without a listing_images key', async () => {
-    getListing.mockResolvedValue({ id: 'L3' })
+    // partial listing double missing listing_images entirely
+    mockedGetListing.mockResolvedValue({ id: 'L3' } as unknown as ListingWithImages)
 
     const { result } = await renderHook(() => useListingDetail('L3'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -54,7 +64,7 @@ describe('useListingDetail', () => {
   })
 
   it('surfaces load failures as an error message', async () => {
-    getListing.mockRejectedValue(new Error('That listing could not be found.'))
+    mockedGetListing.mockRejectedValue(new Error('That listing could not be found.'))
 
     const { result } = await renderHook(() => useListingDetail('missing'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))

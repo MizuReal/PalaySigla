@@ -3,7 +3,7 @@ import { reverseGeocode, searchPlace } from '../geocode.js'
 
 const API_BASE_URL = 'https://api.palaysigla.test'
 
-function jsonResponse(body, ok = true) {
+function jsonResponse(body: unknown, ok = true) {
   return { ok, json: async () => body }
 }
 

@@ -4,13 +4,14 @@ import {
   createStorageBucketMock,
   resetSupabaseMock,
 } from '../../test/supabaseMock.js'
+import type { SupabaseMock } from '../../test/supabaseMock.js'
 
 vi.mock('../supabaseClient.js', async () => {
   const { createSupabaseMock } = await import('../../test/supabaseMock.js')
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase } from '../supabaseClient.js'
+import { supabase as supabaseClient } from '../supabaseClient.js'
 import {
   fetchProfile,
   getAvatarStoragePath,
@@ -21,6 +22,14 @@ import {
   uploadAvatar,
   upsertProfile,
 } from '../profile.js'
+import type { UpsertProfileInput } from '../profile.js'
+
+// vi.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
+const supabase = supabaseClient as unknown as SupabaseMock
+
+// the mocked storage client never inspects the payload, so a plain object
+// stands in for the Blob the real upload accepts
+const EMPTY_FILE = {} as Blob
 
 beforeEach(() => {
   resetSupabaseMock(supabase)
@@ -104,7 +113,8 @@ describe('upsertProfile', () => {
   it('throws a friendly error when the upsert fails', async () => {
     supabase.from.mockReturnValue(createQueryBuilder({ error: { message: 'boom' } }))
 
-    await expect(upsertProfile('u1', { fullName: 'Juan' })).rejects.toThrow(
+    // only the name is needed to exercise the upsert failure path
+    await expect(upsertProfile('u1', { fullName: 'Juan' } as UpsertProfileInput)).rejects.toThrow(
       'Could not save your profile. Please try again.'
     )
   })
@@ -130,7 +140,8 @@ describe('uploadAvatar', () => {
   it('uploads with upsert to the user avatar path and returns it', async () => {
     const bucket = createStorageBucketMock()
     supabase.storage.from.mockReturnValue(bucket)
-    const file = { name: 'photo.jpg' }
+    // name-only stand-in: the mocked storage client never reads file contents
+    const file = { name: 'photo.jpg' } as unknown as File
 
     await expect(uploadAvatar('upload-user', file)).resolves.toBe('upload-user/avatar.jpg')
 
@@ -146,7 +157,7 @@ describe('uploadAvatar', () => {
     bucket.upload.mockResolvedValue({ data: null, error: { message: 'boom' } })
     supabase.storage.from.mockReturnValue(bucket)
 
-    await expect(uploadAvatar('u1', {})).rejects.toThrow(
+    await expect(uploadAvatar('u1', EMPTY_FILE)).rejects.toThrow(
       'Could not upload your photo. Please try again.'
     )
   })
@@ -171,7 +182,7 @@ describe('uploadAvatar', () => {
       error: null,
     })
     supabase.from.mockReturnValue(builderNew)
-    await uploadAvatar('invalidate-user', {})
+    await uploadAvatar('invalidate-user', EMPTY_FILE)
     await getOwnAvatarUrl('invalidate-user')
 
     expect(supabase.from).toHaveBeenCalledTimes(2)

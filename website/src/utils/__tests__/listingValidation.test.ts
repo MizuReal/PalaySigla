@@ -75,7 +75,8 @@ describe('validateListingStep step 1 (details)', () => {
 describe('validateListingStep step 2 (photo)', () => {
   it('requires an image file', () => {
     expect(validateListingStep(2, {})).toEqual({ photo: 'Add a photo of your listing.' })
-    expect(validateListingStep(2, { imageFile: {} })).toEqual({})
+    // validation only checks presence, so an empty object stands in for a Blob
+    expect(validateListingStep(2, { imageFile: {} as Blob })).toEqual({})
   })
 })
 

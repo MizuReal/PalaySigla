@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { act, renderHook, waitFor } from '@testing-library/react-native'
 
 jest.mock('../../services/listings', () => ({
@@ -7,13 +8,15 @@ jest.mock('../../services/listings', () => ({
 import { getListingImageUrl } from '../../services/listings'
 import useListingImageUrl from '../useListingImageUrl'
 
+const mockedGetListingImageUrl = jest.mocked(getListingImageUrl)
+
 beforeEach(() => {
   jest.resetAllMocks()
 })
 
 describe('useListingImageUrl', () => {
   it('resolves the signed URL for a storage path', async () => {
-    getListingImageUrl.mockResolvedValue('https://signed.test/photo')
+    mockedGetListingImageUrl.mockResolvedValue('https://signed.test/photo')
 
     const { result } = await renderHook(() => useListingImageUrl('u1/L1/0.jpg'))
     await waitFor(() => expect(result.current).toBe('https://signed.test/photo'))
@@ -30,7 +33,7 @@ describe('useListingImageUrl', () => {
   })
 
   it('degrades to an empty string when the lookup fails', async () => {
-    getListingImageUrl.mockRejectedValue(new Error('Could not load the listing photo.'))
+    mockedGetListingImageUrl.mockRejectedValue(new Error('Could not load the listing photo.'))
 
     const { result } = await renderHook(() => useListingImageUrl('u1/L1/0.jpg'))
     await waitFor(() => expect(getListingImageUrl).toHaveBeenCalledTimes(1))

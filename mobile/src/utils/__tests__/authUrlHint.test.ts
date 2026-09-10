@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { AUTH_RETURN_PATH, createAuthReturnUrl, parseAuthRedirectUrl } from '../authUrlHint'
 
 describe('createAuthReturnUrl', () => {

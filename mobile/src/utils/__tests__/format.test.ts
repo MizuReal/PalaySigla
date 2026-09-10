@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { CATEGORY_LABELS, UNIT_LABELS, formatPrice, formatRelativeTime } from '../format'
 
 describe('formatPrice', () => {

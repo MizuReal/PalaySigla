@@ -1,12 +1,16 @@
+/// <reference types="jest" />
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { resetSupabaseMock } from '../../test/supabaseMock.js'
+import { resetSupabaseMock } from '../../test/supabaseMock'
 
 jest.mock('../supabaseClient', () => {
-  const { createSupabaseMock } = jest.requireActual('../../test/supabaseMock.js')
+  const { createSupabaseMock } = jest.requireActual<typeof import('../../test/supabaseMock')>(
+    '../../test/supabaseMock'
+  )
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase } from '../supabaseClient'
+import type { SupabaseMock } from '../../test/supabaseMock'
+import { supabase as supabaseClient } from '../supabaseClient'
 import {
   completeAuthRedirect,
   PASSWORD_MAX_LENGTH,
@@ -17,6 +21,9 @@ import {
   signUpWithEmail,
   updatePassword,
 } from '../auth'
+
+// jest.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
+const supabase = supabaseClient as unknown as SupabaseMock
 
 const PENDING_AUTH_RETURN_KEY = 'palaysigla:pendingAuthReturn'
 const REDIRECT_URL = 'https://palaysigla.test/auth/callback'

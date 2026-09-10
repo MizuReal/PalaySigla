@@ -4,13 +4,14 @@ import {
   createStorageBucketMock,
   resetSupabaseMock,
 } from '../../test/supabaseMock.js'
+import type { SupabaseMock } from '../../test/supabaseMock.js'
 
 vi.mock('../supabaseClient.js', async () => {
   const { createSupabaseMock } = await import('../../test/supabaseMock.js')
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase } from '../supabaseClient.js'
+import { supabase as supabaseClient } from '../supabaseClient.js'
 import {
   createListing,
   fetchListings,
@@ -24,6 +25,14 @@ import {
   updateListingStatus,
   uploadListingImage,
 } from '../listings.js'
+import type { CreateListingInput, ListingSort } from '../listings.js'
+
+// vi.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
+const supabase = supabaseClient as unknown as SupabaseMock
+
+// the mocked storage client never inspects the payload, so a plain object
+// stands in for the Blob the real upload accepts
+const EMPTY_FILE = {} as Blob
 
 beforeEach(() => {
   resetSupabaseMock(supabase)
@@ -93,7 +102,11 @@ describe('fetchListings', () => {
     const builder = createQueryBuilder({ data: null, error: null, count: null })
     supabase.from.mockReturnValue(builder)
 
-    await expect(fetchListings({ sort: 'bogus' })).resolves.toEqual({ data: null, total: 0 })
+    // stale persisted sort values are not part of the type but must be handled
+    await expect(fetchListings({ sort: 'bogus' as ListingSort })).resolves.toEqual({
+      data: null,
+      total: 0,
+    })
     expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false })
   })
 
@@ -222,7 +235,8 @@ describe('createListing', () => {
     const builder = createQueryBuilder({ data: null, error: { message: 'boom' } })
     supabase.from.mockReturnValue(builder)
 
-    await expect(createListing({ userId: 'u1' })).rejects.toThrow(
+    // only the id is needed to exercise the insert failure path
+    await expect(createListing({ userId: 'u1' } as CreateListingInput)).rejects.toThrow(
       'Could not create the listing. Please try again.'
     )
   })
@@ -235,7 +249,8 @@ describe('uploadListingImage', () => {
     const builder = createQueryBuilder({ error: null })
     supabase.from.mockReturnValue(builder)
 
-    const file = { name: 'photo.jpg' }
+    // name-only stand-in: the mocked storage client never reads file contents
+    const file = { name: 'photo.jpg' } as unknown as File
     await expect(uploadListingImage(file, 'L1', 'u1')).resolves.toBe('u1/L1/0.jpg')
 
     expect(supabase.storage.from).toHaveBeenCalledWith('listings')
@@ -255,7 +270,7 @@ describe('uploadListingImage', () => {
     supabase.storage.from.mockReturnValue(bucket)
     supabase.from.mockReturnValue(createQueryBuilder({ error: null }))
 
-    await expect(uploadListingImage({}, 'L1', 'u1', 2)).resolves.toBe('u1/L1/2.jpg')
+    await expect(uploadListingImage(EMPTY_FILE, 'L1', 'u1', 2)).resolves.toBe('u1/L1/2.jpg')
     expect(bucket.upload).toHaveBeenCalledWith('u1/L1/2.jpg', {}, {
       contentType: 'image/jpeg',
       upsert: false,
@@ -267,7 +282,7 @@ describe('uploadListingImage', () => {
     bucket.upload.mockResolvedValue({ data: null, error: { message: 'boom' } })
     supabase.storage.from.mockReturnValue(bucket)
 
-    await expect(uploadListingImage({}, 'L1', 'u1')).rejects.toThrow(
+    await expect(uploadListingImage(EMPTY_FILE, 'L1', 'u1')).rejects.toThrow(
       'Could not upload the photo. Please try again.'
     )
   })
@@ -277,7 +292,7 @@ describe('uploadListingImage', () => {
     supabase.storage.from.mockReturnValue(bucket)
     supabase.from.mockReturnValue(createQueryBuilder({ error: { message: 'boom' } }))
 
-    await expect(uploadListingImage({}, 'L1', 'u1')).rejects.toThrow(
+    await expect(uploadListingImage(EMPTY_FILE, 'L1', 'u1')).rejects.toThrow(
       'Could not save the photo. Please try again.'
     )
   })

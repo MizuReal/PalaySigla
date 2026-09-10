@@ -7,7 +7,11 @@ vi.mock('../../services/listings.js', () => ({
 }))
 
 import { getListing, getListingImageUrl } from '../../services/listings.js'
+import type { ListingWithImages } from '../../types/domain.js'
 import useListingDetail from '../useListingDetail.js'
+
+const getListingMock = vi.mocked(getListing)
+const getListingImageUrlMock = vi.mocked(getListingImageUrl)
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -15,13 +19,14 @@ beforeEach(() => {
 
 describe('useListingDetail', () => {
   it('loads the listing and resolves its first image URL', async () => {
+    // partial row: the hook only reads id, title, and listing_images
     const listing = {
       id: 'L1',
       title: 'Palay',
       listing_images: [{ storage_path: 'u1/L1/0.jpg' }],
-    }
-    getListing.mockResolvedValue(listing)
-    getListingImageUrl.mockResolvedValue('https://signed.test/L1')
+    } as ListingWithImages
+    getListingMock.mockResolvedValue(listing)
+    getListingImageUrlMock.mockResolvedValue('https://signed.test/L1')
 
     const { result } = renderHook(() => useListingDetail('L1'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -34,7 +39,11 @@ describe('useListingDetail', () => {
   })
 
   it('resolves an empty image URL when the listing has no photos', async () => {
-    getListing.mockResolvedValue({ id: 'L2', listing_images: [] })
+    // minimal fixture: the hook only reads id and listing_images
+    getListingMock.mockResolvedValue({
+      id: 'L2',
+      listing_images: [],
+    } as unknown as ListingWithImages)
 
     const { result } = renderHook(() => useListingDetail('L2'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -45,7 +54,8 @@ describe('useListingDetail', () => {
   })
 
   it('handles listings without a listing_images key', async () => {
-    getListing.mockResolvedValue({ id: 'L3' })
+    // minimal fixture: a listing without the listing_images key at all
+    getListingMock.mockResolvedValue({ id: 'L3' } as ListingWithImages)
 
     const { result } = renderHook(() => useListingDetail('L3'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -55,7 +65,7 @@ describe('useListingDetail', () => {
   })
 
   it('surfaces load failures as an error message', async () => {
-    getListing.mockRejectedValue(new Error('That listing could not be found.'))
+    getListingMock.mockRejectedValue(new Error('That listing could not be found.'))
 
     const { result } = renderHook(() => useListingDetail('missing'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
