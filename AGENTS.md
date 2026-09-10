@@ -78,7 +78,8 @@ project-root/
 - Tests never touch a real Supabase project or backend: mock `services/supabaseClient.js`
   and `fetch`. Fake env values come from `website/.env.test` (committed, non-secret) and
   `mobile/jest.setup.js`; tests must pass with no `.env` present.
-- Run `npm run lint` and `npm test` in the affected app before considering a change complete.
+- Run `npm run lint`, `npm test`, and `npm run typecheck` in the affected app before
+  considering a change complete.
 - CI (`.github/workflows/frontend-checks.yml`) runs lint, tests, and
   `npm run typecheck --if-present` for both frontends.
 

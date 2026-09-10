@@ -8,6 +8,8 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+# committed Expo type shim that must survive the generated-file ignore above
+!types/expo-env.d.ts
 
 # Native
 .kotlin/

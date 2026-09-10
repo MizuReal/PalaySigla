@@ -37,6 +37,7 @@ npm run dev            # http://localhost:5173
 | `npm run lint` | ESLint (react-hooks rules included) |
 | `npm test` | Vitest suite (single run) |
 | `npm run test:watch` | Vitest in watch mode |
+| `npm run typecheck` | TypeScript check (`tsc --noEmit`) |
 
 ## Testing
 
@@ -49,8 +50,10 @@ Vitest + jsdom + React Testing Library, configured in `vitest.config.js`.
   storage-bucket doubles used by the service tests.
 - `.env.test` (committed, fake values only) supplies the `VITE_*` keys the suite needs —
   real secrets stay in the gitignored `.env`, and the suite passes without one.
-- CI runs `npm run lint`, `npm test`, and `npm run typecheck --if-present` (the typecheck
-  script arrives with the TypeScript migration).
+- TypeScript checks run via `npm run typecheck` (`tsconfig.json`: `strict` + the modern
+  strictness flags for `.ts`/`.tsx`; `allowJs` + `checkJs: false` leaves untranslated JS
+  parsed but unchecked until each file is converted).
+- CI runs `npm run lint`, `npm test`, and `npm run typecheck`.
 
 ## Source layout
 

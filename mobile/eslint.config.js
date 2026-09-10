@@ -2,8 +2,8 @@ const { defineConfig } = require('eslint/config')
 const expoConfig = require('eslint-config-expo/flat')
 const globals = require('globals')
 
-const TEST_FILES = ['**/__tests__/**/*.js', '**/*.test.js']
-const TEST_SUPPORT_FILES = ['jest.setup.js', 'src/test/**/*.js']
+const TEST_FILES = ['**/__tests__/**/*.{js,ts,tsx}', '**/*.test.{js,ts,tsx}']
+const TEST_SUPPORT_FILES = ['jest.setup.js', 'src/test/**/*.{js,ts}']
 
 module.exports = defineConfig([
   ...expoConfig,

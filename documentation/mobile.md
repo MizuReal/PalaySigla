@@ -44,6 +44,7 @@ Only `EXPO_PUBLIC_*` variables reach client code.
 | `npm run lint` | ESLint (expo flat config, react-hooks included) |
 | `npm test` | Jest suite (single run) |
 | `npm run test:watch` | Jest in watch mode |
+| `npm run typecheck` | TypeScript check (`tsc --noEmit`) |
 
 ## Testing
 
@@ -55,8 +56,10 @@ Jest via the `jest-expo` preset + React Native Testing Library.
   `fetch` mocked), `utils/`, and the listing hooks. `src/test/supabaseMock.js` provides the
   Supabase doubles.
 - RNTL v14's `render`, `renderHook`, and `act` are **async** — always `await` them.
-- CI runs `npm run lint`, `npm test`, and `npm run typecheck --if-present` (the typecheck
-  script arrives with the TypeScript migration).
+- TypeScript checks run via `npm run typecheck` (`tsconfig.json` extends
+  `expo/tsconfig.base` with `strict` + the modern strictness flags; `types/expo-env.d.ts`
+  supplies Expo's global typings because the generated `expo-env.d.ts` is gitignored).
+- CI runs `npm run lint`, `npm test`, and `npm run typecheck`.
 
 ## Source layout
 
