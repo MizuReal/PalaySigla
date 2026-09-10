@@ -6,6 +6,7 @@ const TEST_FILES = ['**/__tests__/**/*.{js,ts,tsx}', '**/*.test.{js,ts,tsx}']
 const TEST_SUPPORT_FILES = ['jest.setup.js', 'src/test/**/*.{js,ts}']
 
 module.exports = defineConfig([
+  { ignores: ['src/types/database.ts'] },
   ...expoConfig,
   {
     files: TEST_FILES,

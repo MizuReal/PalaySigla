@@ -66,8 +66,26 @@ src/
 │                 marketplace/*, profile/*, site/* (nav, footer, landing sections, error pages)
 ├── pages/        Home (marketing), MarketplacePage, ProfilePage, NotFoundPage, RouteErrorPage
 ├── data/         media.js (hero video URL), paddySlides.js (landing slides)
+├── types/        database.ts (generated Supabase types) + api.ts (backend contracts)
 └── utils/        validation patterns, image compression, formatting, auth URL hints
 ```
+
+### Types
+
+`src/types/database.ts` is generated from the live Supabase schema and committed —
+CI has no credentials, and both apps keep an identical copy
+(`mobile/src/types/database.ts`). Regenerate after applying a `schemas/*.sql`
+migration:
+
+```bash
+npx supabase@2.117.0 login   # once
+npx supabase@2.117.0 gen types typescript --project-id <project-ref> --schema public > src/types/database.ts
+```
+
+The project ref is the `<ref>` in `VITE_SUPABASE_URL` (`https://<ref>.supabase.co`).
+Copy the regenerated file to the mobile app to keep them in sync. `src/types/api.ts`
+is hand-written from the backend Pydantic models (`backend/app/models/`) and is not
+generated.
 
 ## Routing
 

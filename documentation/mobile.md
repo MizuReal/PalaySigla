@@ -78,11 +78,26 @@ src/
 │   │                       (sign-in/up/out, reset, deep-link hand-off), chatbot (sendChatMessage), listings
 ├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
 │   │                       usePalayAssistant (chat state + history), usePulseOpacity
+├── types/                  database.ts (generated Supabase types; copy of the website file) + api.ts (backend contracts)
 ├── utils/                  format.js — listing label maps, PHP price + relative-time formatters;
 │   │                       validation.js — NAME/EMAIL_PATTERN ports; userProfile.js — display-name
 │   │                       resolution; authUrlHint.js — auth return-URL builder/parser
 └── data/                   paddySlides.js — landing slide content, mirrored from website/src/data
 ```
+
+### Types
+
+`src/types/database.ts` is a committed copy of the website's generated file (CI has
+no credentials). After a `schemas/*.sql` migration, regenerate it in the website
+app and copy it here:
+
+```bash
+cd website
+npx supabase@2.117.0 gen types typescript --project-id <project-ref> --schema public > src/types/database.ts
+cp src/types/database.ts ../mobile/src/types/database.ts
+```
+
+`src/types/api.ts` is hand-written from the backend Pydantic models.
 
 ## Features
 

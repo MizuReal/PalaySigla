@@ -8,7 +8,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 const REACT_CONFIGS = [reactHooks.configs.flat.recommended, reactRefresh.configs.vite]
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'src/types/database.ts']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [js.configs.recommended, ...REACT_CONFIGS],
