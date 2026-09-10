@@ -24,8 +24,8 @@ endpoint).
 
 > **ACTION REQUIRED — mobile auth return URLs.** The mobile app completes
 > email-verification and password-reset links *inside the app* (deep links on
-> the `palaysigla` scheme, handled by `utils/authUrlHint.js` +
-> `services/auth.js#completeAuthRedirect`). Without the entry below those
+> the `palaysigla` scheme, handled by `utils/authUrlHint.ts` +
+> `services/auth.ts#completeAuthRedirect`). Without the entry below those
 > email links resolve in a browser instead of returning to the app:
 > 1. Run `npx expo start` inside `mobile/` and read the printed dev URL.
 > 2. Append `/--/auth/callback` (e.g. `exp://192.168.1.10:8081/--/auth/callback`)

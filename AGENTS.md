@@ -72,10 +72,10 @@ project-root/
 
 - Web tests: `cd website && npm test` (Vitest + jsdom + React Testing Library).
 - Mobile tests: `cd mobile && npm test` (Jest via `jest-expo` + React Native Testing Library).
-- Tests live in `__tests__/` directories next to the modules they cover, named `*.test.js`.
+- Tests live in `__tests__/` directories next to the modules they cover, named `*.test.ts`.
 - Shared test doubles live in `website/src/test/` and `mobile/src/test/` — including the
   Supabase client mock used by every service test.
-- Tests never touch a real Supabase project or backend: mock `services/supabaseClient.js`
+- Tests never touch a real Supabase project or backend: mock `services/supabaseClient.ts`
   and `fetch`. Fake env values come from `website/.env.test` (committed, non-secret) and
   `mobile/jest.setup.js`; tests must pass with no `.env` present.
 - Run `npm run lint`, `npm test`, and `npm run typecheck` in the affected app before
@@ -106,8 +106,8 @@ project-root/
   acceptable when Tailwind or StyleSheet cannot express them. All other inline styles are forbidden.
 - `camelCase` for variables, functions, hooks. `PascalCase` for components.
   `SCREAMING_SNAKE_CASE` for module-level constants.
-- File names: `PascalCase` for components (`AssessmentCard.jsx`), `camelCase` for everything else
-  (`useAssessment.js`).
+- File names: `PascalCase` for components (`AssessmentCard.tsx`), `camelCase` for everything else
+  (`useAssessment.ts`).
 - Custom hooks must be prefixed with `use` and encapsulate all logic for a single concern.
 - All Supabase calls go through `src/services/`. No raw `supabase.from()`, `supabase.rpc()`, or
   `supabase.auth.*` calls inside components, hooks, or pages.
@@ -150,7 +150,7 @@ project-root/
 
 - Expo (managed workflow preferred unless a bare module is strictly required).
 - Navigation: React Navigation v7. Native Stack, Bottom Tabs, and Drawer navigators.
-  Conditional auth gating in `App.js`. No custom navigation logic.
+  Conditional auth gating in `App.tsx`. No custom navigation logic.
 - Supabase client must use `AsyncStorage` as the storage adapter. No in-memory only sessions.
 - Camera capture: `expo-image-picker` with explicit permission requests before launch.
   Handle `denied` and `undetermined` states with user-facing messaging — never silently fail.
@@ -162,7 +162,7 @@ project-root/
 - All styles via `StyleSheet.create()`. No inline style objects except for dynamic dimensions.
 - Location: always request permissions explicitly with `expo-location` before any GPS access.
   Handle `denied` and `undetermined` states with user-facing messaging — never silently fail.
-- Platform-specific code via `Platform.OS === 'ios'` checks or `.ios.js`/`.android.js` file splits.
+- Platform-specific code via `Platform.OS === 'ios'` checks or `.ios.ts`/`.android.ts` file splits.
 - Environment variables: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`. Never
   hardcode these values in source files.
 

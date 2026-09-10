@@ -46,7 +46,7 @@ and how to run it.
   at five even cells — full email/password auth with in-app email-link
   returns, and the **Palay Assistant** bottom-sheet chat (root-level overlay
   over the tabs) — all rendered from the DESIGN.md token set via
-  `mobile/src/theme/designTokens.js`. Community and Scan panels are designed
+  `mobile/src/theme/designTokens.ts`. Community and Scan panels are designed
   placeholders; posting arrives in a later phase.
 
 ML inference (quality, mold, grade, variety from photos) is planned and not

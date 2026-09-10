@@ -762,9 +762,9 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
 - **Typeface.** NVIDIA-EMEA is proprietary and cannot ship in an app bundle.
   Mobile loads **Inter (400/700)** — the open-source pairing documented in the
   "Note on Font Substitutes" — via `@expo-google-fonts/inter` + `expo-font`,
-  registered once in `App.js`. Every typography token renders in Inter.
+  registered once in `App.tsx`. Every typography token renders in Inter.
 - **Token mirror.** The DESIGN.md front matter is mirrored verbatim in
-  `mobile/src/theme/designTokens.js` (colors, spacing, radius, type scale).
+  `mobile/src/theme/designTokens.ts` (colors, spacing, radius, type scale).
   That module is the only place raw values appear in mobile code; any future
   token change updates DESIGN.md and the module together.
 - **`{typography.display-xl}` collapse.** Phones always sit inside the
@@ -790,7 +790,7 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   deviation; the green square survives only as the brand mark block in the top
   bar and footer.
 - **Icons.** The website's stroke icon set (24px viewBox, 1.8 stroke) is ported
-  verbatim to `react-native-svg` in `mobile/src/components/Icon.jsx`; glyph
+  verbatim to `react-native-svg` in `mobile/src/components/Icon.tsx`; glyph
   geometry stays identical across surfaces. Tab glyphs (marketplace,
   community, settings, logout) are added in the same stroke language.
 - **Bottom tab bar.** The app shell's tab bar is custom-built (no platform
@@ -846,7 +846,7 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   service failures surface in a `{component.form-alert-error}` banner and the
   submit action is a full-width `{component.button-primary}` with a busy
   label. Validation follows the website conventions exactly (shared regexes
-  in `utils/validation.js`: blur errors only once a field has content,
+  in `utils/validation.ts`: blur errors only once a field has content,
   change clears the field error, submit validates everything and focuses the
   first invalid field). The dialog remounts on every open and mode change
   (provider `authModalNonce`), so forms always start fresh. Accounts are

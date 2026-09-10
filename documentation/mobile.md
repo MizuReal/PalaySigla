@@ -28,7 +28,7 @@ npx expo start         # press a / i, or scan the QR code with Expo Go
 | `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL (Project Settings → API) |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase **anon public** key — never the service-role key |
 | `EXPO_PUBLIC_AUTH_REDIRECT_URL` | Optional fixed target for verification / password-reset email links. **Leave empty** so links return to the app's own deep link (`palaysigla://auth/callback`, `Linking.createURL` at runtime). See the ACTION REQUIRED marker in `setup-supabase.md` |
-| `EXPO_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — used by the Palay Assistant (`services/chatbot.js`); future API calls too |
+| `EXPO_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — used by the Palay Assistant (`services/chatbot.ts`); future API calls too |
 
 `.env` is gitignored; `.env.example` documents every key with empty values.
 Only `EXPO_PUBLIC_*` variables reach client code.
@@ -53,7 +53,7 @@ Jest via the `jest-expo` preset + React Native Testing Library.
 - `jest.setup.js` mocks AsyncStorage, sets the React `act` environment, and injects fake
   `EXPO_PUBLIC_*` values — the suite never reads the real `.env`.
 - Characterization tests live in `src/**/__tests__/` and cover `services/` (Supabase and
-  `fetch` mocked), `utils/`, and the listing hooks. `src/test/supabaseMock.js` provides the
+  `fetch` mocked), `utils/`, and the listing hooks. `src/test/supabaseMock.ts` provides the
   Supabase doubles.
 - RNTL v14's `render`, `renderHook`, and `act` are **async** — always `await` them.
 - TypeScript checks run via `npm run typecheck` (`tsconfig.json` extends
@@ -65,7 +65,7 @@ Jest via the `jest-expo` preset + React Native Testing Library.
 
 ```
 src/
-├── theme/designTokens.js   All DESIGN.md tokens (colors, type scale, spacing, radius) — the only place raw values appear
+├── theme/designTokens.ts   All DESIGN.md tokens (colors, type scale, spacing, radius) — the only place raw values appear
 ├── components/             BrandBar, Section, SectionHeader, Icon (react-native-svg port of the web icon set),
 │   │                       Button, FeatureNotice, TabScreen, AppTabBar (custom bottom tab bar), Photo,
 │   │                       AuthModal (multi-view auth dialog)
@@ -79,10 +79,10 @@ src/
 ├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
 │   │                       usePalayAssistant (chat state + history), usePulseOpacity
 ├── types/                  database.ts (generated Supabase types; copy of the website file) + api.ts (backend contracts)
-├── utils/                  format.js — listing label maps, PHP price + relative-time formatters;
-│   │                       validation.js — NAME/EMAIL_PATTERN ports; userProfile.js — display-name
-│   │                       resolution; authUrlHint.js — auth return-URL builder/parser
-└── data/                   paddySlides.js — landing slide content, mirrored from website/src/data
+├── utils/                  format.ts — listing label maps, PHP price + relative-time formatters;
+│   │                       validation.ts — NAME/EMAIL_PATTERN ports; userProfile.ts — display-name
+│   │                       resolution; authUrlHint.ts — auth return-URL builder/parser
+└── data/                   paddySlides.ts — landing slide content, mirrored from website/src/data
 ```
 
 ### Types
@@ -131,13 +131,13 @@ ride the anon key + RLS, which allows selecting non-deleted listings):
 The same backend assistant as the website (`POST /api/chat`, Groq model,
 server-side JWT check), with mobile-specific presentation:
 
-- **Launcher.** A floating 48 px primary square (`ChatLauncher.jsx`) sits
+- **Launcher.** A floating 48 px primary square (`ChatLauncher.tsx`) sits
   above the custom tab bar on all four tabs — it is rendered by the
   `MainTabs` shell, not per-screen, and does not exist on the Landing intro.
   Taps while `isInitializing` (cold-start session restore) are ignored so a
   restore never misroutes to sign-in.
 - **Sheet.** `ChatModal` is a root-level native `Modal` bottom sheet mounted
-  once in `App.js` beside `AuthModal` — above the tab bar and the
+  once in `App.tsx` beside `AuthModal` — above the tab bar and the
   `ListingDetail` push, closed by the backdrop or the X. Sheet height clamps
   to 320–512 px and the composer rides the keyboard (manual offset on iOS;
   Android resizes via `adjustResize`). Tapping the message list never
@@ -155,7 +155,7 @@ server-side JWT check), with mobile-specific presentation:
   `palaysigla:chat:<user_id>`; the sheet re-renders per user id, so an
   account switch never shows a previous owner's conversation. `signOut()`
   closes the sheet first.
-- **Sending.** `services/chatbot.js#sendChatMessage` reads the Supabase
+- **Sending.** `services/chatbot.ts#sendChatMessage` reads the Supabase
   session token and POSTs `{ messages }` to
   `{EXPO_PUBLIC_API_URL}/api/chat`. Failure keeps the user's message visible
   with a friendly error; replies are plain text (no markdown rendering).
@@ -181,16 +181,16 @@ password-reset links return into the app via its URL scheme:
   in-app "set a new password" form. Sent states use anti-enumeration copy
   ("If … belongs to an account…") exactly like the website.
 - **Validation / sanitation.** Regexes and constants are shared ports of the
-  website's (`utils/validation.js`, `PASSWORD_MIN_LENGTH = 8` /
+  website's (`utils/validation.ts`, `PASSWORD_MIN_LENGTH = 8` /
   `PASSWORD_MAX_LENGTH = 72`). Blur errors surface only after a field has
   content; change clears them; submit validates everything and focuses the
   first invalid field. Emails are trimmed + lowercased in the service layer;
   passwords are never trimmed. Supabase errors map through the same
-  friendly-code table as the web (`services/auth.js`).
-- **Email-link returns.** `utils/authUrlHint.js` builds the return URL
+  friendly-code table as the web (`services/auth.ts`).
+- **Email-link returns.** `utils/authUrlHint.ts` builds the return URL
   (`Linking.createURL('auth/callback')` unless
   `EXPO_PUBLIC_AUTH_REDIRECT_URL` is set) and parses incoming links;
-  `services/auth.js#completeAuthRedirect` hands the session over (PKCE
+  `services/auth.ts#completeAuthRedirect` hands the session over (PKCE
   `?code=` exchange **or** fragment `#access_token=` restore) and the
   provider opens the dialog in the matching mode. **The Supabase dashboard
   must allow-list the app return URL first** — see the ACTION REQUIRED
@@ -225,9 +225,9 @@ password-reset links return into the app via its URL scheme:
 
 - Coding rules live in `AGENTS.md` (read it before editing). Design tokens
   and component treatments live in `DESIGN.md` — no ad-hoc colors/spacing;
-  mobile renders them through `src/theme/designTokens.js`.
+  mobile renders them through `src/theme/designTokens.ts`.
 - Inter 400/700 stands in for the proprietary NVIDIA-EMEA face (the pairing
-  DESIGN.md documents); fonts load once in `App.js`.
+  DESIGN.md documents); fonts load once in `App.tsx`.
 - No component may reach for `supabase` directly — every call goes through
   `src/services/` once features exist.
 - Relative imports of TypeScript modules are extensionless: Jest and Metro do not

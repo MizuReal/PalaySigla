@@ -23,7 +23,7 @@ sequenceDiagram
     participant U as User
     participant N as PrimaryNav / CTA
     participant M as AuthModal
-    participant S as services/auth.js
+    participant S as services/auth.ts
     participant SB as Supabase Auth
     participant P as AuthProvider
     participant T as AuthToasts
@@ -51,18 +51,18 @@ Notes:
 - `AuthProvider` is the only subscriber to `supabase.auth.onAuthStateChange`.
   Components read `user` / `isInitializing` from context — no ad-hoc
   `getSession()` calls.
-- `AuthModal` mounts only while open (conditional render in `App.jsx`), so form
+- `AuthModal` mounts only while open (conditional render in `App.tsx`), so form
   state is always fresh; `Modal` restores focus to the trigger on close.
 - Email confirmation is enforced: `signUp` with a null session returns
   `requiresEmailConfirmation` and the UI shows a "check your inbox" state.
 - Returning from an email confirmation link is detected by snapshotting
-  `location.hash` at module load (`utils/authUrlHint.js`) — supabase-js strips
+  `location.hash` at module load (`utils/authUrlHint.ts`) — supabase-js strips
   the hash shortly after.
 
 > **Mobile branch.** supabase-js never detects sessions from a URL on React
 > Native, so the mobile `AuthProvider` keeps its own deep-link listener on the
 > app scheme (`palaysigla://auth/callback`, built by the mobile
-> `utils/authUrlHint.js`). `services/auth.js#completeAuthRedirect` performs the
+> `utils/authUrlHint.ts`). `services/auth.ts#completeAuthRedirect` performs the
 > hand-off — PKCE `?code=` via `exchangeCodeForSession`, or the implicit
 > fragment tokens via `setSession` — and reopens the auth dialog in the
 > matching mode (verified panel for `type=signup`, a new-password form for
@@ -117,7 +117,7 @@ history (localStorage on web, AsyncStorage on mobile) under a
 sequenceDiagram
     participant U as User
     participant W as ChatWidget / ChatSheet
-    participant S as services/chatbot.js
+    participant S as services/chatbot.ts
     participant A as POST /api/chat
     participant D as get_current_user
     participant B as services/chatbot.py
@@ -175,7 +175,7 @@ sequenceDiagram
     participant PG as MarketplacePage
     participant F as ListingFeed
     participant H as useListings
-    participant S as services/listings.js
+    participant S as services/listings.ts
     participant SB as Supabase (RLS)
 
     U->>PG: filters / search / sort
@@ -214,9 +214,9 @@ sequenceDiagram
     participant U as User
     participant PM as PostListingModal
     participant MP as MapPicker
-    participant G as services/geocode.js
+    participant G as services/geocode.ts
     participant H as usePostListing
-    participant S as services/listings.js
+    participant S as services/listings.ts
     participant SB as Supabase
     participant B as Backend (FastAPI)
     participant N as Nominatim
@@ -256,7 +256,7 @@ Notes:
 
 ```mermaid
 flowchart LR
-    A[MapPicker / search UI] -->|fetch VITE_API_URL| B[services/geocode.js]
+    A[MapPicker / search UI] -->|fetch VITE_API_URL| B[services/geocode.ts]
     B -->|GET /api/geocode/search| C[FastAPI api/geocode.py]
     B -->|GET /api/geocode/reverse| C
     C --> D[services/geocoder.py]

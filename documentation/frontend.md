@@ -23,7 +23,7 @@ npm run dev            # http://localhost:5173
 | `VITE_SUPABASE_URL` | Supabase project URL (Project Settings → API) |
 | `VITE_SUPABASE_ANON_KEY` | Supabase **anon public** key — never the service-role key |
 | `VITE_AUTH_REDIRECT_URL` | URL the password-reset link returns to (e.g. `http://localhost:5173`) |
-| `VITE_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — used by the geocoding proxy client and the Palay Assistant (`services/geocode.js`, `services/chatbot.js`) |
+| `VITE_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — used by the geocoding proxy client and the Palay Assistant (`services/geocode.ts`, `services/chatbot.ts`) |
 
 `.env` is gitignored; `.env.example` documents every key with empty values.
 
@@ -46,7 +46,7 @@ Vitest + jsdom + React Testing Library, configured in `vitest.config.js`.
 - Characterization tests live in `src/**/__tests__/` beside the code they cover and
   exercise the data layer: `services/` (Supabase and `fetch` mocked), `utils/`, and the
   listing hooks.
-- `src/test/supabaseMock.js` provides the chainable Supabase client, query-builder, and
+- `src/test/supabaseMock.ts` provides the chainable Supabase client, query-builder, and
   storage-bucket doubles used by the service tests.
 - `.env.test` (committed, fake values only) supplies the `VITE_*` keys the suite needs —
   real secrets stay in the gitignored `.env`, and the suite passes without one.
@@ -65,7 +65,7 @@ src/
 ├── components/   Modal, AuthModal, AuthToasts, Toast, Button, Icon, chat/ChatWidget,
 │                 marketplace/*, profile/*, site/* (nav, footer, landing sections, error pages)
 ├── pages/        Home (marketing), MarketplacePage, ProfilePage, NotFoundPage, RouteErrorPage
-├── data/         media.js (hero video URL), paddySlides.js (landing slides)
+├── data/         media.ts (hero video URL), paddySlides.ts (landing slides)
 ├── types/        database.ts (generated Supabase types) + api.ts (backend contracts)
 └── utils/        validation patterns, image compression, formatting, auth URL hints
 ```
@@ -101,7 +101,7 @@ generated.
 
 There is no shared layout route: each page renders its own `PrimaryNav` +
 `<main>` + `Footer`. `NotFoundPage` / `RouteErrorPage` render bare
-`FullPageMessage`s. Mounted globally in `App.jsx` outside the router (so they
+`FullPageMessage`s. Mounted globally in `App.tsx` outside the router (so they
 survive route errors and appear on every page): `AuthModal`, `AuthToasts`,
 and `ChatWidget`.
 
@@ -113,8 +113,8 @@ and `ChatWidget`.
 
 ### Palay Assistant (floating chat)
 
-A signed-in-only assistant widget (`components/chat/ChatWidget.jsx` +
-`services/chatbot.js`) mounted once in `App.jsx`, so it floats above every
+A signed-in-only assistant widget (`components/chat/ChatWidget.tsx` +
+`services/chatbot.ts`) mounted once in `App.tsx`, so it floats above every
 route:
 
 - Fixed primary launcher button bottom-right; signed-out taps open the auth
@@ -149,9 +149,9 @@ route:
 ### Home (marketing)
 
 `/` composes `HeroCarousel` (background `rice_field.mp4` video from
-`data/media.js`), `OutputMockup`, `FeatureGrid`, `HowItWorks`,
+`data/media.ts`), `OutputMockup`, `FeatureGrid`, `HowItWorks`,
 `AudienceSection`, and `CtaStrip` inside `PrimaryNav`/`Footer`. Note:
-`data/media.js` hardcodes a public Supabase storage URL for the hero video —
+`data/media.ts` hardcodes a public Supabase storage URL for the hero video —
 a known deviation from the project's no-hardcoded-URLs / private-buckets
 rules, flagged here because docs describe what exists. The navbar's "More"
 dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
@@ -170,7 +170,7 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   decimal-coordinates strip, and the seller / posted line; tall dialogs
   scroll internally.
 - **Owner actions:** mark as sold, remove (soft delete, inline confirm).
-- Everything goes through `services/listings.js` and `services/geocode.js`.
+- Everything goes through `services/listings.ts` and `services/geocode.ts`.
 
 ### Profile
 
@@ -183,8 +183,8 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   Sold / Deleted), and a category + listed / sold (`sold_at`) / deleted
   (`deleted_at`) date line. Active and sold rows reopen the marketplace
   detail modal (owner actions refresh the list); deleted rows are read-only.
-  Backed by `services/listings.js#fetchMyListings`,
-  `hooks/useMyListings.js`, and `components/profile/SellingHistoryPanel.jsx`.
+  Backed by `services/listings.ts#fetchMyListings`,
+  `hooks/useMyListings.ts`, and `components/profile/SellingHistoryPanel.tsx`.
 - Avatar: JPEG/PNG ≤ 10 MB, compressed client-side to ≤ 512 px (EXIF
   stripped), staged until one Save commits photo + fields together; stored in
   the private `avatars` bucket at `{user_id}/avatar.jpg` and served via
@@ -195,12 +195,12 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   constrained by a DB `CHECK` (`^\+63[0-9]{10}$`).
 - The signed-in navbar chip shows the avatar (32 px desktop / 40 px drawer,
   initials monogram fallback) beside the name and links to `/profile`; the
-  URL is fetched via `services/profile.js#getOwnAvatarUrl` (~60 s per-user
-  cache) through `hooks/useAvatar.js`.
+  URL is fetched via `services/profile.ts#getOwnAvatarUrl` (~60 s per-user
+  cache) through `hooks/useAvatar.ts`.
 - Ratings & reviews is a schema-backed placeholder: `rating_avg` /
   `rating_count` on `profiles` render an empty state until a future reviews
   table populates them.
-- Everything goes through `services/profile.js`.
+- Everything goes through `services/profile.ts`.
 
 ## Conventions
 
