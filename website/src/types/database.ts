@@ -59,6 +59,7 @@ export type Database = {
           price: number | null
           quantity: number | null
           seller_name: string
+          sold_at: string | null
           status: string
           title: string
           unit: string
@@ -77,6 +78,7 @@ export type Database = {
           price?: number | null
           quantity?: number | null
           seller_name: string
+          sold_at?: string | null
           status?: string
           title: string
           unit: string
@@ -95,6 +97,7 @@ export type Database = {
           price?: number | null
           quantity?: number | null
           seller_name?: string
+          sold_at?: string | null
           status?: string
           title?: string
           unit?: string
