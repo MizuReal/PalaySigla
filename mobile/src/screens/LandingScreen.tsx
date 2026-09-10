@@ -3,20 +3,23 @@
 // shell (Main); the remaining entry points (scan, auth, marketplace flows)
 // arrive in later phases — nothing else links anywhere yet.
 import { useNavigation } from '@react-navigation/native'
+import type { NavigatorScreenParams } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { ScrollView, StyleSheet } from 'react-native'
-import BrandBar from '../components/BrandBar.jsx'
-import LandingFooter from '../components/landing/LandingFooter.jsx'
-import AudienceSection from '../components/landing/AudienceSection.jsx'
-import FeatureGrid from '../components/landing/FeatureGrid.jsx'
-import HowItWorks from '../components/landing/HowItWorks.jsx'
-import LandingHero from '../components/landing/LandingHero.jsx'
-import SampleScan from '../components/landing/SampleScan.jsx'
+import BrandBar from '../components/BrandBar'
+import LandingFooter from '../components/landing/LandingFooter'
+import AudienceSection from '../components/landing/AudienceSection'
+import FeatureGrid from '../components/landing/FeatureGrid'
+import HowItWorks from '../components/landing/HowItWorks'
+import LandingHero from '../components/landing/LandingHero'
+import SampleScan from '../components/landing/SampleScan'
 import { COLORS } from '../theme/designTokens'
+import type { MainTabParamList, RootStackParamList } from '../types/navigation'
 
-const FIRST_TAB = { screen: 'Marketplace' }
+const FIRST_TAB: NavigatorScreenParams<MainTabParamList> = { screen: 'Marketplace' }
 
 function LandingScreen() {
-  const navigation = useNavigation()
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
 
   const handleGetStarted = () => {
     navigation.navigate('Main', FIRST_TAB)

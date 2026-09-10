@@ -12,8 +12,9 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import Icon from '../components/Icon.jsx'
-import Photo from '../components/Photo.jsx'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import Icon from '../components/Icon'
+import Photo from '../components/Photo'
 import useListingDetail from '../hooks/useListingDetail'
 import usePulseOpacity from '../hooks/usePulseOpacity'
 import {
@@ -23,6 +24,7 @@ import {
   UNIT_LABELS,
 } from '../utils/format'
 import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../theme/designTokens'
+import type { RootStackParamList } from '../types/navigation'
 
 function DetailSkeleton() {
   const opacity = usePulseOpacity()
@@ -43,7 +45,7 @@ function DetailSkeleton() {
   )
 }
 
-function ListingDetailBody({ listingId }) {
+function ListingDetailBody({ listingId }: { listingId: string }) {
   // a retry remounts the hook owner below so the load restarts from a
   // visible loading state (the hook runs once per mounted id)
   const [retryNonce, setRetryNonce] = useState(0)
@@ -57,7 +59,12 @@ function ListingDetailBody({ listingId }) {
   )
 }
 
-function ListingDetailContent({ listingId, onRetry }) {
+interface ListingDetailContentProps {
+  listingId: string
+  onRetry: () => void
+}
+
+function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps) {
   const { listing, imageUrl, isLoading, error } = useListingDetail(listingId)
 
   const renderBody = () => {
@@ -108,7 +115,7 @@ function ListingDetailContent({ listingId, onRetry }) {
           <Text style={[TYPE.headingLg, styles.title]}>{listing.title}</Text>
           <View style={styles.priceRow}>
             <Text style={[TYPE.headingMd, styles.price]}>
-              {formatPrice(listing.price)}
+              {formatPrice(listing.price ?? 0)}
             </Text>
             <Text style={[TYPE.captionSm, styles.unit]}>
               {UNIT_LABELS[listing.unit]}
@@ -153,7 +160,12 @@ function ListingDetailContent({ listingId, onRetry }) {
   )
 }
 
-function ListingDetailScreen({ route, navigation }) {
+type ListingDetailScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  'ListingDetail'
+>
+
+function ListingDetailScreen({ route, navigation }: ListingDetailScreenProps) {
   const { listingId } = route.params
   const insets = useSafeAreaInsets()
 

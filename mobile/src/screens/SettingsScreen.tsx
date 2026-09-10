@@ -4,8 +4,9 @@
 // the tab bar's fifth action cell (Login signed-out / Logout signed-in,
 // DESIGN.md chrome rule).
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import Button from '../components/Button.jsx'
-import TabScreen from '../components/TabScreen.jsx'
+import type { User } from '@supabase/supabase-js'
+import Button from '../components/Button'
+import TabScreen from '../components/TabScreen'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import { getDisplayName } from '../utils/userProfile'
 import { COLORS, GUTTER, SPACING, TYPE } from '../theme/designTokens'
@@ -15,7 +16,12 @@ const ACCOUNT_BENEFITS = [
   'Scans, listings, and preferences all hang off one identity',
 ]
 
-function SignedOutAccount({ onSignIn, onCreateAccount }) {
+interface SignedOutAccountProps {
+  onSignIn: () => void
+  onCreateAccount: () => void
+}
+
+function SignedOutAccount({ onSignIn, onCreateAccount }: SignedOutAccountProps) {
   return (
     <View style={styles.panel}>
       <Text style={[TYPE.captionMd, styles.eyebrow]}>Account</Text>
@@ -50,7 +56,11 @@ function SignedOutAccount({ onSignIn, onCreateAccount }) {
   )
 }
 
-function SignedInAccount({ user }) {
+interface SignedInAccountProps {
+  user: User
+}
+
+function SignedInAccount({ user }: SignedInAccountProps) {
   return (
     <View style={styles.panel}>
       <Text style={[TYPE.captionMd, styles.eyebrow]}>Account</Text>

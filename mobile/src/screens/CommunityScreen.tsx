@@ -1,7 +1,7 @@
 // Community tab — an exchange between growers and mills is planned, not
 // built; this panel describes it without faking posts or members.
-import FeatureNotice from '../components/FeatureNotice.jsx'
-import TabScreen from '../components/TabScreen.jsx'
+import FeatureNotice from '../components/FeatureNotice'
+import TabScreen from '../components/TabScreen'
 
 function CommunityScreen() {
   return (

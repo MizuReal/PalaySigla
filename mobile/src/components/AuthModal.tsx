@@ -5,13 +5,14 @@
 // chrome is unchanged: full-screen dim (~70% surface-elevated), centered
 // canvas panel, hairline border, 2px radius, no shadow.
 //
-// Validation mirrors website/src/components/AuthModal.jsx: blur errors only
+// Validation mirrors website/src/components/AuthModal.tsx: blur errors only
 // surface once a field has content, change clears the field error, and the
 // submit pass validates everything and focuses the first invalid field.
 // The parent remounts the dialog (keyed by the provider's authModalNonce) on
 // every open and on mode changes, so forms always start fresh and the initial
 // mode/error seeds are honored.
 import { useRef, useState } from 'react'
+import type { Dispatch, RefObject, SetStateAction } from 'react'
 import {
   KeyboardAvoidingView,
   Modal,
@@ -23,8 +24,10 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import type { TextInputProps } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../context/authContext'
+import type { AuthModalMode } from '../context/authContext'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
@@ -32,8 +35,8 @@ import {
   updatePassword,
 } from '../services/auth'
 import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation'
-import Button from './Button.jsx'
-import Icon from './Icon.jsx'
+import Button from './Button'
+import Icon from './Icon'
 import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens'
 
 const MODAL_MAX_WIDTH = 448
@@ -45,16 +48,24 @@ const VIEWS = Object.freeze({
   FORGOT: 'forgot',
   RESET_PASSWORD: 'resetPassword',
   VERIFIED: 'verified',
-})
+} as const)
 
-const VIEWS_BY_MODE = Object.freeze({
+type AuthDialogView = (typeof VIEWS)[keyof typeof VIEWS]
+
+const VIEWS_BY_MODE: Record<AuthModalMode, AuthDialogView> = Object.freeze({
   login: VIEWS.LOGIN,
   register: VIEWS.REGISTER,
   resetPassword: VIEWS.RESET_PASSWORD,
   verified: VIEWS.VERIFIED,
 })
 
-const VIEW_COPY = Object.freeze({
+interface ViewCopy {
+  eyebrow: string
+  title: string
+  description: string
+}
+
+const VIEW_COPY: Record<AuthDialogView, ViewCopy> = Object.freeze({
   [VIEWS.LOGIN]: {
     eyebrow: 'Sign in',
     title: 'Welcome back.',
@@ -90,28 +101,28 @@ const FIELD_ERRORS = Object.freeze({
   registerPasswordLong: `Your password must be at most ${PASSWORD_MAX_LENGTH} characters long.`,
 })
 
-const validateName = (value) => {
+const validateName = (value: string): string => {
   if (!NAME_PATTERN.test(value.trim())) {
     return FIELD_ERRORS.name
   }
   return ''
 }
 
-const validateEmail = (value) => {
+const validateEmail = (value: string): string => {
   if (!EMAIL_PATTERN.test(value.trim())) {
     return FIELD_ERRORS.email
   }
   return ''
 }
 
-const validateLoginPassword = (value) => {
+const validateLoginPassword = (value: string): string => {
   if (!value) {
     return FIELD_ERRORS.loginPassword
   }
   return ''
 }
 
-const validateRegisterPassword = (value) => {
+const validateRegisterPassword = (value: string): string => {
   if (value.length < PASSWORD_MIN_LENGTH) {
     return FIELD_ERRORS.registerPasswordShort
   }
@@ -119,6 +130,26 @@ const validateRegisterPassword = (value) => {
     return FIELD_ERRORS.registerPasswordLong
   }
   return ''
+}
+
+type FieldErrors = Record<string, string | undefined>
+
+interface AuthFieldProps {
+  label: string
+  value: string
+  onChangeText: (value: string) => void
+  onBlur?: () => void
+  placeholder?: string
+  error?: string
+  inputRef?: RefObject<TextInput | null>
+  secureTextEntry?: boolean
+  textContentType?: TextInputProps['textContentType']
+  autoComplete?: TextInputProps['autoComplete']
+  keyboardType?: TextInputProps['keyboardType']
+  maxLength?: number
+  returnKeyType?: TextInputProps['returnKeyType']
+  onSubmitEditing?: () => void
+  autoCapitalize?: TextInputProps['autoCapitalize']
 }
 
 function AuthField({
@@ -137,7 +168,7 @@ function AuthField({
   returnKeyType,
   onSubmitEditing,
   autoCapitalize = 'none',
-}) {
+}: AuthFieldProps) {
   const [isFocused, setIsFocused] = useState(false)
 
   return (
@@ -179,7 +210,7 @@ function AuthField({
   )
 }
 
-function FormBanner({ message }) {
+function FormBanner({ message }: { message: string }) {
   return (
     <View accessibilityRole="alert" style={styles.errorBanner}>
       <Icon name="info" size={20} color={COLORS.error} />
@@ -188,9 +219,14 @@ function FormBanner({ message }) {
   )
 }
 
+interface SuccessCardProps {
+  title: string
+  message: string
+}
+
 // success-state panel per the form-alert-success treatment (primary border
 // on surface-soft), used by the sent / verified / reset-complete states
-function SuccessCard({ title, message }) {
+function SuccessCard({ title, message }: SuccessCardProps) {
   return (
     <View style={styles.successCard}>
       <Icon name="check" size={20} color={COLORS.primary} />
@@ -202,7 +238,13 @@ function SuccessCard({ title, message }) {
   )
 }
 
-function FormLink({ label, onPress, align = 'center' }) {
+interface FormLinkProps {
+  label: string
+  onPress: () => void
+  align?: 'center' | 'right'
+}
+
+function FormLink({ label, onPress, align = 'center' }: FormLinkProps) {
   return (
     <Pressable
       accessibilityRole="link"
@@ -218,9 +260,29 @@ function FormLink({ label, onPress, align = 'center' }) {
   )
 }
 
-function AuthDialog({ initialMode, initialError, onClose, onLogin, onRegister }) {
+interface AuthDialogProps {
+  initialMode: AuthModalMode
+  initialError: string
+  onClose: () => void
+  onLogin: (email: string, password: string) => Promise<void>
+  onRegister: (
+    name: string,
+    email: string,
+    password: string
+  ) => Promise<{ requiresEmailConfirmation: boolean }>
+}
+
+function AuthDialog({
+  initialMode,
+  initialError,
+  onClose,
+  onLogin,
+  onRegister,
+}: AuthDialogProps) {
   const insets = useSafeAreaInsets()
-  const [view, setView] = useState(() => VIEWS_BY_MODE[initialMode] ?? VIEWS.LOGIN)
+  const [view, setView] = useState<AuthDialogView>(
+    () => VIEWS_BY_MODE[initialMode] ?? VIEWS.LOGIN
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState(initialError)
 
@@ -231,23 +293,26 @@ function AuthDialog({ initialMode, initialError, onClose, onLogin, onRegister })
   const [registerPassword, setRegisterPassword] = useState('')
   const [forgotEmail, setForgotEmail] = useState('')
   const [resetPassword, setResetPassword] = useState('')
-  const [loginErrors, setLoginErrors] = useState({})
-  const [registerErrors, setRegisterErrors] = useState({})
-  const [forgotErrors, setForgotErrors] = useState({})
-  const [resetErrors, setResetErrors] = useState({})
+  const [loginErrors, setLoginErrors] = useState<FieldErrors>({})
+  const [registerErrors, setRegisterErrors] = useState<FieldErrors>({})
+  const [forgotErrors, setForgotErrors] = useState<FieldErrors>({})
+  const [resetErrors, setResetErrors] = useState<FieldErrors>({})
   const [isRegisterSent, setIsRegisterSent] = useState(false)
   const [isForgotSent, setIsForgotSent] = useState(false)
   const [isResetSent, setIsResetSent] = useState(false)
 
-  const loginEmailRef = useRef(null)
-  const loginPasswordRef = useRef(null)
-  const registerNameRef = useRef(null)
-  const registerEmailRef = useRef(null)
-  const registerPasswordRef = useRef(null)
-  const forgotEmailRef = useRef(null)
-  const resetPasswordRef = useRef(null)
+  const loginEmailRef = useRef<TextInput | null>(null)
+  const loginPasswordRef = useRef<TextInput | null>(null)
+  const registerNameRef = useRef<TextInput | null>(null)
+  const registerEmailRef = useRef<TextInput | null>(null)
+  const registerPasswordRef = useRef<TextInput | null>(null)
+  const forgotEmailRef = useRef<TextInput | null>(null)
+  const resetPasswordRef = useRef<TextInput | null>(null)
 
-  const clearFieldError = (errorsSetter, field) => {
+  const clearFieldError = (
+    errorsSetter: Dispatch<SetStateAction<FieldErrors>>,
+    field: string
+  ) => {
     errorsSetter((current) => {
       if (!(field in current)) {
         return current
@@ -260,7 +325,12 @@ function AuthDialog({ initialMode, initialError, onClose, onLogin, onRegister })
 
   // only surface blur errors once the field has content; empty fields are
   // caught by the submit-time pass instead
-  const blurValidate = (errorsSetter, field, value, validator) => {
+  const blurValidate = (
+    errorsSetter: Dispatch<SetStateAction<FieldErrors>>,
+    field: string,
+    value: string,
+    validator: (value: string) => string
+  ) => {
     if (!value) {
       return
     }
@@ -270,13 +340,13 @@ function AuthDialog({ initialMode, initialError, onClose, onLogin, onRegister })
     )
   }
 
-  const switchView = (nextView) => {
+  const switchView = (nextView: AuthDialogView) => {
     setFormError('')
     setView(nextView)
   }
 
   const handleLoginSubmit = async () => {
-    const errors = {
+    const errors: FieldErrors = {
       email: validateEmail(loginEmail),
       password: validateLoginPassword(loginPassword),
     }
@@ -294,14 +364,16 @@ function AuthDialog({ initialMode, initialError, onClose, onLogin, onRegister })
     try {
       await onLogin(loginEmail.trim(), loginPassword)
     } catch (error) {
-      setFormError(error?.message ?? GENERIC_ERROR_MESSAGE)
+      setFormError(
+        error instanceof Error ? error.message : GENERIC_ERROR_MESSAGE
+      )
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleRegisterSubmit = async () => {
-    const errors = {
+    const errors: FieldErrors = {
       name: validateName(registerName),
       email: validateEmail(registerEmail),
       password: validateRegisterPassword(registerPassword),
@@ -311,12 +383,14 @@ function AuthDialog({ initialMode, initialError, onClose, onLogin, onRegister })
       const firstInvalidField = ['name', 'email', 'password'].find(
         (field) => errors[field]
       )
-      const refs = {
+      const refs: Record<string, RefObject<TextInput | null>> = {
         name: registerNameRef,
         email: registerEmailRef,
         password: registerPasswordRef,
       }
-      refs[firstInvalidField].current?.focus()
+      if (firstInvalidField) {
+        refs[firstInvalidField]?.current?.focus()
+      }
       return
     }
     setFormError('')
@@ -333,7 +407,9 @@ function AuthDialog({ initialMode, initialError, onClose, onLogin, onRegister })
         onClose()
       }
     } catch (error) {
-      setFormError(error?.message ?? GENERIC_ERROR_MESSAGE)
+      setFormError(
+        error instanceof Error ? error.message : GENERIC_ERROR_MESSAGE
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -352,14 +428,16 @@ function AuthDialog({ initialMode, initialError, onClose, onLogin, onRegister })
       await sendPasswordReset(forgotEmail.trim())
       setIsForgotSent(true)
     } catch (error) {
-      setFormError(error?.message ?? GENERIC_ERROR_MESSAGE)
+      setFormError(
+        error instanceof Error ? error.message : GENERIC_ERROR_MESSAGE
+      )
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleResetSubmit = async () => {
-    const errors = { password: validateRegisterPassword(resetPassword) }
+    const errors: FieldErrors = { password: validateRegisterPassword(resetPassword) }
     setResetErrors(errors)
     if (errors.password) {
       resetPasswordRef.current?.focus()
@@ -371,7 +449,9 @@ function AuthDialog({ initialMode, initialError, onClose, onLogin, onRegister })
       await updatePassword(resetPassword)
       setIsResetSent(true)
     } catch (error) {
-      setFormError(error?.message ?? GENERIC_ERROR_MESSAGE)
+      setFormError(
+        error instanceof Error ? error.message : GENERIC_ERROR_MESSAGE
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -721,7 +801,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    // RN 0.86 dropped absoluteFillObject; absoluteFill is the spreadable object
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(26, 26, 26, 0.7)',
   },
   panelScroll: {

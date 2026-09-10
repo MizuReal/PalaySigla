@@ -3,7 +3,13 @@
 import { StyleSheet, Text, View } from 'react-native'
 import { COLORS, SPACING, TYPE } from '../theme/designTokens'
 
-function SectionHeader({ eyebrow, title, sub }) {
+interface SectionHeaderProps {
+  eyebrow: string
+  title: string
+  sub?: string
+}
+
+function SectionHeader({ eyebrow, title, sub }: SectionHeaderProps) {
   return (
     <View style={styles.header}>
       <Text style={[TYPE.captionMd, styles.eyebrow]}>{eyebrow}</Text>

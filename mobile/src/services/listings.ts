@@ -37,6 +37,14 @@ export type ListingUnit = (typeof LISTING_UNITS)[number]
 export type ListingCategory = (typeof LISTING_CATEGORIES)[number]
 export type ListingSort = (typeof LISTING_SORTS)[keyof typeof LISTING_SORTS]
 
+export function isListingUnit(value: string): value is ListingUnit {
+  return (LISTING_UNITS as readonly string[]).includes(value)
+}
+
+export function isListingCategory(value: string): value is ListingCategory {
+  return (LISTING_CATEGORIES as readonly string[]).includes(value)
+}
+
 const SORT_COLUMNS: Record<ListingSort, { column: 'created_at' | 'price'; ascending: boolean }> = {
   [LISTING_SORTS.NEWEST]: { column: 'created_at', ascending: false },
   [LISTING_SORTS.PRICE_ASC]: { column: 'price', ascending: true },
@@ -93,7 +101,8 @@ export async function fetchListings({
   if (error) {
     throw new Error('Could not load listings. Please try again.')
   }
-  return { data, total: count ?? 0 }
+  // CHECK constraints guarantee the domain unions; asserted at the boundary
+  return { data: data as ListingWithImages[] | null, total: count ?? 0 }
 }
 
 export async function getListing(id: string): Promise<ListingWithImages> {
@@ -107,7 +116,7 @@ export async function getListing(id: string): Promise<ListingWithImages> {
   if (error) {
     throw new Error('That listing could not be found.')
   }
-  return data
+  return data as ListingWithImages
 }
 
 export async function getListingImageUrl(storagePath: string): Promise<string> {

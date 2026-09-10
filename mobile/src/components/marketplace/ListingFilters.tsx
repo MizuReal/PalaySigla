@@ -7,9 +7,11 @@
 // closed. Fully controlled — the screen owns the debounced search state, and
 // the open/closed state is purely presentational.
 import { useState } from 'react'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
-import Icon from '../Icon.jsx'
+import Icon from '../Icon'
 import { LISTING_CATEGORIES, LISTING_SORTS } from '../../services/listings'
+import type { ListingCategory, ListingSort } from '../../services/listings'
 import { CATEGORY_LABELS } from '../../utils/format'
 import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
 
@@ -20,19 +22,29 @@ const ACTIVE_FILTER_DOT_SIZE = 6
 // restores the >= 44px WCAG AA tap target (DESIGN.md touch rule)
 const TOGGLE_HIT_SLOP = { top: 2, bottom: 2 }
 
-const SORT_OPTIONS = Object.freeze([
-  { value: LISTING_SORTS.NEWEST, label: 'Newest' },
-  { value: LISTING_SORTS.PRICE_ASC, label: 'Lowest price' },
-  { value: LISTING_SORTS.PRICE_DESC, label: 'Highest price' },
-])
+const SORT_OPTIONS: readonly { value: ListingSort; label: string }[] =
+  Object.freeze([
+    { value: LISTING_SORTS.NEWEST, label: 'Newest' },
+    { value: LISTING_SORTS.PRICE_ASC, label: 'Lowest price' },
+    { value: LISTING_SORTS.PRICE_DESC, label: 'Highest price' },
+  ])
 
-function pillStyle(isActive, extra = null) {
+function pillStyle(
+  isActive: boolean,
+  extra: StyleProp<ViewStyle> = null
+): StyleProp<ViewStyle> {
   const active = { borderColor: COLORS.ink, backgroundColor: COLORS.ink }
   const inactive = { borderColor: COLORS.hairline, backgroundColor: COLORS.canvas }
   return [styles.pill, isActive ? active : inactive, extra]
 }
 
-function FilterPill({ label, isActive, onPress }) {
+interface FilterPillProps {
+  label: string
+  isActive: boolean
+  onPress: () => void
+}
+
+function FilterPill({ label, isActive, onPress }: FilterPillProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -50,7 +62,13 @@ function FilterPill({ label, isActive, onPress }) {
   )
 }
 
-function FilterToggle({ isExpanded, hasActiveFilter, onPress }) {
+interface FilterToggleProps {
+  isExpanded: boolean
+  hasActiveFilter: boolean
+  onPress: () => void
+}
+
+function FilterToggle({ isExpanded, hasActiveFilter, onPress }: FilterToggleProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -76,6 +94,15 @@ function FilterToggle({ isExpanded, hasActiveFilter, onPress }) {
   )
 }
 
+interface ListingFiltersProps {
+  category: ListingCategory | null
+  search: string
+  sort: ListingSort
+  onCategoryChange: (category: ListingCategory | null) => void
+  onSearchChange: (search: string) => void
+  onSortChange: (sort: ListingSort) => void
+}
+
 function ListingFilters({
   category,
   search,
@@ -83,7 +110,7 @@ function ListingFilters({
   onCategoryChange,
   onSearchChange,
   onSortChange,
-}) {
+}: ListingFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   const hasActiveFilter = category !== null || sort !== LISTING_SORTS.NEWEST

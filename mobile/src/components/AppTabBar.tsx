@@ -9,9 +9,14 @@
 // The center Scan cell renders as a raised 48px `{colors.primary}` square
 // with a black camera glyph, the signature hero slot of a photo-first app.
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import type { AccessibilityState } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
-import Icon from './Icon.jsx'
+import Icon from './Icon'
+import type { IconName } from './Icon'
+import type { MainTabParamList, RootStackParamList } from '../types/navigation'
 import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens'
 
 const ICON_SIZE = 22
@@ -20,23 +25,40 @@ const SCAN_BUTTON_SIZE = 48
 const SCAN_BUTTON_RAISE = 20
 export const TAB_BAR_HEIGHT = 56
 
+interface TabCell {
+  route: keyof MainTabParamList
+  label: string
+  icon: IconName
+  raised?: boolean
+}
+
 // route names double as the React keys of the mapped cells below
-const TAB_CELLS = [
+const TAB_CELLS: TabCell[] = [
   { route: 'Marketplace', label: 'Marketplace', icon: 'marketplace' },
   { route: 'Community', label: 'Community', icon: 'community' },
   { route: 'Scan', label: 'Scan', icon: 'camera', raised: true },
   { route: 'Settings', label: 'Settings', icon: 'settings' },
 ]
 
+interface CellProps {
+  icon: IconName
+  label: string
+  isActive?: boolean
+  raised?: boolean
+  onPress: () => void
+  accessibilityRole: 'tab' | 'button'
+  accessibilityState?: AccessibilityState
+}
+
 function Cell({
   icon,
   label,
-  isActive,
-  raised,
+  isActive = false,
+  raised = false,
   onPress,
   accessibilityRole,
   accessibilityState,
-}) {
+}: CellProps) {
   const content = (
     <View style={styles.cellContent}>
       {raised ? (
@@ -81,7 +103,7 @@ function Cell({
   )
 }
 
-function AppTabBar({ state, navigation }) {
+function AppTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
   const { user, signOut, openAuthModal } = useAuth()
 
@@ -102,14 +124,19 @@ function AppTabBar({ state, navigation }) {
             try {
               await signOut()
             } catch (error) {
-              Alert.alert('Could not sign out', error.message)
+              Alert.alert(
+                'Could not sign out',
+                error instanceof Error ? error.message : 'Please try again.'
+              )
               return
             }
             // signed-out state = back to the Landing intro
-            navigation.getParent()?.reset({
-              index: 0,
-              routes: [{ name: 'Landing' }],
-            })
+            navigation
+              .getParent<NativeStackNavigationProp<RootStackParamList>>()
+              ?.reset({
+                index: 0,
+                routes: [{ name: 'Landing' }],
+              })
           },
         },
       ]

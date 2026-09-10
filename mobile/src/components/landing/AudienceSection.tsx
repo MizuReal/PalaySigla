@@ -1,9 +1,10 @@
 // Two benefit cards — one for mill owners, one for farmers — with green
 // check bullets. Mirror of the website AudienceSection.
 import { StyleSheet, Text, View } from 'react-native'
-import Section from '../Section.jsx'
-import SectionHeader from '../SectionHeader.jsx'
-import Icon from '../Icon.jsx'
+import Section from '../Section'
+import SectionHeader from '../SectionHeader'
+import Icon from '../Icon'
+import type { IconName } from '../Icon'
 import { COLORS, CARD_GAP, SPACING, TYPE } from '../../theme/designTokens'
 
 const MILL_BENEFITS = [
@@ -20,12 +21,22 @@ const FARMER_BENEFITS = [
   'Variety confirmed right at the farm gate',
 ]
 
-const AUDIENCES = [
+interface Audience {
+  icon: IconName
+  title: string
+  benefits: string[]
+}
+
+const AUDIENCES: Audience[] = [
   { icon: 'shield', title: 'For rice mill owners', benefits: MILL_BENEFITS },
   { icon: 'scale', title: 'For rice farmers', benefits: FARMER_BENEFITS },
 ]
 
-function BenefitCard({ audience }) {
+interface BenefitCardProps {
+  audience: Audience
+}
+
+function BenefitCard({ audience }: BenefitCardProps) {
   return (
     <View style={styles.card}>
       <Icon name={audience.icon} />

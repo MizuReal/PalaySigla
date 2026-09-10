@@ -1,8 +1,8 @@
 // Scan tab — the product's core act. The camera flow and inference are not
 // wired yet, so the panel states the four checks a scan will return rather
 // than faking a capture experience.
-import FeatureNotice from '../components/FeatureNotice.jsx'
-import TabScreen from '../components/TabScreen.jsx'
+import FeatureNotice from '../components/FeatureNotice'
+import TabScreen from '../components/TabScreen'
 
 function ScanScreen() {
   return (

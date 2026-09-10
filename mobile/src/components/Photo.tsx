@@ -4,11 +4,26 @@
 // source fails to decode. The fallback label is always the listing title
 // so a broken photo never renders as an unexplained blank.
 import { useState } from 'react'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { COLORS, SPACING, TYPE } from '../theme/designTokens'
 
-function Photo({ uri = '', alt = '', fallbackLabel = '', loading = false, style }) {
+interface PhotoProps {
+  uri?: string
+  alt?: string
+  fallbackLabel?: string
+  loading?: boolean
+  style?: StyleProp<ViewStyle>
+}
+
+function Photo({
+  uri = '',
+  alt = '',
+  fallbackLabel = '',
+  loading = false,
+  style,
+}: PhotoProps) {
   // error state is keyed to the URI itself so a new source always retries:
   // no effect-driven reset needed, and a stale failure can never poison the
   // next image (cards re-resolve signed URLs over time)

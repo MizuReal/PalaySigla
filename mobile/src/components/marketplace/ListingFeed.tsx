@@ -13,11 +13,13 @@ import {
   Text,
   View,
 } from 'react-native'
-import Button from '../Button.jsx'
-import ListingCard from './ListingCard.jsx'
-import ListingCardSkeleton from './ListingCardSkeleton.jsx'
+import Button from '../Button'
+import ListingCard from './ListingCard'
+import ListingCardSkeleton from './ListingCardSkeleton'
 import useListings from '../../hooks/useListings'
 import { LISTING_SORTS } from '../../services/listings'
+import type { ListingCategory, ListingSort } from '../../services/listings'
+import type { ListingWithImages } from '../../types/domain'
 import {
   COLORS,
   CARD_GAP,
@@ -34,6 +36,15 @@ const EMPTY_FILTERED_COPY =
 const EMPTY_MARKET_COPY =
   'No one has posted a listing yet. Check back soon.'
 
+interface ListingFeedProps {
+  category: ListingCategory | null
+  search: string
+  sort: ListingSort
+  onSelectListing: (listing: ListingWithImages) => void
+  onPostPress: () => void
+  onRetry: () => void
+}
+
 function ListingFeed({
   category,
   search,
@@ -41,7 +52,7 @@ function ListingFeed({
   onSelectListing,
   onPostPress,
   onRetry,
-}) {
+}: ListingFeedProps) {
   const {
     listings,
     total,
@@ -145,7 +156,7 @@ function ListingFeed({
   }
 
   return (
-    <FlatList
+    <FlatList<ListingWithImages>
       style={styles.list}
       contentContainerStyle={styles.listContent}
       data={feedData}

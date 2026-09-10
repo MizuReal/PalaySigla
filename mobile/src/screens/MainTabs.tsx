@@ -1,19 +1,20 @@
 // Bottom-tabs navigator over the four content destinations. Login/Logout is
 // NOT a route: AppTabBar renders it as an always-present action cell beside
 // Settings so the bar stays at five even cells. The chat launcher floats
-// above the tab bar on every tab; chat itself is a root-stack screen
-// (AssistantChat), pushed over the whole shell like ListingDetail.
+// above the tab bar on every tab; chat itself is the root-level ChatModal
+// mounted in App.tsx beside the auth dialog.
 import { StyleSheet, View } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import AppTabBar from '../components/AppTabBar.jsx'
-import ChatLauncher from '../components/chat/ChatLauncher.jsx'
-import CommunityScreen from './CommunityScreen.jsx'
-import MarketplaceScreen from './MarketplaceScreen.jsx'
-import ScanScreen from './ScanScreen.jsx'
-import SettingsScreen from './SettingsScreen.jsx'
+import AppTabBar from '../components/AppTabBar'
+import ChatLauncher from '../components/chat/ChatLauncher'
+import CommunityScreen from './CommunityScreen'
+import MarketplaceScreen from './MarketplaceScreen'
+import ScanScreen from './ScanScreen'
+import SettingsScreen from './SettingsScreen'
 import { COLORS } from '../theme/designTokens'
+import type { MainTabParamList } from '../types/navigation'
 
-const Tab = createBottomTabNavigator()
+const Tab = createBottomTabNavigator<MainTabParamList>()
 
 function MainTabs() {
   return (

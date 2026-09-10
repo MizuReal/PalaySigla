@@ -2,9 +2,10 @@
 // phones: 4:3 photo with a category badge chip, title, price + unit, and a
 // pin + location + posted-time caption. The whole card is one press target.
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import Icon from '../Icon.jsx'
-import Photo from '../Photo.jsx'
+import Icon from '../Icon'
+import Photo from '../Photo'
 import useListingImageUrl from '../../hooks/useListingImageUrl'
+import type { ListingWithImages } from '../../types/domain'
 import {
   CATEGORY_LABELS,
   formatPrice,
@@ -15,9 +16,16 @@ import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
 
 const PIN_ICON_SIZE = 16
 
-function ListingCard({ listing, onPress }) {
+interface ListingCardProps {
+  listing: ListingWithImages
+  onPress: (listing: ListingWithImages) => void
+}
+
+function ListingCard({ listing, onPress }: ListingCardProps) {
   const image = listing.listing_images?.[0]
   const imageUrl = useListingImageUrl(image ? image.storage_path : '')
+  const categoryLabel = CATEGORY_LABELS[listing.category]
+  const unitLabel = UNIT_LABELS[listing.unit]
 
   return (
     <Pressable
@@ -35,9 +43,7 @@ function ListingCard({ listing, onPress }) {
           style={styles.photo}
         />
         <View pointerEvents="none" style={styles.chip}>
-          <Text style={[TYPE.captionMd, styles.chipText]}>
-            {CATEGORY_LABELS[listing.category]}
-          </Text>
+          <Text style={[TYPE.captionMd, styles.chipText]}>{categoryLabel}</Text>
         </View>
       </View>
       <View style={styles.body}>
@@ -46,11 +52,9 @@ function ListingCard({ listing, onPress }) {
         </Text>
         <View style={styles.priceRow}>
           <Text style={[TYPE.headingSm, styles.price]}>
-            {formatPrice(listing.price)}
+            {formatPrice(listing.price ?? 0)}
           </Text>
-          <Text style={[TYPE.captionSm, styles.unit]}>
-            {UNIT_LABELS[listing.unit]}
-          </Text>
+          <Text style={[TYPE.captionSm, styles.unit]}>{unitLabel}</Text>
         </View>
         <View style={styles.locationRow}>
           <Icon name="pin" size={PIN_ICON_SIZE} color={COLORS.mute} />

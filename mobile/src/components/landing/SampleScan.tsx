@@ -3,16 +3,17 @@
 // measured data, mirroring the website's OutputMockup section.
 import { Image as ExpoImage } from 'expo-image'
 import { StyleSheet, Text, View } from 'react-native'
-import Section from '../Section.jsx'
-import SectionHeader from '../SectionHeader.jsx'
-import Icon from '../Icon.jsx'
+import Section from '../Section'
+import SectionHeader from '../SectionHeader'
+import Icon from '../Icon'
+import type { IconName } from '../Icon'
 import { GOLDEN_PADDY_IMAGE } from '../../data/paddySlides'
 import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
 
 const PHOTO_ASPECT_RATIO = 4 / 3
 const PHOTO_TRANSITION_MS = 300
 
-const logPhotoError = (url) => (error) => {
+const logPhotoError = (url: string) => (error: unknown) => {
   // RN's stock Image swallows load failures; surface them in dev so a blank
   // photo is never silent (AGENTS.md: no silent failures)
   if (__DEV__) {
@@ -20,14 +21,25 @@ const logPhotoError = (url) => (error) => {
   }
 }
 
-const SAMPLE_RESULTS = [
+interface SampleResult {
+  icon: IconName
+  label: string
+  value: string
+  confidence: number
+}
+
+const SAMPLE_RESULTS: SampleResult[] = [
   { icon: 'quality', label: 'Quality status', value: 'Dry · Clean', confidence: 96 },
   { icon: 'mold', label: 'Mold', value: 'None detected', confidence: 94 },
   { icon: 'grade', label: 'Market grade', value: 'Grade A', confidence: 91 },
   { icon: 'variety', label: 'Variety', value: 'NSIC RC 222', confidence: 89 },
 ]
 
-function ResultRow({ result }) {
+interface ResultRowProps {
+  result: SampleResult
+}
+
+function ResultRow({ result }: ResultRowProps) {
   return (
     <View>
       <View style={styles.resultHeader}>

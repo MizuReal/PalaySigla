@@ -1,12 +1,19 @@
 // Feature cards: one icon + heading + body per scan output, in a single
 // column on phones. Mirror of the website FeatureGrid section.
 import { StyleSheet, Text, View } from 'react-native'
-import Section from '../Section.jsx'
-import SectionHeader from '../SectionHeader.jsx'
-import Icon from '../Icon.jsx'
+import Section from '../Section'
+import SectionHeader from '../SectionHeader'
+import Icon from '../Icon'
+import type { IconName } from '../Icon'
 import { COLORS, CARD_GAP, SPACING, TYPE } from '../../theme/designTokens'
 
-const FEATURES = [
+interface Feature {
+  icon: IconName
+  title: string
+  body: string
+}
+
+const FEATURES: Feature[] = [
   {
     icon: 'quality',
     title: 'Quality status',
@@ -29,7 +36,11 @@ const FEATURES = [
   },
 ]
 
-function FeatureCard({ feature }) {
+interface FeatureCardProps {
+  feature: Feature
+}
+
+function FeatureCard({ feature }: FeatureCardProps) {
   return (
     <View style={styles.card}>
       <Icon name={feature.icon} />

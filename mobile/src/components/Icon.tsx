@@ -1,21 +1,26 @@
-// Decorative stroke icon set ported from the website's Icon.jsx (same 24px
+// Decorative stroke icon set ported from the website's Icon.tsx (same 24px
 // viewBox, 1.8 stroke, round joins) so glyph geometry stays identical across
 // surfaces. Icons are aria-hidden equivalents: they never announce alone and
 // always sit beside text.
+import type { ReactElement } from 'react'
 import { Circle, Path, Rect, Svg } from 'react-native-svg'
 import { COLORS } from '../theme/designTokens'
 
-const strokeProps = (color) => ({
+interface GlyphProps {
+  color: string
+}
+
+const strokeProps = (color: string) => ({
   stroke: color,
   strokeWidth: 1.8,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
   fill: 'none',
 })
 
-const filledDotProps = (color) => ({ fill: color, stroke: 'none' })
+const filledDotProps = (color: string) => ({ fill: color, stroke: 'none' })
 
-function CameraGlyph({ color }) {
+function CameraGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Rect x="3" y="7" width="18" height="14" rx="2" {...strokeProps(color)} />
@@ -25,7 +30,7 @@ function CameraGlyph({ color }) {
   )
 }
 
-function ScanGlyph({ color }) {
+function ScanGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M3 8V5a2 2 0 0 1 2-2h3" {...strokeProps(color)} />
@@ -37,7 +42,7 @@ function ScanGlyph({ color }) {
   )
 }
 
-function QualityGlyph({ color }) {
+function QualityGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M4 14a8 8 0 1 1 16 0" {...strokeProps(color)} />
@@ -47,7 +52,7 @@ function QualityGlyph({ color }) {
   )
 }
 
-function MoldGlyph({ color }) {
+function MoldGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path
@@ -60,7 +65,7 @@ function MoldGlyph({ color }) {
   )
 }
 
-function GradeGlyph({ color }) {
+function GradeGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M3 3h8l10 10-8 8L3 11V3z" {...strokeProps(color)} />
@@ -69,7 +74,7 @@ function GradeGlyph({ color }) {
   )
 }
 
-function VarietyGlyph({ color }) {
+function VarietyGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M5 19c0-10 7-15 15-15 0 9-5 15-15 15z" {...strokeProps(color)} />
@@ -79,11 +84,11 @@ function VarietyGlyph({ color }) {
   )
 }
 
-function CheckGlyph({ color }) {
+function CheckGlyph({ color }: GlyphProps): ReactElement {
   return <Path d="M5 13l4 4L19 7" {...strokeProps(color)} />
 }
 
-function CloseGlyph({ color }) {
+function CloseGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M6 6l12 12" {...strokeProps(color)} />
@@ -92,7 +97,7 @@ function CloseGlyph({ color }) {
   )
 }
 
-function InfoGlyph({ color }) {
+function InfoGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Circle cx="12" cy="12" r="9" {...strokeProps(color)} />
@@ -102,7 +107,7 @@ function InfoGlyph({ color }) {
   )
 }
 
-function ShieldGlyph({ color }) {
+function ShieldGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6l7-3z" {...strokeProps(color)} />
@@ -111,7 +116,7 @@ function ShieldGlyph({ color }) {
   )
 }
 
-function ScaleGlyph({ color }) {
+function ScaleGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M12 3v18" {...strokeProps(color)} />
@@ -125,23 +130,23 @@ function ScaleGlyph({ color }) {
   )
 }
 
-function ChevronLeftGlyph({ color }) {
+function ChevronLeftGlyph({ color }: GlyphProps): ReactElement {
   return <Path d="M15 5l-7 7 7 7" {...strokeProps(color)} />
 }
 
-function ChevronRightGlyph({ color }) {
+function ChevronRightGlyph({ color }: GlyphProps): ReactElement {
   return <Path d="M9 5l7 7-7 7" {...strokeProps(color)} />
 }
 
-function ChevronDownGlyph({ color }) {
+function ChevronDownGlyph({ color }: GlyphProps): ReactElement {
   return <Path d="M5 9l7 7 7-7" {...strokeProps(color)} />
 }
 
-function ChevronUpGlyph({ color }) {
+function ChevronUpGlyph({ color }: GlyphProps): ReactElement {
   return <Path d="M19 15l-7-7-7 7" {...strokeProps(color)} />
 }
 
-function PinGlyph({ color }) {
+function PinGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z" {...strokeProps(color)} />
@@ -150,7 +155,7 @@ function PinGlyph({ color }) {
   )
 }
 
-function MarketplaceGlyph({ color }) {
+function MarketplaceGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" {...strokeProps(color)} />
@@ -160,7 +165,7 @@ function MarketplaceGlyph({ color }) {
   )
 }
 
-function CommunityGlyph({ color }) {
+function CommunityGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" {...strokeProps(color)} />
@@ -171,7 +176,7 @@ function CommunityGlyph({ color }) {
   )
 }
 
-function SettingsGlyph({ color }) {
+function SettingsGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M4 21v-7" {...strokeProps(color)} />
@@ -187,7 +192,7 @@ function SettingsGlyph({ color }) {
   )
 }
 
-function LogoutGlyph({ color }) {
+function LogoutGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" {...strokeProps(color)} />
@@ -197,7 +202,7 @@ function LogoutGlyph({ color }) {
   )
 }
 
-function LoginGlyph({ color }) {
+function LoginGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" {...strokeProps(color)} />
@@ -207,13 +212,13 @@ function LoginGlyph({ color }) {
   )
 }
 
-function ChatGlyph({ color }) {
+function ChatGlyph({ color }: GlyphProps): ReactElement {
   return (
     <Path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" {...strokeProps(color)} />
   )
 }
 
-function SendGlyph({ color }) {
+function SendGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M22 2l-7 20-4-9-9-4 20-7z" {...strokeProps(color)} />
@@ -222,7 +227,7 @@ function SendGlyph({ color }) {
   )
 }
 
-function TrashGlyph({ color }) {
+function TrashGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
       <Path d="M3 6h18" {...strokeProps(color)} />
@@ -261,9 +266,18 @@ const ICON_GLYPHS = {
   trash: TrashGlyph,
 }
 
-function Icon({ name, size = 24, color = COLORS.primary }) {
+export type IconName = keyof typeof ICON_GLYPHS
+
+interface IconProps {
+  name: IconName
+  size?: number
+  color?: string
+}
+
+function Icon({ name, size = 24, color = COLORS.primary }: IconProps) {
   const Glyph = ICON_GLYPHS[name]
   if (!Glyph) {
+    // JS callers can still pass an unknown name at runtime
     throw new Error(`Unknown icon name: "${name}"`)
   }
   return (

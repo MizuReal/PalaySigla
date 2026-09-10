@@ -8,23 +8,25 @@
 import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular'
 import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold'
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native'
+import type { Theme } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useFonts } from 'expo-font'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import AuthModal from './src/components/AuthModal.jsx'
-import ChatModal from './src/components/chat/ChatModal.jsx'
+import AuthModal from './src/components/AuthModal'
+import ChatModal from './src/components/chat/ChatModal'
 import AuthProvider from './src/context/AuthProvider'
-import LandingScreen from './src/screens/LandingScreen.jsx'
-import ListingDetailScreen from './src/screens/ListingDetailScreen.jsx'
-import MainTabs from './src/screens/MainTabs.jsx'
-import { COLORS } from './src/theme/designTokens.js'
+import LandingScreen from './src/screens/LandingScreen'
+import ListingDetailScreen from './src/screens/ListingDetailScreen'
+import MainTabs from './src/screens/MainTabs'
+import { COLORS } from './src/theme/designTokens'
+import type { RootStackParamList } from './src/types/navigation'
 
-const Stack = createNativeStackNavigator()
+const Stack = createNativeStackNavigator<RootStackParamList>()
 
 // light-only chrome: the stack background, cards, and text read from the
 // canvas/ink tokens so no flash of the navigation default palette appears
-const NAV_THEME = {
+const NAV_THEME: Theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,

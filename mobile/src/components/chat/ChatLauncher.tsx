@@ -6,8 +6,8 @@
 import { Pressable, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext'
-import { TAB_BAR_HEIGHT } from '../AppTabBar.jsx'
-import Icon from '../Icon.jsx'
+import { TAB_BAR_HEIGHT } from '../AppTabBar'
+import Icon from '../Icon'
 import { COLORS, RADIUS, SPACING } from '../../theme/designTokens'
 
 const LAUNCHER_SIZE = 48

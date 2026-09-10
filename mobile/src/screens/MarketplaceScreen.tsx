@@ -4,19 +4,30 @@
 // that sign-in ships with the next phase instead of opening a dead form.
 import { useEffect, useState } from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
-import BrandBar from '../components/BrandBar.jsx'
-import ListingFeed from '../components/marketplace/ListingFeed.jsx'
-import ListingFilters from '../components/marketplace/ListingFilters.jsx'
+import type { CompositeScreenProps } from '@react-navigation/native'
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import BrandBar from '../components/BrandBar'
+import ListingFeed from '../components/marketplace/ListingFeed'
+import ListingFilters from '../components/marketplace/ListingFilters'
 import { LISTING_SORTS } from '../services/listings'
+import type { ListingCategory, ListingSort } from '../services/listings'
+import type { ListingWithImages } from '../types/domain'
+import type { MainTabParamList, RootStackParamList } from '../types/navigation'
 import { COLORS } from '../theme/designTokens'
 
 const SEARCH_DEBOUNCE_MS = 350
 
-function MarketplaceScreen({ navigation }) {
-  const [category, setCategory] = useState(null)
+type MarketplaceScreenProps = CompositeScreenProps<
+  BottomTabScreenProps<MainTabParamList, 'Marketplace'>,
+  NativeStackScreenProps<RootStackParamList>
+>
+
+function MarketplaceScreen({ navigation }: MarketplaceScreenProps) {
+  const [category, setCategory] = useState<ListingCategory | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState(LISTING_SORTS.NEWEST)
+  const [sort, setSort] = useState<ListingSort>(LISTING_SORTS.NEWEST)
   const [refreshNonce, setRefreshNonce] = useState(0)
 
   // debounce keystrokes so the feed only refetches after typing pauses
@@ -39,7 +50,7 @@ function MarketplaceScreen({ navigation }) {
     )
   }
 
-  const handleSelectListing = (listing) => {
+  const handleSelectListing = (listing: ListingWithImages) => {
     // ListingDetail lives on the root stack above the tabs, so the action
     // bubbles up from the tab navigator and pushes over the tab bar —
     // mirroring the web's full-screen detail modal.

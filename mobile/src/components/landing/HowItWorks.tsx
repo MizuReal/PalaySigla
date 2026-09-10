@@ -1,12 +1,19 @@
 // Three numbered steps on a soft band. Mirror of the website HowItWorks
 // section, minus the anchor navigation.
 import { StyleSheet, Text, View } from 'react-native'
-import Section from '../Section.jsx'
-import SectionHeader from '../SectionHeader.jsx'
-import Icon from '../Icon.jsx'
+import Section from '../Section'
+import SectionHeader from '../SectionHeader'
+import Icon from '../Icon'
+import type { IconName } from '../Icon'
 import { COLORS, CARD_GAP, SPACING, TYPE } from '../../theme/designTokens'
 
-const STEPS = [
+interface Step {
+  icon: IconName
+  title: string
+  body: string
+}
+
+const STEPS: Step[] = [
   {
     icon: 'camera',
     title: 'Take a photo',
@@ -24,7 +31,12 @@ const STEPS = [
   },
 ]
 
-function StepCard({ step, index }) {
+interface StepCardProps {
+  step: Step
+  index: number
+}
+
+function StepCard({ step, index }: StepCardProps) {
   return (
     <View style={styles.card}>
       <Icon name={step.icon} />

@@ -5,9 +5,10 @@
 import { useEffect, useState } from 'react'
 import { Image as ExpoImage } from 'expo-image'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import Button from '../Button.jsx'
-import Icon from '../Icon.jsx'
+import Button from '../Button'
+import Icon from '../Icon'
 import PADDY_SLIDES from '../../data/paddySlides'
+import type { PaddySlide } from '../../data/paddySlides'
 import {
   COLORS,
   GUTTER,
@@ -20,7 +21,7 @@ const SLIDE_INTERVAL_MS = 6000
 const PHOTO_TRANSITION_MS = 300
 const PHOTO_ASPECT_RATIO = 4 / 3
 
-const logPhotoError = (url) => (error) => {
+const logPhotoError = (url: string) => (error: unknown) => {
   // RN's stock Image swallows load failures; surface them in dev so a blank
   // photo is never silent (AGENTS.md: no silent failures)
   if (__DEV__) {
@@ -28,7 +29,11 @@ const logPhotoError = (url) => (error) => {
   }
 }
 
-function SlidePhoto({ slide }) {
+interface SlidePhotoProps {
+  slide: PaddySlide
+}
+
+function SlidePhoto({ slide }: SlidePhotoProps) {
   // remounting per slide replays the expo-image load transition
   return (
     <ExpoImage
@@ -44,7 +49,11 @@ function SlidePhoto({ slide }) {
   )
 }
 
-function SlideCopy({ slide }) {
+interface SlideCopyProps {
+  slide: PaddySlide
+}
+
+function SlideCopy({ slide }: SlideCopyProps) {
   return (
     <View>
       <Text style={[TYPE.headingMd, styles.slideName]}>{slide.name}</Text>
@@ -78,7 +87,7 @@ function Carousel() {
     return () => clearInterval(timer)
   }, [slideCount])
 
-  const goToSlide = (index) => {
+  const goToSlide = (index: number) => {
     setActiveIndex(((index % slideCount) + slideCount) % slideCount)
   }
 
@@ -158,7 +167,11 @@ function Carousel() {
   )
 }
 
-function LandingHero({ onGetStarted }) {
+interface LandingHeroProps {
+  onGetStarted?: () => void
+}
+
+function LandingHero({ onGetStarted }: LandingHeroProps) {
   return (
     <View style={styles.hero}>
       <View style={styles.copyColumn}>

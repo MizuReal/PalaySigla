@@ -1,5 +1,6 @@
 // Full-bleed background band carrying one landing content block. Canvas and
 // soft tones alternate down the page per the DESIGN.md surface rhythm.
+import type { ReactNode } from 'react'
 import { StyleSheet, View } from 'react-native'
 import {
   COLORS,
@@ -12,7 +13,14 @@ const TONE_STYLES = {
   soft: { backgroundColor: COLORS.surfaceSoft },
 }
 
-function Section({ tone = 'canvas', children }) {
+type SectionTone = keyof typeof TONE_STYLES
+
+interface SectionProps {
+  tone?: SectionTone
+  children: ReactNode
+}
+
+function Section({ tone = 'canvas', children }: SectionProps) {
   return <View style={[styles.section, TONE_STYLES[tone]]}>{children}</View>
 }
 

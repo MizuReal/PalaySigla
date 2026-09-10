@@ -7,6 +7,7 @@
 // conversation from AsyncStorage (same behavior as the web panel). Sign-in is
 // the gate: the modal only renders with a session.
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { KeyboardEvent } from 'react-native'
 import {
   Animated,
   Keyboard,
@@ -21,11 +22,12 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { TAB_BAR_HEIGHT } from '../AppTabBar.jsx'
+import { TAB_BAR_HEIGHT } from '../AppTabBar'
 import { useAuth } from '../../context/authContext'
 import usePalayAssistant, { MAX_MESSAGE_CHARS } from '../../hooks/usePalayAssistant'
 import usePulseOpacity from '../../hooks/usePulseOpacity'
-import Icon from '../Icon.jsx'
+import type { ChatTurn } from '../../types/api'
+import Icon from '../Icon'
 import { BORDER_WIDTH, COLORS, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
 
 const CLEAR_CONFIRM_RESET_MS = 4000
@@ -53,7 +55,11 @@ function TypingDot() {
   return <Animated.View style={[styles.typingDot, { opacity }]} />
 }
 
-function MessageBubble({ message }) {
+interface MessageBubbleProps {
+  message: ChatTurn
+}
+
+function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user'
   return (
     <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
@@ -64,7 +70,11 @@ function MessageBubble({ message }) {
   )
 }
 
-function WelcomeBubble({ onPick }) {
+interface WelcomeBubbleProps {
+  onPick: (question: string) => void
+}
+
+function WelcomeBubble({ onPick }: WelcomeBubbleProps) {
   return (
     <View style={[styles.bubble, styles.bubbleAssistant]}>
       <Text style={styles.bubbleTextAssistant}>{WELCOME_TEXT}</Text>
@@ -84,7 +94,12 @@ function WelcomeBubble({ onPick }) {
   )
 }
 
-function ChatSheet({ onClose, bottomGap }) {
+interface ChatSheetProps {
+  onClose: () => void
+  bottomGap: number
+}
+
+function ChatSheet({ onClose, bottomGap }: ChatSheetProps) {
   const { user } = useAuth()
   const { height: windowHeight } = useWindowDimensions()
   const {
@@ -102,8 +117,8 @@ function ChatSheet({ onClose, bottomGap }) {
   const [isInputFocused, setIsInputFocused] = useState(false)
   const [isConfirmingClear, setIsConfirmingClear] = useState(false)
 
-  const scrollRef = useRef(null)
-  const clearTimeoutRef = useRef(null)
+  const scrollRef = useRef<ScrollView | null>(null)
+  const clearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const sheetHeight = Math.min(
     SHEET_MAX_HEIGHT,
@@ -131,7 +146,7 @@ function ChatSheet({ onClose, bottomGap }) {
     void clearConversation()
   }
 
-  const handleSend = (content) => {
+  const handleSend = (content: string) => {
     const trimmed = content.trim()
     if (!trimmed || isWaiting || !conversationReady) {
       return
@@ -141,7 +156,7 @@ function ChatSheet({ onClose, bottomGap }) {
     void submitMessage(trimmed, messages)
   }
 
-  const handlePickQuestion = (question) => {
+  const handlePickQuestion = (question: string) => {
     handleSend(question)
   }
 
@@ -302,7 +317,8 @@ function ChatModal() {
     }
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
-    const handleShow = (event) => setKeyboardHeight(event.endCoordinates.height)
+    const handleShow = (event: KeyboardEvent) =>
+      setKeyboardHeight(event.endCoordinates.height)
     const handleHide = () => setKeyboardHeight(0)
     const showSubscription = Keyboard.addListener(showEvent, handleShow)
     const hideSubscription = Keyboard.addListener(hideEvent, handleHide)
@@ -339,7 +355,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    // RN 0.86 dropped absoluteFillObject; absoluteFill is the same plain object
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(26, 26, 26, 0.35)',
   },
   sheetSlot: {

@@ -5,7 +5,21 @@
 import { StyleSheet, Text, View } from 'react-native'
 import { COLORS, GUTTER, SPACING, TYPE } from '../theme/designTokens'
 
-function FeatureNotice({ eyebrow, title, sub, points, status }) {
+interface FeatureNoticeProps {
+  eyebrow: string
+  title: string
+  sub?: string
+  points: string[]
+  status: string
+}
+
+function FeatureNotice({
+  eyebrow,
+  title,
+  sub,
+  points,
+  status,
+}: FeatureNoticeProps) {
   return (
     <View style={styles.panel}>
       <Text style={[TYPE.captionMd, styles.eyebrow]}>{eyebrow}</Text>
