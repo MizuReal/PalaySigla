@@ -57,7 +57,8 @@ Jest via the `jest-expo` preset + React Native Testing Library.
   Supabase doubles.
 - RNTL v14's `render`, `renderHook`, and `act` are **async** — always `await` them.
 - TypeScript checks run via `npm run typecheck` (`tsconfig.json` extends
-  `expo/tsconfig.base` with `strict` + the modern strictness flags; `types/expo-env.d.ts`
+  `expo/tsconfig.base` with `strict` + the modern strictness flags and an explicit
+  `allowJs: false` override, so `src` is `.ts`/`.tsx` only; `types/expo-env.d.ts`
   supplies Expo's global typings because the generated `expo-env.d.ts` is gitignored).
 - CI runs `npm run lint`, `npm test`, and `npm run typecheck`.
 

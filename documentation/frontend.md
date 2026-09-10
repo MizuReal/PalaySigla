@@ -51,8 +51,7 @@ Vitest + jsdom + React Testing Library, configured in `vitest.config.js`.
 - `.env.test` (committed, fake values only) supplies the `VITE_*` keys the suite needs —
   real secrets stay in the gitignored `.env`, and the suite passes without one.
 - TypeScript checks run via `npm run typecheck` (`tsconfig.json`: `strict` + the modern
-  strictness flags for `.ts`/`.tsx`; `allowJs` + `checkJs: false` leaves untranslated JS
-  parsed but unchecked until each file is converted).
+  strictness flags, `allowJs` off — `src` is `.ts`/`.tsx` only).
 - CI runs `npm run lint`, `npm test`, and `npm run typecheck`.
 
 ## Source layout
