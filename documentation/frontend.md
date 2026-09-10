@@ -35,6 +35,22 @@ npm run dev            # http://localhost:5173
 | `npm run build` | Production build |
 | `npm run preview` | Preview the production build |
 | `npm run lint` | ESLint (react-hooks rules included) |
+| `npm test` | Vitest suite (single run) |
+| `npm run test:watch` | Vitest in watch mode |
+
+## Testing
+
+Vitest + jsdom + React Testing Library, configured in `vitest.config.js`.
+
+- Characterization tests live in `src/**/__tests__/` beside the code they cover and
+  exercise the data layer: `services/` (Supabase and `fetch` mocked), `utils/`, and the
+  listing hooks.
+- `src/test/supabaseMock.js` provides the chainable Supabase client, query-builder, and
+  storage-bucket doubles used by the service tests.
+- `.env.test` (committed, fake values only) supplies the `VITE_*` keys the suite needs —
+  real secrets stay in the gitignored `.env`, and the suite passes without one.
+- CI runs `npm run lint`, `npm test`, and `npm run typecheck --if-present` (the typecheck
+  script arrives with the TypeScript migration).
 
 ## Source layout
 

@@ -42,6 +42,21 @@ Only `EXPO_PUBLIC_*` variables reach client code.
 | `npm run ios` | Start and open on iOS Simulator (macOS) |
 | `npm run web` | Start in a web browser |
 | `npm run lint` | ESLint (expo flat config, react-hooks included) |
+| `npm test` | Jest suite (single run) |
+| `npm run test:watch` | Jest in watch mode |
+
+## Testing
+
+Jest via the `jest-expo` preset + React Native Testing Library.
+
+- `jest.setup.js` mocks AsyncStorage, sets the React `act` environment, and injects fake
+  `EXPO_PUBLIC_*` values — the suite never reads the real `.env`.
+- Characterization tests live in `src/**/__tests__/` and cover `services/` (Supabase and
+  `fetch` mocked), `utils/`, and the listing hooks. `src/test/supabaseMock.js` provides the
+  Supabase doubles.
+- RNTL v14's `render`, `renderHook`, and `act` are **async** — always `await` them.
+- CI runs `npm run lint`, `npm test`, and `npm run typecheck --if-present` (the typecheck
+  script arrives with the TypeScript migration).
 
 ## Source layout
 

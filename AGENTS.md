@@ -68,6 +68,22 @@ project-root/
 
 ---
 
+## Testing & CI
+
+- Web tests: `cd website && npm test` (Vitest + jsdom + React Testing Library).
+- Mobile tests: `cd mobile && npm test` (Jest via `jest-expo` + React Native Testing Library).
+- Tests live in `__tests__/` directories next to the modules they cover, named `*.test.js`.
+- Shared test doubles live in `website/src/test/` and `mobile/src/test/` — including the
+  Supabase client mock used by every service test.
+- Tests never touch a real Supabase project or backend: mock `services/supabaseClient.js`
+  and `fetch`. Fake env values come from `website/.env.test` (committed, non-secret) and
+  `mobile/jest.setup.js`; tests must pass with no `.env` present.
+- Run `npm run lint` and `npm test` in the affected app before considering a change complete.
+- CI (`.github/workflows/frontend-checks.yml`) runs lint, tests, and
+  `npm run typecheck --if-present` for both frontends.
+
+---
+
 ## JavaScript (Web + Mobile)
 
 - Plain JavaScript only. No TypeScript, no JSDoc type annotations, no `.ts`/`.tsx` files.
