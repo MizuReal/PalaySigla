@@ -3,7 +3,7 @@
 // remounting the component that owns this hook (keyed by a retry counter),
 // so the effect only ever runs for a fresh id.
 import { useEffect, useState } from 'react'
-import { getListing, getListingImageUrl } from '../services/listings.js'
+import { getListing, getListingImageUrl } from '../services/listings'
 
 function useListingDetail(id) {
   const [listing, setListing] = useState(null)

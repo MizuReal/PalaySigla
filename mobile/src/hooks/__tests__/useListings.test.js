@@ -1,11 +1,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native'
 
-jest.mock('../../services/listings.js', () => ({
+jest.mock('../../services/listings', () => ({
   fetchListings: jest.fn(),
   LISTING_SORTS: { NEWEST: 'newest', PRICE_ASC: 'price_asc', PRICE_DESC: 'price_desc' },
 }))
 
-import { fetchListings } from '../../services/listings.js'
+import { fetchListings } from '../../services/listings'
 import useListings from '../useListings.js'
 
 beforeEach(() => {

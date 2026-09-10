@@ -3,7 +3,7 @@
 // fallback label covers failed or missing photos, exactly as the web
 // ListingCard silently falls back.
 import { useEffect, useState } from 'react'
-import { getListingImageUrl } from '../services/listings.js'
+import { getListingImageUrl } from '../services/listings'
 
 function useListingImageUrl(storagePath) {
   const [imageUrl, setImageUrl] = useState('')

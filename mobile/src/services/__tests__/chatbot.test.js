@@ -1,12 +1,12 @@
 import { resetSupabaseMock } from '../../test/supabaseMock.js'
 
-jest.mock('../supabaseClient.js', () => {
+jest.mock('../supabaseClient', () => {
   const { createSupabaseMock } = jest.requireActual('../../test/supabaseMock.js')
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase } from '../supabaseClient.js'
-import { sendChatMessage } from '../chatbot.js'
+import { supabase } from '../supabaseClient'
+import { sendChatMessage } from '../chatbot'
 
 const API_BASE_URL = 'https://api.palaysigla.test'
 const MESSAGES = [{ role: 'user', content: 'Hello' }]
@@ -111,7 +111,7 @@ describe('sendChatMessage', () => {
     jest.resetModules()
     let freshSend
     jest.isolateModules(() => {
-      freshSend = require('../chatbot.js').sendChatMessage
+      freshSend = require('../chatbot').sendChatMessage
     })
 
     await expect(freshSend(MESSAGES)).rejects.toThrow(

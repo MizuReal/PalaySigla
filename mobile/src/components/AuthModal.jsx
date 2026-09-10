@@ -30,7 +30,7 @@ import {
   PASSWORD_MIN_LENGTH,
   sendPasswordReset,
   updatePassword,
-} from '../services/auth.js'
+} from '../services/auth'
 import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation.js'
 import Button from './Button.jsx'
 import Icon from './Icon.jsx'

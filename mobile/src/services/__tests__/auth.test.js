@@ -1,12 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { resetSupabaseMock } from '../../test/supabaseMock.js'
 
-jest.mock('../supabaseClient.js', () => {
+jest.mock('../supabaseClient', () => {
   const { createSupabaseMock } = jest.requireActual('../../test/supabaseMock.js')
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase } from '../supabaseClient.js'
+import { supabase } from '../supabaseClient'
 import {
   completeAuthRedirect,
   PASSWORD_MAX_LENGTH,
@@ -16,7 +16,7 @@ import {
   signOut,
   signUpWithEmail,
   updatePassword,
-} from '../auth.js'
+} from '../auth'
 
 const PENDING_AUTH_RETURN_KEY = 'palaysigla:pendingAuthReturn'
 const REDIRECT_URL = 'https://palaysigla.test/auth/callback'

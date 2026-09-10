@@ -1,4 +1,4 @@
-import { AUTH_RETURN_PATH, createAuthReturnUrl, parseAuthRedirectUrl } from '../authUrlHint.js'
+import { AUTH_RETURN_PATH, createAuthReturnUrl, parseAuthRedirectUrl } from '../authUrlHint'
 
 describe('createAuthReturnUrl', () => {
   it('returns the configured redirect URL', () => {

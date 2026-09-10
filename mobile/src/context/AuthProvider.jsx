@@ -1,5 +1,5 @@
 // Session provider for the mobile build. Sessions persist through AsyncStorage
-// (supabaseClient.js config); this provider is the single subscriber to
+// (supabaseClient.ts config); this provider is the single subscriber to
 // auth events so every surface reads { user } from context — never ad-hoc
 // getSession calls (AGENTS.md rule).
 //
@@ -19,8 +19,8 @@ import {
   signInWithEmail,
   signOut as signOutSession,
   signUpWithEmail,
-} from '../services/auth.js'
-import { supabase } from '../services/supabaseClient.js'
+} from '../services/auth'
+import { supabase } from '../services/supabaseClient'
 import { AUTH_MODAL_MODES, AuthContext } from './authContext.js'
 
 const LINK_HANDLING_FAILED_MESSAGE =

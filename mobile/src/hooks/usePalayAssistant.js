@@ -6,7 +6,7 @@
 // only the signed-in empty state instead of another account's messages.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { sendChatMessage } from '../services/chatbot.js'
+import { sendChatMessage } from '../services/chatbot'
 
 export const MAX_HISTORY_MESSAGES = 20
 export const MAX_MESSAGE_CHARS = 2000

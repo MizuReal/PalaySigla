@@ -4,7 +4,7 @@
 // pagination and surfaces the fresh initial-loading state, mirroring the
 // web page's keyed remount of its ListingFeed.
 import { useCallback, useEffect, useState } from 'react'
-import { fetchListings, LISTING_SORTS } from '../services/listings.js'
+import { fetchListings, LISTING_SORTS } from '../services/listings'
 
 const PAGE_SIZE = 12
 

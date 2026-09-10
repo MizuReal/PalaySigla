@@ -1,10 +1,11 @@
 // Marketplace data access — browse-only port of the website's listings
-// service (mobile/src/services/listings.js mirrors website/src/services/
-// listings.js). Reads ride the anon key + RLS (select is public for
+// service (mobile/src/services/listings.ts mirrors website/src/services/
+// listings.ts). Reads ride the anon key + RLS (select is public for
 // non-deleted rows); create/upload/manage calls stay out until the auth
 // phase lands, so every mutation-capable function from the web build is
 // deliberately absent here.
-import { supabase } from './supabaseClient.js'
+import { supabase } from './supabaseClient'
+import type { ListingWithImages } from '../types/domain'
 
 const PAGE_SIZE_DEFAULT = 12
 const SIGNED_URL_TTL_SECONDS = 60
@@ -13,9 +14,9 @@ const SIGNED_URL_CACHE_TTL_MS = 45_000
 export const LISTING_STATUSES = Object.freeze({
   ACTIVE: 'active',
   SOLD: 'sold',
-})
+} as const)
 
-export const LISTING_UNITS = Object.freeze(['kg', 'sack', 'cavan', 'lot'])
+export const LISTING_UNITS = Object.freeze(['kg', 'sack', 'cavan', 'lot'] as const)
 
 export const LISTING_CATEGORIES = Object.freeze([
   'palay',
@@ -23,23 +24,41 @@ export const LISTING_CATEGORIES = Object.freeze([
   'seeds',
   'machinery',
   'other',
-])
+] as const)
 
 export const LISTING_SORTS = Object.freeze({
   NEWEST: 'newest',
   PRICE_ASC: 'price_asc',
   PRICE_DESC: 'price_desc',
-})
+} as const)
 
-const SORT_COLUMNS = Object.freeze({
+export type ListingStatus = (typeof LISTING_STATUSES)[keyof typeof LISTING_STATUSES]
+export type ListingUnit = (typeof LISTING_UNITS)[number]
+export type ListingCategory = (typeof LISTING_CATEGORIES)[number]
+export type ListingSort = (typeof LISTING_SORTS)[keyof typeof LISTING_SORTS]
+
+const SORT_COLUMNS: Record<ListingSort, { column: 'created_at' | 'price'; ascending: boolean }> = {
   [LISTING_SORTS.NEWEST]: { column: 'created_at', ascending: false },
   [LISTING_SORTS.PRICE_ASC]: { column: 'price', ascending: true },
   [LISTING_SORTS.PRICE_DESC]: { column: 'price', ascending: false },
-})
+}
+
+export interface FetchListingsParams {
+  category?: ListingCategory | null
+  search?: string
+  sort?: ListingSort
+  page?: number
+  limit?: number
+}
+
+export interface ListingsPage {
+  data: ListingWithImages[] | null
+  total: number
+}
 
 // Signed URLs expire server-side (60s); the map defers refetching until a
 // fresh URL is genuinely needed, mirroring the website's cache exactly.
-const signedUrlCache = new Map()
+const signedUrlCache = new Map<string, { url: string; fetchedAt: number }>()
 
 export async function fetchListings({
   category = null,
@@ -47,7 +66,7 @@ export async function fetchListings({
   sort = LISTING_SORTS.NEWEST,
   page = 1,
   limit = PAGE_SIZE_DEFAULT,
-} = {}) {
+}: FetchListingsParams = {}): Promise<ListingsPage> {
   const sortSpec = SORT_COLUMNS[sort] ?? SORT_COLUMNS[LISTING_SORTS.NEWEST]
   const normalizedSearch = search.trim()
   const from = (page - 1) * limit
@@ -77,7 +96,7 @@ export async function fetchListings({
   return { data, total: count ?? 0 }
 }
 
-export async function getListing(id) {
+export async function getListing(id: string): Promise<ListingWithImages> {
   const { data, error } = await supabase
     .from('listings')
     .select('*, listing_images(id, storage_path, position)')
@@ -91,7 +110,7 @@ export async function getListing(id) {
   return data
 }
 
-export async function getListingImageUrl(storagePath) {
+export async function getListingImageUrl(storagePath: string): Promise<string> {
   const cached = signedUrlCache.get(storagePath)
   if (cached && cached.fetchedAt > Date.now() - SIGNED_URL_CACHE_TTL_MS) {
     return cached.url

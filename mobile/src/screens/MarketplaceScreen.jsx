@@ -7,7 +7,7 @@ import { Alert, StyleSheet, View } from 'react-native'
 import BrandBar from '../components/BrandBar.jsx'
 import ListingFeed from '../components/marketplace/ListingFeed.jsx'
 import ListingFilters from '../components/marketplace/ListingFilters.jsx'
-import { LISTING_SORTS } from '../services/listings.js'
+import { LISTING_SORTS } from '../services/listings'
 import { COLORS } from '../theme/designTokens.js'
 
 const SEARCH_DEBOUNCE_MS = 350

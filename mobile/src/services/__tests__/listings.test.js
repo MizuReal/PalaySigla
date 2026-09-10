@@ -1,11 +1,11 @@
 import { createQueryBuilder, createStorageBucketMock, resetSupabaseMock } from '../../test/supabaseMock.js'
 
-jest.mock('../supabaseClient.js', () => {
+jest.mock('../supabaseClient', () => {
   const { createSupabaseMock } = jest.requireActual('../../test/supabaseMock.js')
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase } from '../supabaseClient.js'
+import { supabase } from '../supabaseClient'
 import {
   fetchListings,
   getListing,
@@ -13,7 +13,7 @@ import {
   LISTING_CATEGORIES,
   LISTING_SORTS,
   LISTING_UNITS,
-} from '../listings.js'
+} from '../listings'
 
 beforeEach(() => {
   resetSupabaseMock(supabase)

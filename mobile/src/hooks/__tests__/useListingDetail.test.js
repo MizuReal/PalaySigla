@@ -1,11 +1,11 @@
 import { renderHook, waitFor } from '@testing-library/react-native'
 
-jest.mock('../../services/listings.js', () => ({
+jest.mock('../../services/listings', () => ({
   getListing: jest.fn(),
   getListingImageUrl: jest.fn(),
 }))
 
-import { getListing, getListingImageUrl } from '../../services/listings.js'
+import { getListing, getListingImageUrl } from '../../services/listings'
 import useListingDetail from '../useListingDetail.js'
 
 beforeEach(() => {

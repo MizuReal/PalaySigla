@@ -9,7 +9,7 @@
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import Icon from '../Icon.jsx'
-import { LISTING_CATEGORIES, LISTING_SORTS } from '../../services/listings.js'
+import { LISTING_CATEGORIES, LISTING_SORTS } from '../../services/listings'
 import { CATEGORY_LABELS } from '../../utils/format.js'
 import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../../theme/designTokens.js'
 

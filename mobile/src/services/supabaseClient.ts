@@ -4,11 +4,12 @@
 // AsyncStorage, never in memory only (AGENTS.md React Native rule).
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '../types/database'
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
 
-function requireConfiguredEnv(value, envKey) {
+function requireConfiguredEnv(value: string | undefined, envKey: string): string {
   if (!value) {
     throw new Error(
       `Missing ${envKey}. Copy mobile/.env.example to mobile/.env and fill in the values.`
@@ -17,7 +18,7 @@ function requireConfiguredEnv(value, envKey) {
   return value
 }
 
-export const supabase = createClient(
+export const supabase = createClient<Database>(
   requireConfiguredEnv(SUPABASE_URL, 'EXPO_PUBLIC_SUPABASE_URL'),
   requireConfiguredEnv(SUPABASE_ANON_KEY, 'EXPO_PUBLIC_SUPABASE_ANON_KEY'),
   {

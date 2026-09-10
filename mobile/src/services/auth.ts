@@ -1,15 +1,12 @@
-// Auth service — mobile port of website/src/services/auth.js (same password
-// bounds, friendly-error table, and toFriendlyError contract: thrown values
-// carry a .message for the UI) plus the deep-link session hand-off mobile
-// needs. Every supabase.auth call in the app funnels through this module;
+// Auth service — mobile port of website/src/services/auth.ts (same password
+// bounds, friendly-error table, and toFriendlyError contract: thrown errors
+// carry the UI message) plus the deep-link session hand-off mobile needs.
+// Every supabase.auth call in the app funnels through this module;
 // validation regexes live in utils/validation.js and return-URL helpers in
-// utils/authUrlHint.js.
+// utils/authUrlHint.ts.
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { supabase } from './supabaseClient.js'
-import {
-  createAuthReturnUrl,
-  parseAuthRedirectUrl,
-} from '../utils/authUrlHint.js'
+import { supabase } from './supabaseClient'
+import { createAuthReturnUrl, parseAuthRedirectUrl } from '../utils/authUrlHint'
 
 export const PASSWORD_MIN_LENGTH = 8
 
@@ -21,7 +18,7 @@ export const PASSWORD_MAX_LENGTH = 72
 // confirmation from a password recovery without trusting the URL alone
 const PENDING_AUTH_RETURN_KEY = 'palaysigla:pendingAuthReturn'
 
-const ERROR_MESSAGES = {
+const ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials:
     'The email or password you entered is incorrect. Please try again.',
   email_not_confirmed:
@@ -45,10 +42,30 @@ const ERROR_MESSAGES = {
 const AUTH_LINK_FAILED_MESSAGE =
   'This link is invalid or has already been used. Please request a new one.'
 
-function toFriendlyError(error) {
-  const normalizedCode = String(error?.code ?? '')
+const AUTH_RETURN_TYPES = Object.freeze({
+  signup: 'signup',
+  recovery: 'recovery',
+} as const)
+
+export type AuthReturnType = (typeof AUTH_RETURN_TYPES)[keyof typeof AUTH_RETURN_TYPES]
+
+interface SupabaseErrorLike {
+  code?: string
+  message?: string
+}
+
+function normalizeErrorCode(error: unknown): string {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? (error as { code?: unknown }).code
+      : undefined
+  return String(code ?? '')
     .toLowerCase()
     .replace(/-/g, '_')
+}
+
+function toFriendlyError(error: SupabaseErrorLike | null): Error {
+  const normalizedCode = normalizeErrorCode(error)
   return new Error(
     ERROR_MESSAGES[normalizedCode] ??
       error?.message ??
@@ -56,7 +73,11 @@ function toFriendlyError(error) {
   )
 }
 
-export async function signInWithEmail(email, password) {
+function isAuthReturnType(value: string | null | undefined): value is AuthReturnType {
+  return value === AUTH_RETURN_TYPES.signup || value === AUTH_RETURN_TYPES.recovery
+}
+
+export async function signInWithEmail(email: string, password: string): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword({
     email: email.trim().toLowerCase(),
     password,
@@ -66,7 +87,11 @@ export async function signInWithEmail(email, password) {
   }
 }
 
-export async function signUpWithEmail(name, email, password) {
+export async function signUpWithEmail(
+  name: string,
+  email: string,
+  password: string
+): Promise<{ requiresEmailConfirmation: boolean }> {
   const { data, error } = await supabase.auth.signUp({
     email: email.trim().toLowerCase(),
     password,
@@ -80,12 +105,12 @@ export async function signUpWithEmail(name, email, password) {
   }
   // a null session means email confirmation is required before first sign-in
   if (data.session === null) {
-    await rememberPendingAuthReturn('signup')
+    await rememberPendingAuthReturn(AUTH_RETURN_TYPES.signup)
   }
   return { requiresEmailConfirmation: data.session === null }
 }
 
-export async function sendPasswordReset(email) {
+export async function sendPasswordReset(email: string): Promise<void> {
   const { error } = await supabase.auth.resetPasswordForEmail(
     email.trim().toLowerCase(),
     { redirectTo: createAuthReturnUrl() }
@@ -93,19 +118,19 @@ export async function sendPasswordReset(email) {
   if (error) {
     throw toFriendlyError(error)
   }
-  await rememberPendingAuthReturn('recovery')
+  await rememberPendingAuthReturn(AUTH_RETURN_TYPES.recovery)
 }
 
 // Called from the in-app "set a new password" view after a recovery deep
 // link handed the session over; the same 8–72 bounds apply client-side.
-export async function updatePassword(newPassword) {
+export async function updatePassword(newPassword: string): Promise<void> {
   const { error } = await supabase.auth.updateUser({ password: newPassword })
   if (error) {
     throw toFriendlyError(error)
   }
 }
 
-export async function signOut() {
+export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut()
   if (error) {
     throw toFriendlyError(error)
@@ -118,7 +143,9 @@ export async function signOut() {
 // a type param. For PKCE the type is inferred from the last email this app
 // sent (the device that requested the email opens the link); anything else
 // leaves the current session untouched and resolves to type: null.
-export async function completeAuthRedirect(rawUrl) {
+export async function completeAuthRedirect(
+  rawUrl: string
+): Promise<{ type: AuthReturnType | null }> {
   const params = parseAuthRedirectUrl(rawUrl)
   const code = params.code
   const accessToken = params.access_token
@@ -135,20 +162,18 @@ export async function completeAuthRedirect(rawUrl) {
       })
     }
   } catch (error) {
-    const normalizedCode = String(error?.code ?? '')
-      .toLowerCase()
-      .replace(/-/g, '_')
+    const normalizedCode = normalizeErrorCode(error)
     if (ERROR_MESSAGES[normalizedCode]) {
       throw new Error(ERROR_MESSAGES[normalizedCode])
     }
     throw new Error(AUTH_LINK_FAILED_MESSAGE)
   }
-  const urlType = AUTH_RETURN_TYPES[params.type] ?? null
+  const urlType = isAuthReturnType(params.type) ? params.type : null
   const rememberedType = urlType ?? (await consumePendingAuthReturn())
   return { type: rememberedType }
 }
 
-async function rememberPendingAuthReturn(type) {
+async function rememberPendingAuthReturn(type: AuthReturnType): Promise<void> {
   // best effort: an email was just sent, so if the flag cannot be stored the
   // deep-link listener simply treats the return as a plain verified sign-in
   try {
@@ -158,18 +183,13 @@ async function rememberPendingAuthReturn(type) {
   }
 }
 
-async function consumePendingAuthReturn() {
-  let rememberedType = null
+async function consumePendingAuthReturn(): Promise<AuthReturnType | null> {
+  let rememberedType: string | null = null
   try {
     rememberedType = await AsyncStorage.getItem(PENDING_AUTH_RETURN_KEY)
     await AsyncStorage.removeItem(PENDING_AUTH_RETURN_KEY)
   } catch {
     return null
   }
-  return AUTH_RETURN_TYPES[rememberedType] ?? null
+  return isAuthReturnType(rememberedType) ? rememberedType : null
 }
-
-const AUTH_RETURN_TYPES = Object.freeze({
-  signup: 'signup',
-  recovery: 'recovery',
-})
