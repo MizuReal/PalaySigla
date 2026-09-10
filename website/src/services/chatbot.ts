@@ -1,12 +1,13 @@
 import { supabase } from './supabaseClient.js'
+import type { ApiEnvelope, ChatReply, ChatTurn } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL
 
-export async function sendChatMessage(messages) {
+export async function sendChatMessage(messages: ChatTurn[]): Promise<ChatReply> {
   if (!API_BASE_URL) {
     throw new Error('VITE_API_URL is not configured.')
   }
-  let token
+  let token: string | null
   try {
     const { data } = await supabase.auth.getSession()
     token = data.session?.access_token ?? null
@@ -17,7 +18,7 @@ export async function sendChatMessage(messages) {
     throw new Error('Please sign in to use the assistant.')
   }
 
-  let response
+  let response: Response
   try {
     response = await fetch(`${API_BASE_URL}/api/chat`, {
       method: 'POST',
@@ -30,9 +31,9 @@ export async function sendChatMessage(messages) {
   } catch {
     throw new Error('Could not reach the assistant. Check your connection.')
   }
-  const body = await response.json()
+  const body = (await response.json()) as ApiEnvelope<ChatReply>
   if (!response.ok || body.error) {
-    const message = body?.error?.message ?? 'The assistant returned an error. Please try again.'
+    const message = body.error?.message ?? 'The assistant returned an error. Please try again.'
     throw new Error(message)
   }
   return body.data

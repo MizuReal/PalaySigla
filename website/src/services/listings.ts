@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js'
+import type { ListingWithImages } from '../types/domain'
 
 const PAGE_SIZE_DEFAULT = 12
 const SIGNED_URL_TTL_SECONDS = 60
@@ -7,9 +8,9 @@ const SIGNED_URL_CACHE_TTL_MS = 45_000
 export const LISTING_STATUSES = Object.freeze({
   ACTIVE: 'active',
   SOLD: 'sold',
-})
+} as const)
 
-export const LISTING_UNITS = Object.freeze(['kg', 'sack', 'cavan', 'lot'])
+export const LISTING_UNITS = Object.freeze(['kg', 'sack', 'cavan', 'lot'] as const)
 
 export const LISTING_CATEGORIES = Object.freeze([
   'palay',
@@ -17,36 +18,69 @@ export const LISTING_CATEGORIES = Object.freeze([
   'seeds',
   'machinery',
   'other',
-])
+] as const)
 
 export const LISTING_SORTS = Object.freeze({
   NEWEST: 'newest',
   PRICE_ASC: 'price_asc',
   PRICE_DESC: 'price_desc',
-})
+} as const)
 
 export const MY_LISTING_FILTERS = Object.freeze({
   ALL: 'all',
   ACTIVE: 'active',
   SOLD: 'sold',
   DELETED: 'deleted',
-})
+} as const)
 
-const SORT_COLUMNS = Object.freeze({
+export type ListingStatus = (typeof LISTING_STATUSES)[keyof typeof LISTING_STATUSES]
+export type ListingUnit = (typeof LISTING_UNITS)[number]
+export type ListingCategory = (typeof LISTING_CATEGORIES)[number]
+export type ListingSort = (typeof LISTING_SORTS)[keyof typeof LISTING_SORTS]
+export type MyListingFilter =
+  (typeof MY_LISTING_FILTERS)[keyof typeof MY_LISTING_FILTERS]
+
+const SORT_COLUMNS: Record<ListingSort, { column: 'created_at' | 'price'; ascending: boolean }> = {
   [LISTING_SORTS.NEWEST]: { column: 'created_at', ascending: false },
   [LISTING_SORTS.PRICE_ASC]: { column: 'price', ascending: true },
   [LISTING_SORTS.PRICE_DESC]: { column: 'price', ascending: false },
-})
+}
 
-const MY_LISTING_FILTER_QUERIES = Object.freeze({
-  [MY_LISTING_FILTERS.ACTIVE]: (query) =>
-    query.eq('status', LISTING_STATUSES.ACTIVE).is('deleted_at', null),
-  [MY_LISTING_FILTERS.SOLD]: (query) =>
-    query.eq('status', LISTING_STATUSES.SOLD).is('deleted_at', null),
-  [MY_LISTING_FILTERS.DELETED]: (query) => query.not('deleted_at', 'is', null),
-})
+export interface FetchListingsParams {
+  category?: ListingCategory | null
+  search?: string
+  sort?: ListingSort
+  page?: number
+  limit?: number
+}
 
-const signedUrlCache = new Map()
+export interface FetchMyListingsParams {
+  userId?: string
+  filter?: MyListingFilter
+  page?: number
+  limit?: number
+}
+
+export interface ListingsPage {
+  data: ListingWithImages[] | null
+  total: number
+}
+
+export interface CreateListingInput {
+  userId: string
+  title: string
+  description: string
+  price: number
+  unit: ListingUnit
+  category: ListingCategory
+  quantity: number
+  lat: number
+  lng: number
+  locationLabel: string
+  sellerName: string
+}
+
+const signedUrlCache = new Map<string, { url: string; fetchedAt: number }>()
 
 export async function fetchListings({
   category = null,
@@ -54,7 +88,7 @@ export async function fetchListings({
   sort = LISTING_SORTS.NEWEST,
   page = 1,
   limit = PAGE_SIZE_DEFAULT,
-} = {}) {
+}: FetchListingsParams = {}): Promise<ListingsPage> {
   const sortSpec = SORT_COLUMNS[sort] ?? SORT_COLUMNS[LISTING_SORTS.NEWEST]
   const normalizedSearch = search.trim()
   const from = (page - 1) * limit
@@ -89,7 +123,7 @@ export async function fetchMyListings({
   filter = MY_LISTING_FILTERS.ALL,
   page = 1,
   limit = PAGE_SIZE_DEFAULT,
-} = {}) {
+}: FetchMyListingsParams = {}): Promise<ListingsPage> {
   if (!userId) {
     throw new Error('Could not load your listings. Please try again.')
   }
@@ -103,9 +137,12 @@ export async function fetchMyListings({
     .order('created_at', { ascending: false })
     .order('position', { referencedTable: 'listing_images', ascending: true })
 
-  const applyFilter = MY_LISTING_FILTER_QUERIES[filter]
-  if (applyFilter) {
-    query = applyFilter(query)
+  if (filter === MY_LISTING_FILTERS.ACTIVE) {
+    query = query.eq('status', LISTING_STATUSES.ACTIVE).is('deleted_at', null)
+  } else if (filter === MY_LISTING_FILTERS.SOLD) {
+    query = query.eq('status', LISTING_STATUSES.SOLD).is('deleted_at', null)
+  } else if (filter === MY_LISTING_FILTERS.DELETED) {
+    query = query.not('deleted_at', 'is', null)
   }
 
   const { data, error, count } = await query.range(from, to)
@@ -115,7 +152,7 @@ export async function fetchMyListings({
   return { data, total: count ?? 0 }
 }
 
-export async function getListing(id) {
+export async function getListing(id: string): Promise<ListingWithImages> {
   const { data, error } = await supabase
     .from('listings')
     .select('*, listing_images(id, storage_path, position)')
@@ -141,7 +178,7 @@ export async function createListing({
   lng,
   locationLabel,
   sellerName,
-}) {
+}: CreateListingInput): Promise<string> {
   const { data, error } = await supabase
     .from('listings')
     .insert({
@@ -165,7 +202,12 @@ export async function createListing({
   return data.id
 }
 
-export async function uploadListingImage(file, listingId, userId, position = 0) {
+export async function uploadListingImage(
+  file: File,
+  listingId: string,
+  userId: string,
+  position = 0
+): Promise<string> {
   const storagePath = `${userId}/${listingId}/${position}.jpg`
   const { error: uploadError } = await supabase.storage
     .from('listings')
@@ -182,7 +224,7 @@ export async function uploadListingImage(file, listingId, userId, position = 0) 
   return storagePath
 }
 
-export async function softDeleteListing(id) {
+export async function softDeleteListing(id: string): Promise<void> {
   const { error } = await supabase
     .from('listings')
     .update({ deleted_at: new Date().toISOString() })
@@ -192,14 +234,14 @@ export async function softDeleteListing(id) {
   }
 }
 
-export async function updateListingStatus(id, status) {
+export async function updateListingStatus(id: string, status: ListingStatus): Promise<void> {
   const { error } = await supabase.from('listings').update({ status }).eq('id', id)
   if (error) {
     throw new Error('Could not update the listing. Please try again.')
   }
 }
 
-export async function getListingImageUrl(storagePath) {
+export async function getListingImageUrl(storagePath: string): Promise<string> {
   const cached = signedUrlCache.get(storagePath)
   if (cached && cached.fetchedAt > Date.now() - SIGNED_URL_CACHE_TTL_MS) {
     return cached.url

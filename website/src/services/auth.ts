@@ -5,7 +5,7 @@ export const PASSWORD_MIN_LENGTH = 8
 // bcrypt ceiling: Supabase hashes with bcrypt, which ignores bytes past 72
 export const PASSWORD_MAX_LENGTH = 72
 
-const ERROR_MESSAGES = {
+const ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials:
     'The email or password you entered is incorrect. Please try again.',
   email_not_confirmed:
@@ -22,7 +22,16 @@ const ERROR_MESSAGES = {
     'Could not reach the server. Check your connection and try again.',
 }
 
-function toFriendlyError(error) {
+interface SupabaseErrorLike {
+  code?: string
+  message?: string
+}
+
+interface FriendlyError {
+  message: string
+}
+
+function toFriendlyError(error: SupabaseErrorLike | null): FriendlyError {
   const normalizedCode = String(error?.code ?? '')
     .toLowerCase()
     .replace(/-/g, '_')
@@ -34,7 +43,7 @@ function toFriendlyError(error) {
   }
 }
 
-export async function signInWithEmail(email, password) {
+export async function signInWithEmail(email: string, password: string): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -44,7 +53,11 @@ export async function signInWithEmail(email, password) {
   }
 }
 
-export async function signUpWithEmail(name, email, password) {
+export async function signUpWithEmail(
+  name: string,
+  email: string,
+  password: string
+): Promise<{ requiresEmailConfirmation: boolean }> {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -59,7 +72,7 @@ export async function signUpWithEmail(name, email, password) {
   return { requiresEmailConfirmation: data.session === null }
 }
 
-export async function sendPasswordReset(email) {
+export async function sendPasswordReset(email: string): Promise<void> {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: import.meta.env.VITE_AUTH_REDIRECT_URL,
   })
@@ -68,7 +81,7 @@ export async function sendPasswordReset(email) {
   }
 }
 
-export async function signOut() {
+export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut()
   if (error) {
     throw toFriendlyError(error)

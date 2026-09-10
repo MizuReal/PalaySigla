@@ -1,4 +1,6 @@
 import { supabase } from './supabaseClient.js'
+import type { TablesInsert } from '../types/database'
+import type { ProfileRow } from '../types/domain'
 
 const AVATAR_BUCKET = 'avatars'
 const AVATAR_FILE_NAME = 'avatar.jpg'
@@ -6,23 +8,29 @@ const SIGNED_URL_TTL_SECONDS = 60
 const SIGNED_URL_CACHE_TTL_MS = 45_000
 const AVATAR_PATH_CACHE_TTL_MS = 60_000
 
-const signedUrlCache = new Map()
-const avatarPathCache = new Map()
+const signedUrlCache = new Map<string, { url: string; fetchedAt: number }>()
+const avatarPathCache = new Map<string, { path: string; fetchedAt: number }>()
 
-export function getAvatarStoragePath(userId) {
+export interface UpsertProfileInput {
+  fullName: string
+  phone: string | null
+  avatarPath?: string | null
+}
+
+export function getAvatarStoragePath(userId: string): string {
   return `${userId}/${AVATAR_FILE_NAME}`
 }
 
-function userIdFromStoragePath(storagePath) {
+function userIdFromStoragePath(storagePath: string): string {
   return storagePath.split('/')[0]
 }
 
-function clearAvatarCaches(storagePath) {
+function clearAvatarCaches(storagePath: string): void {
   signedUrlCache.delete(storagePath)
   avatarPathCache.delete(userIdFromStoragePath(storagePath))
 }
 
-export async function fetchProfile(userId) {
+export async function fetchProfile(userId: string): Promise<ProfileRow | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -35,8 +43,11 @@ export async function fetchProfile(userId) {
   return data
 }
 
-export async function upsertProfile(userId, { fullName, phone, avatarPath }) {
-  const fields = {
+export async function upsertProfile(
+  userId: string,
+  { fullName, phone, avatarPath }: UpsertProfileInput
+): Promise<void> {
+  const fields: TablesInsert<'profiles'> = {
     id: userId,
     full_name: fullName,
     phone: phone || null,
@@ -54,16 +65,18 @@ export async function upsertProfile(userId, { fullName, phone, avatarPath }) {
 
 // keeps the signed-in user's auth metadata in sync so the nav chip and the
 // mobile settings screen reflect the name edited here
-export async function syncProfileName(fullName) {
+export async function syncProfileName(fullName: string): Promise<void> {
   const { error } = await supabase.auth.updateUser({
     data: { full_name: fullName },
   })
   if (error) {
-    throw new Error('Your profile saved, but your display name could not be synced. Please try again.')
+    throw new Error(
+      'Your profile saved, but your display name could not be synced. Please try again.'
+    )
   }
 }
 
-export async function uploadAvatar(userId, file) {
+export async function uploadAvatar(userId: string, file: File | Blob): Promise<string> {
   const { error } = await supabase.storage
     .from(AVATAR_BUCKET)
     .upload(getAvatarStoragePath(userId), file, {
@@ -78,7 +91,7 @@ export async function uploadAvatar(userId, file) {
   return getAvatarStoragePath(userId)
 }
 
-export async function removeAvatar(storagePath) {
+export async function removeAvatar(storagePath: string): Promise<void> {
   const { error } = await supabase.storage
     .from(AVATAR_BUCKET)
     .remove([storagePath])
@@ -91,7 +104,7 @@ export async function removeAvatar(storagePath) {
 
 // navbar/profile-chip lookup: minimal column read, cached per user for the
 // session so page-to-page navigation does not re-query Supabase every time
-export async function getOwnAvatarUrl(userId) {
+export async function getOwnAvatarUrl(userId: string): Promise<string> {
   const cached = avatarPathCache.get(userId)
   if (cached && cached.fetchedAt > Date.now() - AVATAR_PATH_CACHE_TTL_MS) {
     return cached.path ? getAvatarUrl(cached.path) : ''
@@ -110,7 +123,7 @@ export async function getOwnAvatarUrl(userId) {
   return path ? getAvatarUrl(path) : ''
 }
 
-export async function getAvatarUrl(storagePath) {
+export async function getAvatarUrl(storagePath: string): Promise<string> {
   const cached = signedUrlCache.get(storagePath)
   if (cached && cached.fetchedAt > Date.now() - SIGNED_URL_CACHE_TTL_MS) {
     return cached.url
