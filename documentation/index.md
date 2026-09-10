@@ -29,8 +29,10 @@ and how to run it.
   notifications, the **Marketplace** — browse, filter, sort, view, and post
   listings (photo + price + unit + category + map-pinned location), owner
   actions (mark sold / remove), the **Profile** page (photo, display name, PH
-  contact number), a **Palay Assistant** floating chat widget (signed-in,
-  per-user history), and full-page 404 / route-error states.
+  contact number, and an Account / **Selling history** tab pair tracking
+  listed / sold / removed listings), a **Palay Assistant** floating chat
+  widget (signed-in, per-user history), and full-page 404 / route-error
+  states.
 - **Backend** (FastAPI): Nominatim geocoding proxy — the only sanctioned path
   for geocoding requests, with throttling, caching, and rate limits — plus the
   **Palay Assistant** chat endpoint (Groq-hosted `openai/gpt-oss-20b` behind

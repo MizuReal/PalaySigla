@@ -1,17 +1,10 @@
 import Container from '../Container.jsx'
 import { LISTING_CATEGORIES, LISTING_SORTS } from '../../services/listings.js'
 import { CATEGORY_LABELS } from '../../utils/format.js'
+import { pillTabClasses } from '../../utils/pillTab.js'
 
 const SEARCH_INPUT_CLASSES =
   'h-11 w-full border border-hairline bg-canvas px-4 body-md text-ink placeholder:text-stone focus:border-2 focus:border-primary focus:px-[15px]'
-
-function pillClasses(isActive) {
-  return `rounded-sm border px-4 py-2.5 button-sm transition-colors ${
-    isActive
-      ? 'border-ink bg-ink text-on-dark'
-      : 'border-hairline bg-canvas text-ink hover:border-primary hover:text-primary'
-  }`
-}
 
 function MarketplaceFilters({
   category,
@@ -28,7 +21,7 @@ function MarketplaceFilters({
           <button
             type="button"
             onClick={() => onCategoryChange(null)}
-            className={pillClasses(category === null)}
+            className={pillTabClasses(category === null)}
           >
             All
           </button>
@@ -37,7 +30,7 @@ function MarketplaceFilters({
               key={categoryKey}
               type="button"
               onClick={() => onCategoryChange(categoryKey)}
-              className={pillClasses(category === categoryKey)}
+              className={pillTabClasses(category === categoryKey)}
             >
               {CATEGORY_LABELS[categoryKey]}
             </button>

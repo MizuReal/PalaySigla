@@ -25,10 +25,25 @@ export const LISTING_SORTS = Object.freeze({
   PRICE_DESC: 'price_desc',
 })
 
+export const MY_LISTING_FILTERS = Object.freeze({
+  ALL: 'all',
+  ACTIVE: 'active',
+  SOLD: 'sold',
+  DELETED: 'deleted',
+})
+
 const SORT_COLUMNS = Object.freeze({
   [LISTING_SORTS.NEWEST]: { column: 'created_at', ascending: false },
   [LISTING_SORTS.PRICE_ASC]: { column: 'price', ascending: true },
   [LISTING_SORTS.PRICE_DESC]: { column: 'price', ascending: false },
+})
+
+const MY_LISTING_FILTER_QUERIES = Object.freeze({
+  [MY_LISTING_FILTERS.ACTIVE]: (query) =>
+    query.eq('status', LISTING_STATUSES.ACTIVE).is('deleted_at', null),
+  [MY_LISTING_FILTERS.SOLD]: (query) =>
+    query.eq('status', LISTING_STATUSES.SOLD).is('deleted_at', null),
+  [MY_LISTING_FILTERS.DELETED]: (query) => query.not('deleted_at', 'is', null),
 })
 
 const signedUrlCache = new Map()
@@ -65,6 +80,37 @@ export async function fetchListings({
   const { data, error, count } = await query.range(from, to)
   if (error) {
     throw new Error('Could not load listings. Please try again.')
+  }
+  return { data, total: count ?? 0 }
+}
+
+export async function fetchMyListings({
+  userId,
+  filter = MY_LISTING_FILTERS.ALL,
+  page = 1,
+  limit = PAGE_SIZE_DEFAULT,
+} = {}) {
+  if (!userId) {
+    throw new Error('Could not load your listings. Please try again.')
+  }
+  const from = (page - 1) * limit
+  const to = from + limit - 1
+
+  let query = supabase
+    .from('listings')
+    .select('*, listing_images(id, storage_path, position)', { count: 'exact' })
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .order('position', { referencedTable: 'listing_images', ascending: true })
+
+  const applyFilter = MY_LISTING_FILTER_QUERIES[filter]
+  if (applyFilter) {
+    query = applyFilter(query)
+  }
+
+  const { data, error, count } = await query.range(from, to)
+  if (error) {
+    throw new Error('Could not load your listings. Please try again.')
   }
   return { data, total: count ?? 0 }
 }

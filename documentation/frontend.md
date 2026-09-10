@@ -139,6 +139,15 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
 
 - **`/profile`** — signed-out visitors get a sign-in pitch panel; signed-in
   users manage their photo, display name, and PH contact number.
+- **Tabs:** `/profile` (Account) and `/profile?tab=listings` (Selling
+  history); signed-out visitors see no tabs.
+- **Selling history:** the signed-in seller's listings filtered All / Active /
+  Sold / Deleted — thumbnail, title, price + unit, status chip (Active /
+  Sold / Deleted), and a category + listed / sold (`sold_at`) / deleted
+  (`deleted_at`) date line. Active and sold rows reopen the marketplace
+  detail modal (owner actions refresh the list); deleted rows are read-only.
+  Backed by `services/listings.js#fetchMyListings`,
+  `hooks/useMyListings.js`, and `components/profile/SellingHistoryPanel.jsx`.
 - Avatar: JPEG/PNG ≤ 10 MB, compressed client-side to ≤ 512 px (EXIF
   stripped), staged until one Save commits photo + fields together; stored in
   the private `avatars` bucket at `{user_id}/avatar.jpg` and served via

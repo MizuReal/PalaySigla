@@ -14,14 +14,16 @@ Tagalog.
   toast notifications, the Marketplace — browse, filter, sort, post listings
   (photo + price + unit + category + Leaflet map location), view each
   listing's pinned location on a read-only map, mark sold, remove — a Profile
-  page (photo, display name, PH contact number), the
+  page (photo, display name, PH contact number, and a Selling history tab
+  tracking listed / sold / removed listings), the
   Palay Assistant chat widget, and full-page 404 / error states.
 - **Backend** (FastAPI): Nominatim geocoding proxy with throttling, caching,
   and per-IP rate limits — the only sanctioned path for geocoding — plus the
   Palay Assistant chat endpoint (Groq-hosted `openai/gpt-oss-20b` behind a
   two-stage topic guard) secured by server-side Supabase JWT validation.
-- **Schema**: `schemas/*.sql` migrations (marketplace + profiles tables, RLS,
-  private storage buckets) plus a demo seed script.
+- **Schema**: `schemas/*.sql` migrations (marketplace + profiles tables,
+  selling-history `sold_at`, RLS, private storage buckets) plus a demo seed
+  script.
 - **Mobile** (Expo SDK 57 + React Native, plain JS): intro landing screen
   with a "Get started" handoff into a bottom-tab shell — Marketplace (live
   anonymous browse feed), Community, Scan (raised center action), Settings

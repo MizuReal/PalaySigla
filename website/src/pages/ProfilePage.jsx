@@ -1,13 +1,17 @@
+import { useSearchParams } from 'react-router-dom'
 import Button from '../components/Button.jsx'
 import Container from '../components/Container.jsx'
 import Footer from '../components/site/Footer.jsx'
 import PrimaryNav from '../components/site/PrimaryNav.jsx'
 import AvatarEditor from '../components/profile/AvatarEditor.jsx'
 import ProfileDetailsForm from '../components/profile/ProfileDetailsForm.jsx'
+import ProfileTabs from '../components/profile/ProfileTabs.jsx'
 import ReviewsCard from '../components/profile/ReviewsCard.jsx'
+import SellingHistoryPanel from '../components/profile/SellingHistoryPanel.jsx'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext.js'
 import { TOAST_VARIANTS, useToast } from '../context/toastContext.js'
 import useProfile from '../hooks/useProfile.js'
+import { PROFILE_TAB_IDS } from '../utils/profileTabs.js'
 import { getDisplayName } from '../utils/userProfile.js'
 
 const MEMBER_SINCE_DATE_OPTIONS = Object.freeze({
@@ -32,8 +36,9 @@ function SignedOutProfile({ onSignIn, onCreateAccount }) {
     <div className="border border-hairline bg-surface-soft p-8 md:p-12">
       <p className="body-md max-w-xl text-body">
         Sign in to set your photo, your name, and the contact number buyers
-        use to reach you about a listing. Your profile follows your account
-        across the website and the mobile app.
+        use to reach you about a listing — and to keep a record of everything
+        you post, sell, or remove. Your profile follows your account across
+        the website and the mobile app.
       </p>
       <div className="mt-8 max-w-md">
         <Button onClick={onSignIn} className="w-full justify-center">
@@ -103,7 +108,7 @@ function LoadErrorState({ message, onRetry }) {
   )
 }
 
-function SignedInProfile() {
+function SignedInAccount() {
   const { user } = useAuth()
   const { showToast } = useToast()
   const {
@@ -205,15 +210,34 @@ function SignedInProfile() {
     )
   }
 
+  return renderBody()
+}
+
+function SignedInProfile() {
+  const [searchParams] = useSearchParams()
+  const activeTab =
+    searchParams.get('tab') === PROFILE_TAB_IDS.LISTINGS
+      ? PROFILE_TAB_IDS.LISTINGS
+      : PROFILE_TAB_IDS.ACCOUNT
+
   return (
     <>
       <PageHeader
         eyebrow="Profile"
         title="Your profile."
-        lead="Your photo, name, and contact number — the details buyers see when they reach you about a listing."
+        lead="Your account details, plus everything you have listed, sold, or removed."
       />
       <Container className="py-10 md:py-[64px]">
-        <div className="mx-auto max-w-4xl">{renderBody()}</div>
+        <div className="mx-auto max-w-4xl">
+          <ProfileTabs activeTab={activeTab} />
+          <div className="mt-6">
+            {activeTab === PROFILE_TAB_IDS.LISTINGS ? (
+              <SellingHistoryPanel />
+            ) : (
+              <SignedInAccount />
+            )}
+          </div>
+        </div>
       </Container>
     </>
   )

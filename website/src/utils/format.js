@@ -3,6 +3,12 @@ const HOUR_MS = 60 * MINUTE_MS
 const DAY_MS = 24 * HOUR_MS
 const COORDINATE_DECIMALS = 4
 
+const DATE_OPTIONS = Object.freeze({
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+})
+
 export const CATEGORY_LABELS = Object.freeze({
   palay: 'Palay',
   rice: 'Rice',
@@ -38,6 +44,10 @@ export function formatCoordinates(lat, lng) {
   return `${formatCoordinate(lat, 'N', 'S')}, ${formatCoordinate(lng, 'E', 'W')}`
 }
 
+export function formatDate(isoTimestamp) {
+  return new Date(isoTimestamp).toLocaleDateString('en-PH', DATE_OPTIONS)
+}
+
 export function formatRelativeTime(isoTimestamp) {
   const elapsedMs = Date.now() - new Date(isoTimestamp).getTime()
   if (elapsedMs < MINUTE_MS) {
@@ -55,9 +65,5 @@ export function formatRelativeTime(isoTimestamp) {
   if (days < 7) {
     return `${days}d ago`
   }
-  return new Date(isoTimestamp).toLocaleDateString('en-PH', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+  return new Date(isoTimestamp).toLocaleDateString('en-PH', DATE_OPTIONS)
 }
