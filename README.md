@@ -12,8 +12,9 @@ Tagalog.
 - **Website** (React 19 + Vite): marketing landing page, Supabase auth in a
   modal (login / register / forgot password, email confirmation enforced),
   toast notifications, the Marketplace — browse, filter, sort, post listings
-  (photo + price + unit + category + Leaflet map location), mark sold,
-  remove — a Profile page (photo, display name, PH contact number), the
+  (photo + price + unit + category + Leaflet map location), view each
+  listing's pinned location on a read-only map, mark sold, remove — a Profile
+  page (photo, display name, PH contact number), the
   Palay Assistant chat widget, and full-page 404 / error states.
 - **Backend** (FastAPI): Nominatim geocoding proxy with throttling, caching,
   and per-IP rate limits — the only sanctioned path for geocoding — plus the

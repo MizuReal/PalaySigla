@@ -1,6 +1,7 @@
 const MINUTE_MS = 60_000
 const HOUR_MS = 60 * MINUTE_MS
 const DAY_MS = 24 * HOUR_MS
+const COORDINATE_DECIMALS = 4
 
 export const CATEGORY_LABELS = Object.freeze({
   palay: 'Palay',
@@ -26,6 +27,15 @@ const priceFormatter = new Intl.NumberFormat('en-PH', {
 
 export function formatPrice(price) {
   return priceFormatter.format(price)
+}
+
+function formatCoordinate(value, positiveHemisphere, negativeHemisphere) {
+  const hemisphere = value >= 0 ? positiveHemisphere : negativeHemisphere
+  return `${Math.abs(value).toFixed(COORDINATE_DECIMALS)}° ${hemisphere}`
+}
+
+export function formatCoordinates(lat, lng) {
+  return `${formatCoordinate(lat, 'N', 'S')}, ${formatCoordinate(lng, 'E', 'W')}`
 }
 
 export function formatRelativeTime(isoTimestamp) {

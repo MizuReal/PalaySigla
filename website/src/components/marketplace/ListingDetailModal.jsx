@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import Icon from '../Icon.jsx'
+import ListingLocationMap from './ListingLocationMap.jsx'
+import { buildOpenStreetMapUrl } from './mapConfig.js'
 import Modal from '../Modal.jsx'
 import Photo from '../Photo.jsx'
 import useListingDetail from '../../hooks/useListingDetail.js'
@@ -8,6 +10,7 @@ import { useAuth } from '../../context/authContext.js'
 import { TOAST_VARIANTS, useToast } from '../../context/toastContext.js'
 import {
   CATEGORY_LABELS,
+  formatCoordinates,
   formatPrice,
   formatRelativeTime,
   UNIT_LABELS,
@@ -113,11 +116,17 @@ function ListingDetailModal({ listingId, onClose, onChanged }) {
     if (isLoading) {
       return (
         <div className="animate-pulse space-y-4">
-          <div className="aspect-[4/3] w-full bg-surface-soft" />
-          <div className="h-6 w-2/3 bg-surface-soft" />
-          <div className="h-5 w-1/3 bg-surface-soft" />
-          <div className="h-4 w-full bg-surface-soft" />
-          <div className="h-4 w-4/5 bg-surface-soft" />
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="aspect-[4/3] w-full bg-surface-soft" />
+            <div className="space-y-4">
+              <div className="h-6 w-2/3 bg-surface-soft" />
+              <div className="h-5 w-1/3 bg-surface-soft" />
+              <div className="h-4 w-full bg-surface-soft" />
+              <div className="h-4 w-4/5 bg-surface-soft" />
+            </div>
+          </div>
+          <div className="h-[280px] w-full bg-surface-soft sm:h-[360px]" />
+          <div className="h-4 w-2/3 bg-surface-soft" />
         </div>
       )
     }
@@ -135,66 +144,102 @@ function ListingDetailModal({ listingId, onClose, onChanged }) {
         </div>
       )
     }
+    const hasCoordinates =
+      Number.isFinite(listing.lat) && Number.isFinite(listing.lng)
     return (
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div>
-          <Photo
-            src={imageUrl}
-            alt={listing.title}
-            fallbackLabel={listing.title}
-            aspectClass="aspect-[4/3]"
-            loading="eager"
-            fetchPriority="high"
-          />
+      <>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <div>
+            <Photo
+              src={imageUrl}
+              alt={listing.title}
+              fallbackLabel={listing.title}
+              aspectClass="aspect-[4/3]"
+              loading="eager"
+              fetchPriority="high"
+            />
+          </div>
+          <div>
+            <span className="rounded-sm border border-hairline bg-surface-soft px-3 py-1.5">
+              <span className="caption-md text-primary">
+                {CATEGORY_LABELS[listing.category]}
+              </span>
+            </span>
+            {listing.status === 'sold' && (
+              <span className="ml-2 rounded-sm border border-hairline bg-surface-soft px-3 py-1.5">
+                <span className="caption-md text-ink">Sold</span>
+              </span>
+            )}
+            <h2 id={DETAIL_TITLE_ID} className="heading-lg mt-3 text-ink">
+              {listing.title}
+            </h2>
+            <p className="mt-2 text-ink">
+              <span className="heading-md text-primary">
+                {formatPrice(listing.price)}
+              </span>{' '}
+              <span className="caption-sm text-mute">{UNIT_LABELS[listing.unit]}</span>
+            </p>
+            {listing.quantity !== null && (
+              <p className="caption-sm mt-1 text-mute">
+                Quantity: {listing.quantity} {listing.unit}
+              </p>
+            )}
+            {listing.description && (
+              <p className="body-sm mt-4 whitespace-pre-line text-body">
+                {listing.description}
+              </p>
+            )}
+            {renderOwnerActions()}
+          </div>
         </div>
-        <div>
-          <span className="rounded-sm border border-hairline bg-surface-soft px-3 py-1.5">
-            <span className="caption-md text-primary">
-              {CATEGORY_LABELS[listing.category]}
-            </span>
-          </span>
-          {listing.status === 'sold' && (
-            <span className="ml-2 rounded-sm border border-hairline bg-surface-soft px-3 py-1.5">
-              <span className="caption-md text-ink">Sold</span>
-            </span>
+        <div className="mt-6 border-t border-hairline pt-4">
+          {hasCoordinates && (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="caption-md text-primary">Location</p>
+                <a
+                  href={buildOpenStreetMapUrl(listing.lat, listing.lng)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="caption-sm text-link-blue transition-colors hover:text-primary"
+                >
+                  Open in OpenStreetMap
+                </a>
+              </div>
+              <ListingLocationMap
+                lat={listing.lat}
+                lng={listing.lng}
+                locationLabel={listing.location_label}
+                heightClass="mt-3 h-[280px] sm:h-[360px]"
+              />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <p className="flex items-center gap-1.5 text-ink">
+                  <Icon name="pin" className="h-4 w-4 shrink-0" />
+                  <span className="body-sm">{listing.location_label}</span>
+                </p>
+                <p className="caption-sm text-mute">
+                  {formatCoordinates(listing.lat, listing.lng)}
+                </p>
+              </div>
+            </>
           )}
-          <h2 id={DETAIL_TITLE_ID} className="heading-lg mt-3 text-ink">
-            {listing.title}
-          </h2>
-          <p className="mt-2 text-ink">
-            <span className="heading-md text-primary">
-              {formatPrice(listing.price)}
-            </span>{' '}
-            <span className="caption-sm text-mute">{UNIT_LABELS[listing.unit]}</span>
-          </p>
-          {listing.quantity !== null && (
-            <p className="caption-sm mt-1 text-mute">
-              Quantity: {listing.quantity} {listing.unit}
-            </p>
-          )}
-          {listing.description && (
-            <p className="body-sm mt-4 whitespace-pre-line text-body">
-              {listing.description}
-            </p>
-          )}
-          <div className="mt-6 border-t border-hairline pt-4">
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
             <p className="body-strong text-ink">{listing.seller_name}</p>
-            <p className="mt-2 flex items-center gap-1.5 text-mute">
-              <Icon name="pin" className="h-4 w-4 shrink-0" />
-              <span className="caption-sm">{listing.location_label}</span>
-            </p>
-            <p className="caption-sm mt-1 text-mute">
+            <p className="caption-sm text-mute">
               Posted {formatRelativeTime(listing.created_at)}
             </p>
           </div>
-          {renderOwnerActions()}
         </div>
-      </div>
+      </>
     )
   }
 
   return (
-    <Modal onClose={onClose} labelledBy={DETAIL_TITLE_ID} panelClassName="max-w-2xl">
+    <Modal
+      onClose={onClose}
+      labelledBy={DETAIL_TITLE_ID}
+      panelClassName="max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto"
+    >
       {renderBody()}
     </Modal>
   )

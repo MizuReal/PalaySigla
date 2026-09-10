@@ -127,6 +127,11 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
 - **Post:** 3-step wizard (details → photo → location). Photo is validated
   (JPEG/PNG ≤ 10 MB) and re-encoded client-side (strips EXIF/GPS); location
   uses a Leaflet map with Nominatim search routed through the backend.
+- **Detail:** max-w-4xl dialog — photo + listing info on top, then a
+  full-width read-only Leaflet map of the seller's pinned location
+  (scroll-zoom disabled) with an "Open in OpenStreetMap" link, an address +
+  decimal-coordinates strip, and the seller / posted line; tall dialogs
+  scroll internally.
 - **Owner actions:** mark as sold, remove (soft delete, inline confirm).
 - Everything goes through `services/listings.js` and `services/geocode.js`.
 
