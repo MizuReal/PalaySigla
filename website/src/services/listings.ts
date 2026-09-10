@@ -40,6 +40,14 @@ export type ListingSort = (typeof LISTING_SORTS)[keyof typeof LISTING_SORTS]
 export type MyListingFilter =
   (typeof MY_LISTING_FILTERS)[keyof typeof MY_LISTING_FILTERS]
 
+export function isListingUnit(value: string): value is ListingUnit {
+  return (LISTING_UNITS as readonly string[]).includes(value)
+}
+
+export function isListingCategory(value: string): value is ListingCategory {
+  return (LISTING_CATEGORIES as readonly string[]).includes(value)
+}
+
 const SORT_COLUMNS: Record<ListingSort, { column: 'created_at' | 'price'; ascending: boolean }> = {
   [LISTING_SORTS.NEWEST]: { column: 'created_at', ascending: false },
   [LISTING_SORTS.PRICE_ASC]: { column: 'price', ascending: true },
@@ -73,7 +81,7 @@ export interface CreateListingInput {
   price: number
   unit: ListingUnit
   category: ListingCategory
-  quantity: number
+  quantity: number | null
   lat: number
   lng: number
   locationLabel: string
@@ -115,7 +123,8 @@ export async function fetchListings({
   if (error) {
     throw new Error('Could not load listings. Please try again.')
   }
-  return { data, total: count ?? 0 }
+  // CHECK constraints guarantee the domain unions; asserted at the boundary
+  return { data: data as ListingWithImages[] | null, total: count ?? 0 }
 }
 
 export async function fetchMyListings({
@@ -149,7 +158,7 @@ export async function fetchMyListings({
   if (error) {
     throw new Error('Could not load your listings. Please try again.')
   }
-  return { data, total: count ?? 0 }
+  return { data: data as ListingWithImages[] | null, total: count ?? 0 }
 }
 
 export async function getListing(id: string): Promise<ListingWithImages> {
@@ -163,7 +172,7 @@ export async function getListing(id: string): Promise<ListingWithImages> {
   if (error) {
     throw new Error('That listing could not be found.')
   }
-  return data
+  return data as ListingWithImages
 }
 
 export async function createListing({
@@ -203,7 +212,7 @@ export async function createListing({
 }
 
 export async function uploadListingImage(
-  file: File,
+  file: File | Blob,
   listingId: string,
   userId: string,
   position = 0

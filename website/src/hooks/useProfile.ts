@@ -47,6 +47,7 @@ export interface UseProfileResult {
   isSaving: boolean
   saveError: string
   previewNote: string
+  isDirty: boolean
   canSave: boolean
   ratingAvg: number
   ratingCount: number
@@ -402,6 +403,7 @@ function useProfile(): UseProfileResult {
     isSaving,
     saveError,
     previewNote,
+    isDirty,
     canSave: isDirty && !hasFieldErrors && !avatarBusy,
     ratingAvg: Number(profile.rating_avg ?? 0),
     ratingCount: Number(profile.rating_count ?? 0),

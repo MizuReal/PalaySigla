@@ -14,11 +14,11 @@ export interface PostListingInput {
   price: number
   unit: ListingUnit
   category: ListingCategory
-  quantity: number
+  quantity: number | null
   lat: number
   lng: number
   locationLabel: string
-  imageFile: File
+  imageFile: Blob
 }
 
 export interface UsePostListingResult {

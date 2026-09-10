@@ -1,5 +1,4 @@
-import { LISTING_CATEGORIES, LISTING_UNITS } from '../services/listings.js'
-import type { ListingCategory, ListingUnit } from '../services/listings.js'
+import { isListingCategory, isListingUnit } from '../services/listings.js'
 
 export const TITLE_MIN_LENGTH = 3
 export const TITLE_MAX_LENGTH = 80
@@ -37,7 +36,7 @@ interface ListingDetailsInput {
 }
 
 interface ListingPhotoInput {
-  imageFile: File | null | undefined
+  imageFile: Blob | null | undefined
 }
 
 interface ListingLocationInput {
@@ -49,14 +48,6 @@ interface ListingLocationInput {
 export type ListingStepInput = Partial<
   ListingDetailsInput & ListingPhotoInput & ListingLocationInput
 >
-
-function isListingUnit(value: string): value is ListingUnit {
-  return (LISTING_UNITS as readonly string[]).includes(value)
-}
-
-function isListingCategory(value: string): value is ListingCategory {
-  return (LISTING_CATEGORIES as readonly string[]).includes(value)
-}
 
 function validateDetails({
   title = '',
