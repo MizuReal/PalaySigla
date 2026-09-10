@@ -6,7 +6,7 @@ jest.mock('../../services/listings', () => ({
 }))
 
 import { getListing, getListingImageUrl } from '../../services/listings'
-import useListingDetail from '../useListingDetail.js'
+import useListingDetail from '../useListingDetail'
 
 beforeEach(() => {
   jest.resetAllMocks()

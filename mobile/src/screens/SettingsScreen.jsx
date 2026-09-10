@@ -6,7 +6,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Button from '../components/Button.jsx'
 import TabScreen from '../components/TabScreen.jsx'
-import { AUTH_MODAL_MODES, useAuth } from '../context/authContext.js'
+import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import { getDisplayName } from '../utils/userProfile.js'
 import { COLORS, GUTTER, SPACING, TYPE } from '../theme/designTokens.js'
 

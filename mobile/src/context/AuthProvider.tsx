@@ -13,6 +13,8 @@
 // listens for email-link deep links (palaysigla://…/auth/callback), performs
 // the session hand-off, and reopens the dialog in the matching mode.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
+import type { User } from '@supabase/supabase-js'
 import * as Linking from 'expo-linking'
 import {
   completeAuthRedirect,
@@ -21,16 +23,23 @@ import {
   signUpWithEmail,
 } from '../services/auth'
 import { supabase } from '../services/supabaseClient'
-import { AUTH_MODAL_MODES, AuthContext } from './authContext.js'
+import { AUTH_MODAL_MODES, AuthContext } from './authContext'
+import type {
+  AuthContextValue,
+  AuthModalMode,
+  OpenAuthModalOptions,
+} from './authContext'
 
 const LINK_HANDLING_FAILED_MESSAGE =
   'Could not finish opening the email link. Please try again.'
 
-function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const [authModalMode, setAuthModalMode] = useState(AUTH_MODAL_MODES.LOGIN)
+  const [authModalMode, setAuthModalMode] = useState<AuthModalMode>(
+    AUTH_MODAL_MODES.LOGIN
+  )
   const [authModalNonce, setAuthModalNonce] = useState(0)
   const [authModalError, setAuthModalError] = useState('')
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -47,7 +56,7 @@ function AuthProvider({ children }) {
   }, [])
 
   const openAuthModal = useCallback(
-    (mode = AUTH_MODAL_MODES.LOGIN, options = {}) => {
+    (mode: AuthModalMode = AUTH_MODAL_MODES.LOGIN, options: OpenAuthModalOptions = {}) => {
       chatIntentRef.current = options.chatIntent === true
       setAuthModalMode(mode)
       // bumps so an already-open dialog remounts and reseeds its view
@@ -75,7 +84,7 @@ function AuthProvider({ children }) {
   }, [])
 
   const signIn = useCallback(
-    async (email, password) => {
+    async (email: string, password: string) => {
       await signInWithEmail(email, password)
       const shouldOpenChat = chatIntentRef.current
       closeAuthModal()
@@ -89,7 +98,7 @@ function AuthProvider({ children }) {
   // signUpWithEmail resolves { requiresEmailConfirmation }; the dialog shows
   // the confirmation state — no overlay choreography belongs here (a session
   // is only ever created after the user returns through the email link)
-  const signUp = useCallback((name, email, password) => {
+  const signUp = useCallback((name: string, email: string, password: string) => {
     return signUpWithEmail(name, email, password)
   }, [])
 
@@ -102,14 +111,15 @@ function AuthProvider({ children }) {
   }, [closeAuthModal, closeChat])
 
   const handleAuthDeepLink = useCallback(
-    async (rawUrl) => {
-      let result = null
+    async (rawUrl: string) => {
+      let result: Awaited<ReturnType<typeof completeAuthRedirect>> | null = null
       try {
         result = await completeAuthRedirect(rawUrl)
       } catch (error) {
         // the session hand-off failed (stale/reused link): never swallow it
         openAuthModal(AUTH_MODAL_MODES.LOGIN, {
-          authModalError: error?.message ?? LINK_HANDLING_FAILED_MESSAGE,
+          authModalError:
+            error instanceof Error ? error.message : LINK_HANDLING_FAILED_MESSAGE,
         })
         return
       }
@@ -123,27 +133,28 @@ function AuthProvider({ children }) {
   )
 
   useEffect(() => {
-    const handleUrl = (event) => {
+    const handleUrl = (event: { url: string }) => {
       handleAuthDeepLink(event.url)
     }
     const subscription = Linking.addEventListener('url', handleUrl)
     // cold start straight from an email link: the URL is only available once
-    Linking.getInitialURL()
-      .then((initialUrl) => {
+    const openInitialUrl = async () => {
+      try {
+        const initialUrl = await Linking.getInitialURL()
         if (initialUrl) {
-          return handleAuthDeepLink(initialUrl)
+          await handleAuthDeepLink(initialUrl)
         }
-        return undefined
-      })
-      .catch(() => {
+      } catch {
         openAuthModal(AUTH_MODAL_MODES.LOGIN, {
           authModalError: LINK_HANDLING_FAILED_MESSAGE,
         })
-      })
+      }
+    }
+    openInitialUrl()
     return () => subscription.remove()
   }, [handleAuthDeepLink, openAuthModal])
 
-  const value = useMemo(
+  const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isInitializing,

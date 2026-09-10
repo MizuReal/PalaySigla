@@ -16,7 +16,7 @@ import {
 import Button from '../Button.jsx'
 import ListingCard from './ListingCard.jsx'
 import ListingCardSkeleton from './ListingCardSkeleton.jsx'
-import useListings from '../../hooks/useListings.js'
+import useListings from '../../hooks/useListings'
 import { LISTING_SORTS } from '../../services/listings'
 import {
   COLORS,

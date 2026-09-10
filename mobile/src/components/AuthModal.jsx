@@ -24,7 +24,7 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useAuth } from '../context/authContext.js'
+import { useAuth } from '../context/authContext'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,

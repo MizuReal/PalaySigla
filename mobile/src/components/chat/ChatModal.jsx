@@ -22,9 +22,9 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { TAB_BAR_HEIGHT } from '../AppTabBar.jsx'
-import { useAuth } from '../../context/authContext.js'
-import usePalayAssistant, { MAX_MESSAGE_CHARS } from '../../hooks/usePalayAssistant.js'
-import usePulseOpacity from '../../hooks/usePulseOpacity.js'
+import { useAuth } from '../../context/authContext'
+import usePalayAssistant, { MAX_MESSAGE_CHARS } from '../../hooks/usePalayAssistant'
+import usePulseOpacity from '../../hooks/usePulseOpacity'
 import Icon from '../Icon.jsx'
 import { BORDER_WIDTH, COLORS, RADIUS, SPACING, TYPE } from '../../theme/designTokens.js'
 

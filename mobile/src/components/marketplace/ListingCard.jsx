@@ -4,7 +4,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Icon from '../Icon.jsx'
 import Photo from '../Photo.jsx'
-import useListingImageUrl from '../../hooks/useListingImageUrl.js'
+import useListingImageUrl from '../../hooks/useListingImageUrl'
 import {
   CATEGORY_LABELS,
   formatPrice,

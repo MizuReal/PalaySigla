@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react'
 import { getListingImageUrl } from '../services/listings'
 
-function useListingImageUrl(storagePath) {
+function useListingImageUrl(storagePath: string): string {
   const [imageUrl, setImageUrl] = useState('')
 
   useEffect(() => {
@@ -13,17 +13,19 @@ function useListingImageUrl(storagePath) {
     if (!storagePath) {
       return undefined
     }
-    getListingImageUrl(storagePath)
-      .then((url) => {
+    const loadImageUrl = async () => {
+      try {
+        const url = await getListingImageUrl(storagePath)
         if (isCurrent) {
           setImageUrl(url)
         }
-      })
-      .catch(() => {
+      } catch {
         if (isCurrent) {
           setImageUrl('')
         }
-      })
+      }
+    }
+    loadImageUrl()
     return () => {
       isCurrent = false
     }

@@ -14,8 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Icon from '../components/Icon.jsx'
 import Photo from '../components/Photo.jsx'
-import useListingDetail from '../hooks/useListingDetail.js'
-import usePulseOpacity from '../hooks/usePulseOpacity.js'
+import useListingDetail from '../hooks/useListingDetail'
+import usePulseOpacity from '../hooks/usePulseOpacity'
 import {
   CATEGORY_LABELS,
   formatPrice,

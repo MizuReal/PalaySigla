@@ -5,15 +5,34 @@
 // web page's keyed remount of its ListingFeed.
 import { useCallback, useEffect, useState } from 'react'
 import { fetchListings, LISTING_SORTS } from '../services/listings'
+import type { ListingCategory, ListingSort } from '../services/listings'
+import type { ListingWithImages } from '../types/domain'
 
 const PAGE_SIZE = 12
+
+export interface UseListingsParams {
+  category?: ListingCategory | null
+  search?: string
+  sort?: ListingSort
+}
+
+export interface UseListingsResult {
+  listings: ListingWithImages[]
+  total: number
+  isInitialLoading: boolean
+  isLoadingMore: boolean
+  error: string
+  loadMore: () => Promise<void>
+  reload: () => Promise<void>
+  hasMore: boolean
+}
 
 function useListings({
   category = null,
   search = '',
   sort = LISTING_SORTS.NEWEST,
-} = {}) {
-  const [listings, setListings] = useState([])
+}: UseListingsParams = {}): UseListingsResult {
+  const [listings, setListings] = useState<ListingWithImages[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
@@ -32,13 +51,17 @@ function useListings({
           limit: PAGE_SIZE,
         })
         if (isCurrent) {
-          setListings(result.data)
+          setListings(result.data ?? [])
           setTotal(result.total)
           setError('')
         }
       } catch (err) {
         if (isCurrent) {
-          setError(err.message)
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'Could not load listings. Please try again.'
+          )
         }
       } finally {
         if (isCurrent) {
@@ -66,12 +89,14 @@ function useListings({
         page: nextPage,
         limit: PAGE_SIZE,
       })
-      setListings((current) => [...current, ...result.data])
+      setListings((current) => [...current, ...(result.data ?? [])])
       setTotal(result.total)
       setError('')
       setPage(nextPage)
     } catch (err) {
-      setError(err.message)
+      setError(
+        err instanceof Error ? err.message : 'Could not load listings. Please try again.'
+      )
     } finally {
       setIsLoadingMore(false)
     }
@@ -88,12 +113,14 @@ function useListings({
         page: 1,
         limit: PAGE_SIZE,
       })
-      setListings(result.data)
+      setListings(result.data ?? [])
       setTotal(result.total)
       setPage(1)
       setError('')
     } catch (err) {
-      setError(err.message)
+      setError(
+        err instanceof Error ? err.message : 'Could not load listings. Please try again.'
+      )
     }
   }, [category, search, sort])
 

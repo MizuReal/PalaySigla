@@ -2,7 +2,7 @@
 // text bars, all breathing on the shared pulse so the initial load reads as
 // "content is coming" rather than as an empty screen.
 import { Animated, StyleSheet, View } from 'react-native'
-import usePulseOpacity from '../../hooks/usePulseOpacity.js'
+import usePulseOpacity from '../../hooks/usePulseOpacity'
 import { COLORS, SPACING } from '../../theme/designTokens.js'
 
 function ListingCardSkeleton() {

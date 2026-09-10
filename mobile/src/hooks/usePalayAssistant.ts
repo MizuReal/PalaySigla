@@ -7,38 +7,49 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { sendChatMessage } from '../services/chatbot'
+import type { ChatTurn } from '../types/api'
 
 export const MAX_HISTORY_MESSAGES = 20
 export const MAX_MESSAGE_CHARS = 2000
 
 const CHAT_STORAGE_KEY_PREFIX = 'palaysigla:chat:'
 
-function storageKeyFor(userId) {
+function storageKeyFor(userId: string): string {
   return `${CHAT_STORAGE_KEY_PREFIX}${userId}`
 }
 
-async function readStoredMessages(storageKey) {
+function isChatTurn(value: unknown): value is ChatTurn {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  const turn = value as { role?: unknown; content?: unknown }
+  return (
+    typeof turn.content === 'string' &&
+    (turn.role === 'user' || turn.role === 'assistant')
+  )
+}
+
+async function readStoredMessages(storageKey: string): Promise<ChatTurn[]> {
   try {
     const raw = await AsyncStorage.getItem(storageKey)
     if (!raw) {
       return []
     }
-    const parsed = JSON.parse(raw)
+    const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) {
       return []
     }
-    return parsed.filter(
-      (turn) =>
-        typeof turn?.content === 'string' &&
-        (turn?.role === 'user' || turn?.role === 'assistant')
-    )
+    return parsed.filter(isChatTurn)
   } catch {
     // unreadable or blocked storage must never block the chat
     return []
   }
 }
 
-async function writeStoredMessages(storageKey, messages) {
+async function writeStoredMessages(
+  storageKey: string,
+  messages: ChatTurn[]
+): Promise<void> {
   try {
     await AsyncStorage.setItem(
       storageKey,
@@ -49,7 +60,7 @@ async function writeStoredMessages(storageKey, messages) {
   }
 }
 
-async function clearStoredMessages(storageKey) {
+async function clearStoredMessages(storageKey: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(storageKey)
   } catch {
@@ -57,12 +68,25 @@ async function clearStoredMessages(storageKey) {
   }
 }
 
-function usePalayAssistant(sessionUserId) {
-  const [conversationOwnerId, setConversationOwnerId] = useState(null)
-  const [messages, setMessages] = useState([])
+export interface UsePalayAssistantResult {
+  messages: ChatTurn[]
+  isWaiting: boolean
+  errorMessage: string | null
+  failedContent: string | null
+  conversationReady: boolean
+  submitMessage: (content: string, baseMessages: ChatTurn[]) => Promise<void>
+  retryFailedMessage: () => void
+  clearConversation: () => Promise<void>
+}
+
+function usePalayAssistant(
+  sessionUserId: string | null | undefined
+): UsePalayAssistantResult {
+  const [conversationOwnerId, setConversationOwnerId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<ChatTurn[]>([])
   const [isWaiting, setIsWaiting] = useState(false)
-  const [errorMessage, setErrorMessage] = useState(null)
-  const [failedContent, setFailedContent] = useState(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [failedContent, setFailedContent] = useState<string | null>(null)
 
   const isWaitingRef = useRef(false)
 
@@ -91,9 +115,9 @@ function usePalayAssistant(sessionUserId) {
   }, [sessionUserId])
 
   const submitMessage = useCallback(
-    async (content, baseMessages) => {
+    async (content: string, baseMessages: ChatTurn[]) => {
       const trimmed = content.trim()
-      if (!trimmed || isWaitingRef.current || !conversationReady) {
+      if (!trimmed || isWaitingRef.current || !conversationReady || !sessionUserId) {
         return
       }
       if (trimmed.length > MAX_MESSAGE_CHARS) {
@@ -101,7 +125,7 @@ function usePalayAssistant(sessionUserId) {
         return
       }
 
-      const userTurn = { role: 'user', content: trimmed }
+      const userTurn: ChatTurn = { role: 'user', content: trimmed }
       const nextMessages = [...baseMessages, userTurn].slice(-MAX_HISTORY_MESSAGES)
       setMessages(nextMessages)
       setErrorMessage(null)
@@ -111,7 +135,8 @@ function usePalayAssistant(sessionUserId) {
       const storageKey = storageKeyFor(sessionUserId)
       try {
         const { reply } = await sendChatMessage(nextMessages)
-        const completed = [...nextMessages, { role: 'assistant', content: reply }].slice(
+        const assistantTurn: ChatTurn = { role: 'assistant', content: reply }
+        const completed: ChatTurn[] = [...nextMessages, assistantTurn].slice(
           -MAX_HISTORY_MESSAGES
         )
         setMessages(completed)
@@ -146,7 +171,7 @@ function usePalayAssistant(sessionUserId) {
   }, [failedContent, messages, conversationReady, submitMessage])
 
   const clearConversation = useCallback(async () => {
-    if (isWaitingRef.current || !conversationReady) {
+    if (isWaitingRef.current || !conversationReady || !sessionUserId) {
       return
     }
     const storageKey = storageKeyFor(sessionUserId)

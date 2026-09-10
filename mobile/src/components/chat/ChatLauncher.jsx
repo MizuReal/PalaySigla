@@ -5,7 +5,7 @@
 // a chat intent, so a successful login lands straight in the chat sheet.
 import { Pressable, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext.js'
+import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext'
 import { TAB_BAR_HEIGHT } from '../AppTabBar.jsx'
 import Icon from '../Icon.jsx'
 import { COLORS, RADIUS, SPACING } from '../../theme/designTokens.js'

@@ -7,7 +7,7 @@ import { Animated, Easing } from 'react-native'
 const PULSE_DURATION_MS = 700
 const PULSE_MIN_OPACITY = 0.45
 
-function usePulseOpacity() {
+function usePulseOpacity(): Animated.Value {
   // lazy-initialized state keeps the Animated.Value stable across renders
   // without touching a ref during render
   const [opacity] = useState(() => new Animated.Value(1))
