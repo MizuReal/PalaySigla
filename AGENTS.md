@@ -10,7 +10,7 @@ on mobile devices or uploaded on the web.
 Full-stack application: React (web) + React Native (mobile) frontends, FastAPI backend,
 Supabase (auth + PostgreSQL + Storage), Nominatim + OpenStreetMap (geocoding),
 Leaflet (web maps; mobile via WebView). ML inference runs in-process inside FastAPI
-(PyTorch/ONNX). All JS is plain JavaScript — no TypeScript.
+(PyTorch/ONNX). Frontends are TypeScript (`strict`); remaining JavaScript is migrated phase by phase.
 
 ---
 
@@ -84,9 +84,12 @@ project-root/
 
 ---
 
-## JavaScript (Web + Mobile)
+## TypeScript / JavaScript (Web + Mobile)
 
-- Plain JavaScript only. No TypeScript, no JSDoc type annotations, no `.ts`/`.tsx` files.
+- TypeScript (`strict`) is the target for both frontends. New modules are `.ts`/`.tsx`;
+  remaining `.js`/`.jsx` files are migrated phase by phase and must not gain new JS-only modules.
+- No JSDoc type annotations. No `any` except with an inline justification comment — prefer
+  `unknown` plus narrowing. No `@ts-ignore`; `@ts-expect-error` with a reason only.
 - `const` by default. `let` only when reassignment is required. `var` is forbidden.
 - Functional components and hooks only. No class components.
 - Named exports preferred over default exports, except for page/screen components.

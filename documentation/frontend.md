@@ -1,7 +1,7 @@
 # Website (Frontend)
 
-React 19 + Vite + Tailwind CSS v4 + react-router v7. Plain JavaScript — no
-TypeScript.
+React 19 + Vite + Tailwind CSS v4 + react-router v7. TypeScript (`strict`),
+migrating from JavaScript phase by phase.
 
 ## Requirements
 

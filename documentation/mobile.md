@@ -1,7 +1,7 @@
 # Mobile (React Native)
 
-Expo SDK 57 (managed workflow) + React Navigation v7 + plain JavaScript —
-no TypeScript. Ships the **light-only landing screen**, the tab shell, the
+Expo SDK 57 (managed workflow) + React Navigation v7 + TypeScript (`strict`),
+migrating from JavaScript phase by phase. Ships the **light-only landing screen**, the tab shell, the
 **marketplace browse feed**, **full email/password auth** (login / register /
 forgot password with in-app email-link returns), and the **Palay Assistant
 chat** (root-level bottom sheet over the tabs); posting, scanning, and

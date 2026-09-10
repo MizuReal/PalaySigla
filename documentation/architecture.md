@@ -4,12 +4,12 @@
 
 | Layer | Technology |
 |---|---|---|
-| Website | React 19, react-router v7, Tailwind CSS v4, Leaflet (react-leaflet v5), plain JavaScript |
+| Website | React 19, react-router v7, Tailwind CSS v4, Leaflet (react-leaflet v5), TypeScript (strict) |
 | Backend | FastAPI (async), httpx, pydantic-settings |
 | Database + Auth + Storage | Supabase (PostgreSQL, email/password auth, private buckets) |
 | Geocoding | Nominatim / OpenStreetMap, proxied through the backend |
 | Palay Assistant | Groq-hosted `openai/gpt-oss-20b` (chat-completions), proxied through the backend |
-| Mobile | Expo SDK 57 (React Native), React Navigation v7, Inter typeface — intro landing + bottom-tab shell + marketplace browse + full email/password auth + Palay Assistant shipped |
+| Mobile | Expo SDK 57 (React Native), React Navigation v7, TypeScript (strict), Inter typeface — intro landing + bottom-tab shell + marketplace browse + full email/password auth + Palay Assistant shipped |
 
 **Key rules:** the backend is the sole gateway to external APIs. The frontend
 never calls Nominatim, Groq, or any third-party service directly — everything
