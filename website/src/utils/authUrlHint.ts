@@ -6,6 +6,10 @@ const AUTH_HASH = Object.freeze(
   )
 )
 
-export function getAuthUrlHint() {
+export interface AuthUrlHint {
+  type: string | null
+}
+
+export function getAuthUrlHint(): AuthUrlHint {
   return { type: AUTH_HASH.get('type') }
 }

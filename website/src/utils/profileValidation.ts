@@ -19,17 +19,22 @@ const NATIONAL_NUMBER_LENGTH = 10
 // characters allowed while typing/pasting: digits, one leading +, separators
 const ALLOWED_PHONE_CHARS = /^[\d+\s().-]*$/
 
+export interface ProfileFieldErrors {
+  fullName?: string
+  phone?: string
+}
+
 // keeps digits, a leading +, and typable separators; everything else is junk
-export function stripPhoneInput(value) {
+export function stripPhoneInput(value: string): string {
   return value.replace(/[^\d+().-\s]/g, '').slice(0, MAX_PHONE_INPUT_LENGTH)
 }
 
-function digitsOnly(value) {
+function digitsOnly(value: string): string {
   return value.replace(/\D/g, '')
 }
 
 // accepts 09XXXXXXXXX, 639XXXXXXXXX, and +639XXXXXXXXX in any separator style
-function toNationalNumber(value) {
+function toNationalNumber(value: string): string | null {
   const stripped = value.trim()
   if (!stripped) {
     return ''
@@ -46,14 +51,17 @@ function toNationalNumber(value) {
   if (digits.startsWith('0')) {
     return LOCAL_MOBILE_PATTERN.test(digits) ? digits.slice(1) : null
   }
-  if (digits.startsWith(COUNTRY_CODE) && digits.length === COUNTRY_CODE.length + NATIONAL_NUMBER_LENGTH) {
+  if (
+    digits.startsWith(COUNTRY_CODE) &&
+    digits.length === COUNTRY_CODE.length + NATIONAL_NUMBER_LENGTH
+  ) {
     return digits.slice(COUNTRY_CODE.length)
   }
   return null
 }
 
 // '' stays '' (field is optional); invalid input becomes null
-export function toE164Phone(value) {
+export function toE164Phone(value: string): string | null {
   const national = toNationalNumber(value)
   if (national === null) {
     return null
@@ -62,7 +70,7 @@ export function toE164Phone(value) {
 }
 
 // E.164 (+639171234567) -> local display form (0917 123 4567)
-export function toLocalPhoneDisplay(e164) {
+export function toLocalPhoneDisplay(e164: string): string {
   if (!e164) {
     return ''
   }
@@ -73,7 +81,7 @@ export function toLocalPhoneDisplay(e164) {
   return `0${national.slice(0, 3)} ${national.slice(3, 6)} ${national.slice(6)}`
 }
 
-export function validateName(value) {
+export function validateName(value: string): string {
   if (!value.trim()) {
     return ''
   }
@@ -83,7 +91,7 @@ export function validateName(value) {
   return ''
 }
 
-export function validatePhone(value) {
+export function validatePhone(value: string): string {
   if (!value.trim()) {
     return ''
   }
@@ -91,8 +99,14 @@ export function validatePhone(value) {
 }
 
 // submit-time pass: name is required, phone is optional but must be valid
-export function validateProfileFields({ fullName, phone }) {
-  const errors = {}
+export function validateProfileFields({
+  fullName,
+  phone,
+}: {
+  fullName: string
+  phone: string
+}): ProfileFieldErrors {
+  const errors: ProfileFieldErrors = {}
   if (!fullName.trim()) {
     errors.fullName = NAME_REQUIRED_ERROR
   } else if (!NAME_PATTERN.test(fullName.trim())) {

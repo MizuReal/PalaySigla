@@ -1,4 +1,4 @@
-export function pillTabClasses(isActive) {
+export function pillTabClasses(isActive: boolean): string {
   return `rounded-sm border px-4 py-2.5 button-sm transition-colors ${
     isActive
       ? 'border-ink bg-ink text-on-dark'

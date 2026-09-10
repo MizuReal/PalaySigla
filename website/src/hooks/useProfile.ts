@@ -20,15 +20,11 @@ import {
   validatePhone,
   validateProfileFields,
 } from '../utils/profileValidation.js'
+import type { ProfileFieldErrors } from '../utils/profileValidation.js'
 import { getInitials } from '../utils/userProfile.js'
 import type { ProfileRow } from '../types/domain'
 
 const NO_PROFILE: Partial<ProfileRow> = Object.freeze({})
-
-export interface ProfileFieldErrors {
-  fullName?: string
-  phone?: string
-}
 
 type ProfileField = keyof ProfileFieldErrors
 
@@ -243,8 +239,7 @@ function useProfile(): UseProfileResult {
       setAvatarBusy(true)
       setAvatarError('')
       try {
-        // utils/image.js is still JavaScript, so its promise resolves as unknown
-        const compressed = (await compressImage(file, MAX_AVATAR_DIMENSION)) as Blob
+        const compressed = await compressImage(file, MAX_AVATAR_DIMENSION)
         stageFile(compressed)
       } catch (err) {
         setAvatarError(

@@ -1,3 +1,17 @@
+export interface PaddySlideChip {
+  label: string
+  value: string
+}
+
+export interface PaddySlide {
+  id: string
+  name: string
+  description: string
+  imageUrl: string
+  imageAlt: string
+  chips: PaddySlideChip[]
+}
+
 export const GOLDEN_PADDY_IMAGE =
   'https://upload.wikimedia.org/wikipedia/commons/a/ac/Unhulled_rice.jpg'
 export const PANICLE_HARVEST_IMAGE =
@@ -5,7 +19,7 @@ export const PANICLE_HARVEST_IMAGE =
 export const RED_HUSK_IMAGE =
   'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Red_Rice_Paddy_field_in_Japan_001.jpg/1280px-Red_Rice_Paddy_field_in_Japan_001.jpg'
 
-const PADDY_SLIDES = [
+const PADDY_SLIDES: PaddySlide[] = [
   {
     id: 'golden-paddy',
     name: 'Golden paddy',

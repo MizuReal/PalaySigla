@@ -5,7 +5,7 @@ const MAX_IMAGE_DIMENSION = 1600
 export const MAX_AVATAR_DIMENSION = 512
 const JPEG_QUALITY = 0.82
 
-export function validateImageFile(file) {
+export function validateImageFile(file: File | Blob): string {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
     return 'Please choose a JPEG or PNG photo.'
   }
@@ -15,7 +15,7 @@ export function validateImageFile(file) {
   return ''
 }
 
-function loadImage(file) {
+function loadImage(file: File | Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
     const image = new Image()
@@ -25,16 +25,22 @@ function loadImage(file) {
   })
 }
 
-export async function compressImage(file, maxDimension = MAX_IMAGE_DIMENSION) {
+export async function compressImage(
+  file: File | Blob,
+  maxDimension = MAX_IMAGE_DIMENSION
+): Promise<Blob> {
   const image = await loadImage(file)
   const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(image.width * scale)
   canvas.height = Math.round(image.height * scale)
   const context = canvas.getContext('2d')
+  if (!context) {
+    throw new Error('Could not process the photo.')
+  }
   context.drawImage(image, 0, 0, canvas.width, canvas.height)
   // canvas re-encoding strips EXIF/GPS metadata from the original
-  const blob = await new Promise((resolve, reject) => {
+  const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (result) => (result ? resolve(result) : reject(new Error('Could not compress the photo.'))),
       'image/jpeg',

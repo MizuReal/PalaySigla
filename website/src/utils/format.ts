@@ -1,15 +1,17 @@
+import type { ListingCategory, ListingUnit } from '../services/listings.js'
+
 const MINUTE_MS = 60_000
 const HOUR_MS = 60 * MINUTE_MS
 const DAY_MS = 24 * HOUR_MS
 const COORDINATE_DECIMALS = 4
 
-const DATE_OPTIONS = Object.freeze({
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = Object.freeze({
   year: 'numeric',
   month: 'short',
   day: 'numeric',
 })
 
-export const CATEGORY_LABELS = Object.freeze({
+export const CATEGORY_LABELS: Record<ListingCategory, string> = Object.freeze({
   palay: 'Palay',
   rice: 'Rice',
   seeds: 'Seeds',
@@ -17,7 +19,7 @@ export const CATEGORY_LABELS = Object.freeze({
   other: 'Other',
 })
 
-export const UNIT_LABELS = Object.freeze({
+export const UNIT_LABELS: Record<ListingUnit, string> = Object.freeze({
   kg: 'per kg',
   sack: 'per sack',
   cavan: 'per cavan',
@@ -31,24 +33,28 @@ const priceFormatter = new Intl.NumberFormat('en-PH', {
   maximumFractionDigits: 2,
 })
 
-export function formatPrice(price) {
+export function formatPrice(price: number): string {
   return priceFormatter.format(price)
 }
 
-function formatCoordinate(value, positiveHemisphere, negativeHemisphere) {
+function formatCoordinate(
+  value: number,
+  positiveHemisphere: string,
+  negativeHemisphere: string
+): string {
   const hemisphere = value >= 0 ? positiveHemisphere : negativeHemisphere
   return `${Math.abs(value).toFixed(COORDINATE_DECIMALS)}° ${hemisphere}`
 }
 
-export function formatCoordinates(lat, lng) {
+export function formatCoordinates(lat: number, lng: number): string {
   return `${formatCoordinate(lat, 'N', 'S')}, ${formatCoordinate(lng, 'E', 'W')}`
 }
 
-export function formatDate(isoTimestamp) {
+export function formatDate(isoTimestamp: string): string {
   return new Date(isoTimestamp).toLocaleDateString('en-PH', DATE_OPTIONS)
 }
 
-export function formatRelativeTime(isoTimestamp) {
+export function formatRelativeTime(isoTimestamp: string): string {
   const elapsedMs = Date.now() - new Date(isoTimestamp).getTime()
   if (elapsedMs < MINUTE_MS) {
     return 'just now'
