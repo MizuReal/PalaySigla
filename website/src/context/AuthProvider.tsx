@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
+import type { User } from '@supabase/supabase-js'
 import { supabase } from '../services/supabaseClient.js'
 import { signInWithEmail, signOut, signUpWithEmail } from '../services/auth.js'
-import { AuthContext } from './authContext.js'
+import { AUTH_MODAL_MODES, AuthContext } from './authContext.js'
+import type { AuthContextValue, AuthModalMode } from './authContext.js'
 
-function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const [authModalMode, setAuthModalMode] = useState('login')
+  const [authModalMode, setAuthModalMode] = useState<AuthModalMode>(
+    AUTH_MODAL_MODES.LOGIN
+  )
 
   useEffect(() => {
     // INITIAL_SESSION restores any persisted session; every event after that
@@ -21,7 +26,7 @@ function AuthProvider({ children }) {
     return () => subscription.subscription.unsubscribe()
   }, [])
 
-  const openAuthModal = useCallback((mode = 'login') => {
+  const openAuthModal = useCallback((mode: AuthModalMode = AUTH_MODAL_MODES.LOGIN) => {
     setAuthModalMode(mode)
     setIsAuthModalOpen(true)
   }, [])
@@ -30,7 +35,7 @@ function AuthProvider({ children }) {
     setIsAuthModalOpen(false)
   }, [])
 
-  const value = useMemo(
+  const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isInitializing,
@@ -38,8 +43,9 @@ function AuthProvider({ children }) {
       authModalMode,
       openAuthModal,
       closeAuthModal,
-      signIn: (email, password) => signInWithEmail(email, password),
-      signUp: (name, email, password) => signUpWithEmail(name, email, password),
+      signIn: (email: string, password: string) => signInWithEmail(email, password),
+      signUp: (name: string, email: string, password: string) =>
+        signUpWithEmail(name, email, password),
       signOut: () => signOut(),
     }),
     [user, isInitializing, isAuthModalOpen, authModalMode, openAuthModal, closeAuthModal]

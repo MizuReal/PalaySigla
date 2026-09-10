@@ -1,10 +1,30 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchMyListings, MY_LISTING_FILTERS } from '../services/listings.js'
+import type { MyListingFilter } from '../services/listings.js'
+import type { ListingWithImages } from '../types/domain'
 
 const PAGE_SIZE = 12
 
-function useMyListings({ userId, filter = MY_LISTING_FILTERS.ALL } = {}) {
-  const [listings, setListings] = useState([])
+export interface UseMyListingsParams {
+  userId?: string
+  filter?: MyListingFilter
+}
+
+export interface UseMyListingsResult {
+  listings: ListingWithImages[]
+  total: number
+  isInitialLoading: boolean
+  isLoadingMore: boolean
+  error: string
+  loadMore: () => Promise<void>
+  hasMore: boolean
+}
+
+function useMyListings({
+  userId,
+  filter = MY_LISTING_FILTERS.ALL,
+}: UseMyListingsParams = {}): UseMyListingsResult {
+  const [listings, setListings] = useState<ListingWithImages[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
@@ -22,13 +42,17 @@ function useMyListings({ userId, filter = MY_LISTING_FILTERS.ALL } = {}) {
           limit: PAGE_SIZE,
         })
         if (isCurrent) {
-          setListings(result.data)
+          setListings(result.data ?? [])
           setTotal(result.total)
           setError('')
         }
       } catch (err) {
         if (isCurrent) {
-          setError(err.message)
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'Could not load your listings. Please try again.'
+          )
         }
       } finally {
         if (isCurrent) {
@@ -56,11 +80,15 @@ function useMyListings({ userId, filter = MY_LISTING_FILTERS.ALL } = {}) {
         page: nextPage,
         limit: PAGE_SIZE,
       })
-      setListings((current) => [...current, ...result.data])
+      setListings((current) => [...current, ...(result.data ?? [])])
       setTotal(result.total)
       setError('')
     } catch (err) {
-      setError(err.message)
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not load your listings. Please try again.'
+      )
     } finally {
       setIsLoadingMore(false)
       setPage(nextPage)

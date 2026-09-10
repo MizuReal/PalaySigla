@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
 import { getListing, getListingImageUrl } from '../services/listings.js'
+import type { ListingWithImages } from '../types/domain'
 
-function useListingDetail(id) {
-  const [listing, setListing] = useState(null)
+export interface UseListingDetailResult {
+  listing: ListingWithImages | null
+  imageUrl: string
+  isLoading: boolean
+  error: string
+}
+
+function useListingDetail(id: string): UseListingDetailResult {
+  const [listing, setListing] = useState<ListingWithImages | null>(null)
   const [imageUrl, setImageUrl] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -25,7 +33,9 @@ function useListingDetail(id) {
         }
       } catch (err) {
         if (isCurrent) {
-          setError(err.message)
+          setError(
+            err instanceof Error ? err.message : 'That listing could not be found.'
+          )
         }
       } finally {
         if (isCurrent) {

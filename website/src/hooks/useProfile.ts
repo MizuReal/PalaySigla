@@ -21,12 +21,52 @@ import {
   validateProfileFields,
 } from '../utils/profileValidation.js'
 import { getInitials } from '../utils/userProfile.js'
+import type { ProfileRow } from '../types/domain'
 
-const NO_PROFILE = Object.freeze({})
+const NO_PROFILE: Partial<ProfileRow> = Object.freeze({})
 
-function useProfile() {
+export interface ProfileFieldErrors {
+  fullName?: string
+  phone?: string
+}
+
+type ProfileField = keyof ProfileFieldErrors
+
+export interface UseProfileResult {
+  profile: Partial<ProfileRow>
+  isInitialLoading: boolean
+  loadError: string
+  retryLoad: () => void
+  fullName: string
+  phoneInput: string
+  errors: ProfileFieldErrors
+  avatarUrl: string
+  hasAvatar: boolean
+  hasPendingFile: boolean
+  isRemovalStaged: boolean
+  fallbackInitials: string
+  avatarError: string
+  avatarUrlError: string
+  avatarBusy: boolean
+  isSaving: boolean
+  saveError: string
+  previewNote: string
+  canSave: boolean
+  ratingAvg: number
+  ratingCount: number
+  onNameChange: (value: string) => void
+  onPhoneChange: (value: string) => void
+  onNameBlur: () => void
+  onPhoneBlur: () => void
+  onPickAvatarFile: (file: File) => Promise<void>
+  onRequestRemoveAvatar: () => void
+  onCancelAvatarChange: () => void
+  saveProfile: () => Promise<boolean>
+}
+
+function useProfile(): UseProfileResult {
   const { user } = useAuth()
-  const [profile, setProfile] = useState(NO_PROFILE)
+  const [profile, setProfile] = useState<Partial<ProfileRow>>(NO_PROFILE)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [loadNonce, setLoadNonce] = useState(0)
@@ -35,8 +75,8 @@ function useProfile() {
 
   const [fullName, setFullName] = useState('')
   const [phoneInput, setPhoneInput] = useState('')
-  const [errors, setErrors] = useState({})
-  const [pendingFile, setPendingFile] = useState(null)
+  const [errors, setErrors] = useState<ProfileFieldErrors>({})
+  const [pendingFile, setPendingFile] = useState<Blob | null>(null)
   const [previewUrl, setPreviewUrl] = useState('')
   const [isRemovalStaged, setIsRemovalStaged] = useState(false)
   const [avatarBusy, setAvatarBusy] = useState(false)
@@ -118,7 +158,7 @@ function useProfile() {
         }
       } catch (err) {
         if (!isCancelled) {
-          setLoadError(err.message)
+          setLoadError(err instanceof Error ? err.message : 'Could not load your profile.')
         }
       } finally {
         if (!isCancelled) {
@@ -133,7 +173,7 @@ function useProfile() {
     }
   }, [userId, loadKey, metadataName, loadNonce])
 
-  const clearFieldError = useCallback((field) => {
+  const clearFieldError = useCallback((field: ProfileField) => {
     setErrors((current) => {
       if (!(field in current)) {
         return current
@@ -145,19 +185,17 @@ function useProfile() {
   }, [])
 
   // empty fields stay silent until submit, matching the auth-form pattern
-  const blurValidate = useCallback((field, value) => {
+  const blurValidate = useCallback((field: ProfileField, value: string) => {
     if (!value) {
       return
     }
     const message =
       field === 'fullName' ? validateName(value) : validatePhone(value)
-    setErrors((current) =>
-      message ? { ...current, [field]: message } : current
-    )
+    setErrors((current) => (message ? { ...current, [field]: message } : current))
   }, [])
 
   const handleNameChange = useCallback(
-    (value) => {
+    (value: string) => {
       setFullName(value)
       clearFieldError('fullName')
     },
@@ -165,7 +203,7 @@ function useProfile() {
   )
 
   const handlePhoneChange = useCallback(
-    (value) => {
+    (value: string) => {
       setPhoneInput(value)
       clearFieldError('phone')
     },
@@ -180,7 +218,7 @@ function useProfile() {
   }, [])
 
   const stageFile = useCallback(
-    (blob) => {
+    (blob: Blob) => {
       discardStagedPreview()
       const url = URL.createObjectURL(blob)
       previewUrlRef.current = url
@@ -193,7 +231,7 @@ function useProfile() {
   )
 
   const pickAvatarFile = useCallback(
-    async (file) => {
+    async (file: File) => {
       if (!file) {
         return
       }
@@ -205,10 +243,13 @@ function useProfile() {
       setAvatarBusy(true)
       setAvatarError('')
       try {
-        const compressed = await compressImage(file, MAX_AVATAR_DIMENSION)
+        // utils/image.js is still JavaScript, so its promise resolves as unknown
+        const compressed = (await compressImage(file, MAX_AVATAR_DIMENSION)) as Blob
         stageFile(compressed)
       } catch (err) {
-        setAvatarError(err.message)
+        setAvatarError(
+          err instanceof Error ? err.message : 'Could not process the photo.'
+        )
       } finally {
         setAvatarBusy(false)
       }
@@ -264,11 +305,14 @@ function useProfile() {
       ? 'Photo will be removed when you save.'
       : ''
 
-  const saveProfile = useCallback(async () => {
+  const saveProfile = useCallback(async (): Promise<boolean> => {
     if (!userId) {
       return false
     }
-    const fieldErrors = validateProfileFields({ fullName, phone: phoneInput })
+    const fieldErrors: ProfileFieldErrors = validateProfileFields({
+      fullName,
+      phone: phoneInput,
+    })
     setErrors(fieldErrors)
     if (fieldErrors.fullName || fieldErrors.phone) {
       return false
@@ -328,7 +372,7 @@ function useProfile() {
       cancelAvatarChange()
       return true
     } catch (err) {
-      setSaveError(err.message)
+      setSaveError(err instanceof Error ? err.message : 'Could not save your profile.')
       return false
     } finally {
       setIsSaving(false)

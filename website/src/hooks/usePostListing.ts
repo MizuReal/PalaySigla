@@ -4,10 +4,30 @@ import {
   softDeleteListing,
   uploadListingImage,
 } from '../services/listings.js'
+import type { ListingCategory, ListingUnit } from '../services/listings.js'
 import { useAuth } from '../context/authContext.js'
 import { getDisplayName } from '../utils/userProfile.js'
 
-function usePostListing() {
+export interface PostListingInput {
+  title: string
+  description: string
+  price: number
+  unit: ListingUnit
+  category: ListingCategory
+  quantity: number
+  lat: number
+  lng: number
+  locationLabel: string
+  imageFile: File
+}
+
+export interface UsePostListingResult {
+  postListing: (input: PostListingInput) => Promise<string>
+  isSubmitting: boolean
+  error: string
+}
+
+function usePostListing(): UsePostListingResult {
   const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -24,13 +44,13 @@ function usePostListing() {
       lng,
       locationLabel,
       imageFile,
-    }) => {
+    }: PostListingInput): Promise<string> => {
       if (!user) {
         throw new Error('You must be signed in to post a listing.')
       }
       setIsSubmitting(true)
       setError('')
-      let listingId = null
+      let listingId: string | null = null
       try {
         listingId = await createListing({
           userId: user.id,
@@ -51,9 +71,15 @@ function usePostListing() {
         if (listingId) {
           // roll back the listing row so a failed upload never leaves a
           // photo-less post in the marketplace
-          await softDeleteListing(listingId).catch(() => undefined)
+          try {
+            await softDeleteListing(listingId)
+          } catch {
+            // best effort; the original failure is the one surfaced below
+          }
         }
-        setError(err.message)
+        setError(
+          err instanceof Error ? err.message : 'Could not post the listing. Please try again.'
+        )
         throw err
       } finally {
         setIsSubmitting(false)

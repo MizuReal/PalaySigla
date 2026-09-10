@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import Toast from '../components/Toast.jsx'
-import { ToastContext, TOAST_VARIANTS } from './toastContext.js'
+import { TOAST_VARIANTS, ToastContext } from './toastContext.js'
+import type { ToastContextValue, ToastItem, ToastVariant } from './toastContext.js'
 
 const TOAST_DURATION_MS = 4000
 const MAX_VISIBLE_TOASTS = 4
 
 let toastIdCounter = 0
 
-function ToastProvider({ children }) {
-  const [toasts, setToasts] = useState([])
-  const timersRef = useRef(new Map())
+function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<ToastItem[]>([])
+  const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
 
-  const dismissToast = useCallback((id) => {
+  const dismissToast = useCallback((id: number) => {
     const timer = timersRef.current.get(id)
     if (timer) {
       clearTimeout(timer)
@@ -21,7 +23,7 @@ function ToastProvider({ children }) {
   }, [])
 
   const showToast = useCallback(
-    (message, variant = TOAST_VARIANTS.INFO) => {
+    (message: string, variant: ToastVariant = TOAST_VARIANTS.INFO) => {
       const id = ++toastIdCounter
       setToasts((current) => [...current, { id, message, variant }])
       const timer = setTimeout(() => dismissToast(id), TOAST_DURATION_MS)
@@ -40,7 +42,7 @@ function ToastProvider({ children }) {
     }
   }, [])
 
-  const value = { showToast }
+  const value: ToastContextValue = { showToast }
 
   return (
     <ToastContext.Provider value={value}>
