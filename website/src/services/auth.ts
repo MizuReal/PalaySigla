@@ -27,20 +27,15 @@ interface SupabaseErrorLike {
   message?: string
 }
 
-interface FriendlyError {
-  message: string
-}
-
-function toFriendlyError(error: SupabaseErrorLike | null): FriendlyError {
+function toFriendlyError(error: SupabaseErrorLike | null): Error {
   const normalizedCode = String(error?.code ?? '')
     .toLowerCase()
     .replace(/-/g, '_')
-  return {
-    message:
-      ERROR_MESSAGES[normalizedCode] ??
+  return new Error(
+    ERROR_MESSAGES[normalizedCode] ??
       error?.message ??
-      'Something went wrong. Please try again.',
-  }
+      'Something went wrong. Please try again.'
+  )
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<void> {

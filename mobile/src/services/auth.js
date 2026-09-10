@@ -49,12 +49,11 @@ function toFriendlyError(error) {
   const normalizedCode = String(error?.code ?? '')
     .toLowerCase()
     .replace(/-/g, '_')
-  return {
-    message:
-      ERROR_MESSAGES[normalizedCode] ??
+  return new Error(
+    ERROR_MESSAGES[normalizedCode] ??
       error?.message ??
-      'Something went wrong. Please try again.',
-  }
+      'Something went wrong. Please try again.'
+  )
 }
 
 export async function signInWithEmail(email, password) {
@@ -140,9 +139,9 @@ export async function completeAuthRedirect(rawUrl) {
       .toLowerCase()
       .replace(/-/g, '_')
     if (ERROR_MESSAGES[normalizedCode]) {
-      throw { message: ERROR_MESSAGES[normalizedCode] }
+      throw new Error(ERROR_MESSAGES[normalizedCode])
     }
-    throw { message: AUTH_LINK_FAILED_MESSAGE }
+    throw new Error(AUTH_LINK_FAILED_MESSAGE)
   }
   const urlType = AUTH_RETURN_TYPES[params.type] ?? null
   const rememberedType = urlType ?? (await consumePendingAuthReturn())

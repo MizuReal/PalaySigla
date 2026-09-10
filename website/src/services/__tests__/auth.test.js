@@ -41,38 +41,38 @@ describe('signInWithEmail', () => {
     })
   })
 
-  it('maps known error codes to friendly thrown messages', async () => {
+  it('maps known error codes to friendly Error instances', async () => {
     supabase.auth.signInWithPassword.mockResolvedValue({
       error: { code: 'invalid_credentials' },
     })
-    await expect(signInWithEmail('a@b.c', 'x')).rejects.toEqual({
-      message: 'The email or password you entered is incorrect. Please try again.',
-    })
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toBeInstanceOf(Error)
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow(
+      'The email or password you entered is incorrect. Please try again.'
+    )
 
     supabase.auth.signInWithPassword.mockResolvedValue({
       error: { code: 'email-not-confirmed' },
     })
-    await expect(signInWithEmail('a@b.c', 'x')).rejects.toEqual({
-      message:
-        'Your email has not been confirmed yet. Check your inbox for the confirmation link.',
-    })
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow(
+      'Your email has not been confirmed yet. Check your inbox for the confirmation link.'
+    )
 
     supabase.auth.signInWithPassword.mockResolvedValue({ error: { code: 'NETWORK_ERROR' } })
-    await expect(signInWithEmail('a@b.c', 'x')).rejects.toEqual({
-      message: 'Could not reach the server. Check your connection and try again.',
-    })
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow(
+      'Could not reach the server. Check your connection and try again.'
+    )
   })
 
   it('falls back to the provider message, then to a generic message', async () => {
     supabase.auth.signInWithPassword.mockResolvedValue({
       error: { code: 'unmapped_code', message: 'provider said no' },
     })
-    await expect(signInWithEmail('a@b.c', 'x')).rejects.toEqual({ message: 'provider said no' })
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow('provider said no')
 
     supabase.auth.signInWithPassword.mockResolvedValue({ error: {} })
-    await expect(signInWithEmail('a@b.c', 'x')).rejects.toEqual({
-      message: 'Something went wrong. Please try again.',
-    })
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow(
+      'Something went wrong. Please try again.'
+    )
   })
 })
 
@@ -104,9 +104,9 @@ describe('signUpWithEmail', () => {
   it('maps sign-up errors through toFriendlyError', async () => {
     supabase.auth.signUp.mockResolvedValue({ error: { code: 'user_already_exists' } })
 
-    await expect(signUpWithEmail('Juan', 'juan@example.com', 'secret123')).rejects.toEqual({
-      message: 'An account with this email already exists. Try logging in instead.',
-    })
+    await expect(signUpWithEmail('Juan', 'juan@example.com', 'secret123')).rejects.toThrow(
+      'An account with this email already exists. Try logging in instead.'
+    )
   })
 })
 
@@ -126,9 +126,9 @@ describe('sendPasswordReset', () => {
       error: { code: 'over_email_send_rate_limit' },
     })
 
-    await expect(sendPasswordReset('juan@example.com')).rejects.toEqual({
-      message: 'Too many emails sent. Please wait a moment and try again.',
-    })
+    await expect(sendPasswordReset('juan@example.com')).rejects.toThrow(
+      'Too many emails sent. Please wait a moment and try again.'
+    )
   })
 })
 
@@ -141,8 +141,8 @@ describe('signOut', () => {
   it('maps errors through toFriendlyError', async () => {
     supabase.auth.signOut.mockResolvedValue({ error: { code: 'network_error' } })
 
-    await expect(signOut()).rejects.toEqual({
-      message: 'Could not reach the server. Check your connection and try again.',
-    })
+    await expect(signOut()).rejects.toThrow(
+      'Could not reach the server. Check your connection and try again.'
+    )
   })
 })

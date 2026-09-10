@@ -47,30 +47,31 @@ describe('signInWithEmail', () => {
     })
   })
 
-  it('maps known error codes to friendly thrown messages', async () => {
+  it('maps known error codes to friendly Error instances', async () => {
     supabase.auth.signInWithPassword.mockResolvedValue({
       error: { code: 'invalid_credentials' },
     })
-    await expect(signInWithEmail('a@b.c', 'x')).rejects.toEqual({
-      message: 'The email or password you entered is incorrect. Please try again.',
-    })
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toBeInstanceOf(Error)
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow(
+      'The email or password you entered is incorrect. Please try again.'
+    )
 
     supabase.auth.signInWithPassword.mockResolvedValue({ error: { code: 'otp_expired' } })
-    await expect(signInWithEmail('a@b.c', 'x')).rejects.toEqual({
-      message: 'This link has expired. Please request a new one.',
-    })
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow(
+      'This link has expired. Please request a new one.'
+    )
   })
 
   it('falls back to the provider message, then to a generic message', async () => {
     supabase.auth.signInWithPassword.mockResolvedValue({
       error: { code: 'unmapped_code', message: 'provider said no' },
     })
-    await expect(signInWithEmail('a@b.c', 'x')).rejects.toEqual({ message: 'provider said no' })
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow('provider said no')
 
     supabase.auth.signInWithPassword.mockResolvedValue({ error: {} })
-    await expect(signInWithEmail('a@b.c', 'x')).rejects.toEqual({
-      message: 'Something went wrong. Please try again.',
-    })
+    await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow(
+      'Something went wrong. Please try again.'
+    )
   })
 })
 
@@ -108,9 +109,9 @@ describe('signUpWithEmail', () => {
   it('maps sign-up errors through toFriendlyError', async () => {
     supabase.auth.signUp.mockResolvedValue({ error: { code: 'user_already_exists' } })
 
-    await expect(signUpWithEmail('Juan', 'juan@example.com', 'secret123')).rejects.toEqual({
-      message: 'An account with this email already exists. Try logging in instead.',
-    })
+    await expect(signUpWithEmail('Juan', 'juan@example.com', 'secret123')).rejects.toThrow(
+      'An account with this email already exists. Try logging in instead.'
+    )
   })
 })
 
@@ -129,9 +130,9 @@ describe('sendPasswordReset', () => {
       error: { code: 'over_email_send_rate_limit' },
     })
 
-    await expect(sendPasswordReset('juan@example.com')).rejects.toEqual({
-      message: 'Too many emails sent. Please wait a moment and try again.',
-    })
+    await expect(sendPasswordReset('juan@example.com')).rejects.toThrow(
+      'Too many emails sent. Please wait a moment and try again.'
+    )
     await expect(AsyncStorage.getItem(PENDING_AUTH_RETURN_KEY)).resolves.toBeNull()
   })
 })
@@ -145,9 +146,9 @@ describe('updatePassword', () => {
   it('maps errors through toFriendlyError', async () => {
     supabase.auth.updateUser.mockResolvedValue({ error: { code: 'weak_password' } })
 
-    await expect(updatePassword('short')).rejects.toEqual({
-      message: 'Your password must be at least 8 characters long.',
-    })
+    await expect(updatePassword('short')).rejects.toThrow(
+      'Your password must be at least 8 characters long.'
+    )
   })
 })
 
@@ -160,9 +161,9 @@ describe('signOut', () => {
   it('maps errors through toFriendlyError', async () => {
     supabase.auth.signOut.mockResolvedValue({ error: { code: 'network_error' } })
 
-    await expect(signOut()).rejects.toEqual({
-      message: 'Could not reach the server. Check your connection and try again.',
-    })
+    await expect(signOut()).rejects.toThrow(
+      'Could not reach the server. Check your connection and try again.'
+    )
   })
 })
 
@@ -224,19 +225,22 @@ describe('completeAuthRedirect', () => {
     ).resolves.toEqual({ type: null })
   })
 
-  it('maps a known exchange error code to a friendly thrown message', async () => {
+  it('maps a known exchange error code to a friendly Error instance', async () => {
     supabase.auth.exchangeCodeForSession.mockRejectedValue({ code: 'otp_expired' })
 
-    await expect(completeAuthRedirect('palaysigla://auth/callback?code=stale')).rejects.toEqual({
-      message: 'This link has expired. Please request a new one.',
-    })
+    await expect(completeAuthRedirect('palaysigla://auth/callback?code=stale')).rejects.toBeInstanceOf(
+      Error
+    )
+    await expect(completeAuthRedirect('palaysigla://auth/callback?code=stale')).rejects.toThrow(
+      'This link has expired. Please request a new one.'
+    )
   })
 
   it('collapses unknown exchange failures to one honest message', async () => {
     supabase.auth.exchangeCodeForSession.mockRejectedValue(new Error('GoTrue internal detail'))
 
-    await expect(completeAuthRedirect('palaysigla://auth/callback?code=stale')).rejects.toEqual({
-      message: 'This link is invalid or has already been used. Please request a new one.',
-    })
+    await expect(completeAuthRedirect('palaysigla://auth/callback?code=stale')).rejects.toThrow(
+      'This link is invalid or has already been used. Please request a new one.'
+    )
   })
 })
