@@ -2,7 +2,7 @@
 // bounds, friendly-error table, and toFriendlyError contract: thrown errors
 // carry the UI message) plus the deep-link session hand-off mobile needs.
 // Every supabase.auth call in the app funnels through this module;
-// validation regexes live in utils/validation.js and return-URL helpers in
+// validation regexes live in utils/validation.ts and return-URL helpers in
 // utils/authUrlHint.ts.
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from './supabaseClient'
