@@ -17,6 +17,18 @@ export type ListingRow = Omit<ListingBaseRow, 'category' | 'status' | 'unit'> & 
 
 export type ListingImageRow = Tables<'listing_images'>
 export type ProfileRow = Tables<'profiles'>
+export type ForumPostRow = Tables<'forum_posts'>
+export type ForumCommentRow = Tables<'forum_comments'>
+
+// heart counts are denormalized columns on the rows; the viewer's own
+// reaction is attached by the service that fetched them
+export type ForumPostSummary = ForumPostRow & {
+  hasHearted: boolean
+}
+
+export type ForumCommentItem = ForumCommentRow & {
+  hasHearted: boolean
+}
 
 export type ListingImageRef = Pick<ListingImageRow, 'id' | 'storage_path' | 'position'>
 

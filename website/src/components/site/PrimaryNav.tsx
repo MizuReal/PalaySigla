@@ -19,6 +19,7 @@ interface MoreLink {
 
 const PAGE_LINKS: PageLink[] = [
   { label: 'Marketplace', to: '/marketplace' },
+  { label: 'Forum', to: '/forum' },
   { label: 'Rice Husk Analysis', to: '/rice-husk-analysis' },
   { label: 'Profile', to: '/profile' },
 ]
