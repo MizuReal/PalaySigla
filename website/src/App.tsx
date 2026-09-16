@@ -6,7 +6,6 @@ import AuthProvider from './context/AuthProvider'
 import ToastProvider from './context/ToastProvider'
 import { useAuth } from './context/authContext'
 import ForumPage from './pages/ForumPage'
-import ForumPostPage from './pages/ForumPostPage'
 import Home from './pages/Home'
 import MarketplacePage from './pages/MarketplacePage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -28,10 +27,6 @@ const router = createBrowserRouter([
       {
         path: '/forum',
         element: <ForumPage />,
-      },
-      {
-        path: '/forum/:postId',
-        element: <ForumPostPage />,
       },
       {
         path: '/profile',

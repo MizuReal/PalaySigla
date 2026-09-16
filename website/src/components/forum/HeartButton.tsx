@@ -10,6 +10,7 @@ interface HeartButtonProps {
   label: string
   postId?: string
   commentId?: string
+  onChanged?: () => void
 }
 
 // local state is the optimistic source while the request is in flight; the
@@ -20,6 +21,7 @@ function HeartButton({
   label,
   postId,
   commentId,
+  onChanged,
 }: HeartButtonProps) {
   const { user, openAuthModal } = useAuth()
   const { showToast } = useToast()
@@ -49,9 +51,12 @@ function HeartButton({
         err instanceof Error ? err.message : 'Could not update your heart.',
         TOAST_VARIANTS.ERROR
       )
+      return
     } finally {
       setIsPending(false)
     }
+    // a parent refresh callback must never be able to roll back the toggle
+    onChanged?.()
   }
 
   return (

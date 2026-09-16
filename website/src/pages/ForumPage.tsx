@@ -5,6 +5,7 @@ import Footer from '../components/site/Footer'
 import PrimaryNav from '../components/site/PrimaryNav'
 import ForumPostCard from '../components/forum/ForumPostCard'
 import ForumPostCardSkeleton from '../components/forum/ForumPostCardSkeleton'
+import ForumThreadModal from '../components/forum/ForumThreadModal'
 import PostEditorModal from '../components/forum/PostEditorModal'
 import useForumPosts from '../hooks/useForumPosts'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
@@ -17,9 +18,10 @@ const SEARCH_INPUT_CLASSES =
 interface ForumFeedProps {
   search: string
   refreshNonce: number
+  onSelect: (postId: string) => void
 }
 
-function ForumFeed({ search, refreshNonce }: ForumFeedProps) {
+function ForumFeed({ search, refreshNonce, onSelect }: ForumFeedProps) {
   const {
     posts,
     total,
@@ -90,7 +92,7 @@ function ForumFeed({ search, refreshNonce }: ForumFeedProps) {
       </p>
       <div className="mt-4 flex flex-col gap-4">
         {posts.map((post) => (
-          <ForumPostCard key={post.id} post={post} />
+          <ForumPostCard key={post.id} post={post} onSelect={onSelect} />
         ))}
       </div>
       {hasMore && (
@@ -115,6 +117,7 @@ function ForumPage() {
   const [search, setSearch] = useState('')
   const [refreshNonce, setRefreshNonce] = useState(0)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
 
   // debounce keystrokes so the feed only refetches after typing pauses
   useEffect(() => {
@@ -165,10 +168,23 @@ function ForumPage() {
           </Container>
         </div>
         <Container className="py-10 md:py-[64px]">
-          <ForumFeed key={search} search={search} refreshNonce={refreshNonce} />
+          <ForumFeed
+            key={search}
+            search={search}
+            refreshNonce={refreshNonce}
+            onSelect={setSelectedPostId}
+          />
         </Container>
       </main>
       <Footer />
+      {selectedPostId && (
+        <ForumThreadModal
+          key={selectedPostId}
+          postId={selectedPostId}
+          onClose={() => setSelectedPostId(null)}
+          onChanged={() => setRefreshNonce((current) => current + 1)}
+        />
+      )}
       {isComposerOpen && (
         <PostEditorModal
           onClose={() => setIsComposerOpen(false)}

@@ -1,22 +1,18 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import Button from '../components/Button'
-import Container from '../components/Container'
-import Icon from '../components/Icon'
-import Footer from '../components/site/Footer'
-import PrimaryNav from '../components/site/PrimaryNav'
-import AuthorBadge from '../components/forum/AuthorBadge'
-import CommentComposer from '../components/forum/CommentComposer'
-import CommentItem from '../components/forum/CommentItem'
-import DeleteInlineConfirm from '../components/forum/DeleteInlineConfirm'
-import HeartButton from '../components/forum/HeartButton'
-import PostEditorModal from '../components/forum/PostEditorModal'
-import useForumComments from '../hooks/useForumComments'
-import useForumPost from '../hooks/useForumPost'
-import { useAuth } from '../context/authContext'
-import { TOAST_VARIANTS, useToast } from '../context/toastContext'
-import { softDeleteForumPost } from '../services/forum'
+import AuthorBadge from './AuthorBadge'
+import CommentComposer from './CommentComposer'
+import CommentItem from './CommentItem'
+import DeleteInlineConfirm from './DeleteInlineConfirm'
+import HeartButton from './HeartButton'
+import PostEditorModal from './PostEditorModal'
+import Modal from '../Modal'
+import useForumComments from '../../hooks/useForumComments'
+import useForumPost from '../../hooks/useForumPost'
+import { useAuth } from '../../context/authContext'
+import { TOAST_VARIANTS, useToast } from '../../context/toastContext'
+import { softDeleteForumPost } from '../../services/forum'
 
+const THREAD_TITLE_ID = 'forum-thread-title'
 const COMMENT_SKELETON_COUNT = 3
 
 interface ForumCommentsProps {
@@ -100,19 +96,23 @@ function ForumComments({ postId, onChanged }: ForumCommentsProps) {
   }
 
   return (
-    <section className="mt-10 border-t border-hairline pt-8">
-      <h2 className="heading-md text-ink">
+    <section className="mt-8 border-t border-hairline pt-6">
+      <h3 className="heading-md text-ink">
         {isInitialLoading ? 'Comments' : `${total} comment${total === 1 ? '' : 's'}`}
-      </h2>
+      </h3>
       <CommentComposer postId={postId} onPosted={handleChanged} />
       <div className="mt-6">{renderComments()}</div>
     </section>
   )
 }
 
-function ForumPostPage() {
-  const { postId = '' } = useParams<{ postId: string }>()
-  const navigate = useNavigate()
+interface ForumThreadModalProps {
+  postId: string
+  onClose: () => void
+  onChanged: () => void
+}
+
+function ForumThreadModal({ postId, onClose, onChanged }: ForumThreadModalProps) {
   const { user } = useAuth()
   const { showToast } = useToast()
   const { post, isLoading, error, refresh } = useForumPost(postId)
@@ -134,7 +134,8 @@ function ForumPostPage() {
     try {
       await softDeleteForumPost(post.id)
       showToast('Discussion removed.', TOAST_VARIANTS.SUCCESS)
-      navigate('/forum')
+      onChanged()
+      onClose()
     } catch (err) {
       showToast(
         err instanceof Error
@@ -147,29 +148,48 @@ function ForumPostPage() {
     }
   }
 
+  const handlePostChanged = () => {
+    refresh()
+    onChanged()
+  }
+
   const renderPost = () => {
     if (isLoading) {
       return (
-        <div className="animate-pulse space-y-4">
-          <div className="h-3 w-40 bg-surface-soft" />
-          <div className="h-6 w-2/3 bg-surface-soft" />
-          <div className="h-4 w-full bg-surface-soft" />
-          <div className="h-4 w-4/5 bg-surface-soft" />
-        </div>
+        <>
+          <h2 id={THREAD_TITLE_ID} className="sr-only">
+            Discussion
+          </h2>
+          <div className="animate-pulse space-y-4">
+            <div className="h-3 w-40 bg-surface-soft" />
+            <div className="h-6 w-2/3 bg-surface-soft" />
+            <div className="h-4 w-full bg-surface-soft" />
+            <div className="h-4 w-4/5 bg-surface-soft" />
+          </div>
+        </>
       )
     }
     if (error || !post) {
       return (
-        <div className="py-4 text-center" role="alert">
-          <p className="body-strong text-ink">
-            {error || 'That discussion could not be found.'}
-          </p>
-          <div className="mt-4 flex justify-center">
-            <Button variant="outline" to="/forum">
-              Back to forum
-            </Button>
+        <>
+          <h2 id={THREAD_TITLE_ID} className="sr-only">
+            Discussion
+          </h2>
+          <div className="py-4 text-center" role="alert">
+            <p className="body-strong text-ink">
+              {error || 'That discussion could not be found.'}
+            </p>
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-11 border border-hairline bg-canvas px-5 button-sm text-ink transition-colors hover:border-primary hover:text-primary"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )
     }
     return (
@@ -179,7 +199,9 @@ function ForumPostPage() {
           timestamp={post.created_at}
           isEdited={post.updated_at !== null}
         />
-        <h1 className="heading-xl mt-4 text-ink">{post.title}</h1>
+        <h2 id={THREAD_TITLE_ID} className="heading-lg mt-4 text-ink">
+          {post.title}
+        </h2>
         <p className="body-md mt-4 whitespace-pre-line text-body">{post.body}</p>
         <div className="mt-5 flex flex-wrap items-center gap-4">
           <HeartButton
@@ -187,6 +209,7 @@ function ForumPostPage() {
             heartCount={post.heart_count}
             hasHearted={post.hasHearted}
             label="this discussion"
+            onChanged={onChanged}
           />
           {isOwner && !isConfirmingDelete && (
             <div className="flex items-center gap-4">
@@ -217,38 +240,27 @@ function ForumPostPage() {
             onCancel={() => setIsConfirmingDelete(false)}
           />
         )}
+        <ForumComments postId={post.id} onChanged={handlePostChanged} />
       </>
     )
   }
 
   return (
     <>
-      <PrimaryNav />
-      <main>
-        <Container className="py-10 md:py-[64px]">
-          <Link
-            to="/forum"
-            className="inline-flex items-center gap-1.5 button-sm text-primary transition-colors hover:text-primary-dark"
-          >
-            <Icon name="chevron-left" className="h-4 w-4" />
-            Back to forum
-          </Link>
-          <article className="mt-6 border border-hairline bg-canvas p-6 sm:p-8">
-            {renderPost()}
-          </article>
-          {post && !isLoading && (
-            <ForumComments postId={post.id} onChanged={refresh} />
-          )}
-        </Container>
-      </main>
-      <Footer />
+      <Modal
+        onClose={onClose}
+        labelledBy={THREAD_TITLE_ID}
+        panelClassName="max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto"
+      >
+        {renderPost()}
+      </Modal>
       {isEditOpen && post && (
         <PostEditorModal
           post={post}
           onClose={() => setIsEditOpen(false)}
           onSaved={() => {
             setIsEditOpen(false)
-            refresh()
+            handlePostChanged()
           }}
         />
       )}
@@ -256,4 +268,4 @@ function ForumPostPage() {
   )
 }
 
-export default ForumPostPage
+export default ForumThreadModal
