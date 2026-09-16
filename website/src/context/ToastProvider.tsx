@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import Toast from '../components/Toast.jsx'
-import { TOAST_VARIANTS, ToastContext } from './toastContext.js'
-import type { ToastContextValue, ToastItem, ToastVariant } from './toastContext.js'
+import Toast from '../components/Toast'
+import { TOAST_VARIANTS, ToastContext } from './toastContext'
+import type { ToastContextValue, ToastItem, ToastVariant } from './toastContext'
 
 const TOAST_DURATION_MS = 4000
 const MAX_VISIBLE_TOASTS = 4

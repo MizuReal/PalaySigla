@@ -1,6 +1,6 @@
 import type { MouseEventHandler, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import Icon from './Icon.jsx'
+import Icon from './Icon'
 
 const VARIANT_CLASSES = {
   primary: 'bg-primary text-on-primary hover:bg-primary-dark',

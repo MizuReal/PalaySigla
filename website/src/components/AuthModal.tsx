@@ -6,18 +6,18 @@ import type {
   FormEvent,
   SetStateAction,
 } from 'react'
-import Button from './Button.jsx'
-import Icon from './Icon.jsx'
-import type { IconName } from './Icon.jsx'
-import Modal from './Modal.jsx'
-import { useAuth } from '../context/authContext.js'
-import { TOAST_VARIANTS, useToast } from '../context/toastContext.js'
+import Button from './Button'
+import Icon from './Icon'
+import type { IconName } from './Icon'
+import Modal from './Modal'
+import { useAuth } from '../context/authContext'
+import { TOAST_VARIANTS, useToast } from '../context/toastContext'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   sendPasswordReset,
-} from '../services/auth.js'
-import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation.js'
+} from '../services/auth'
+import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation'
 
 const MODAL_TITLE_ID = 'auth-modal-title'
 

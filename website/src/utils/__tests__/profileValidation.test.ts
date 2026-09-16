@@ -9,7 +9,7 @@ import {
   validateName,
   validatePhone,
   validateProfileFields,
-} from '../profileValidation.js'
+} from '../profileValidation'
 
 describe('stripPhoneInput', () => {
   it('keeps digits, a leading plus, and typable separators', () => {

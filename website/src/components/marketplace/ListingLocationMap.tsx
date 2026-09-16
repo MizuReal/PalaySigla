@@ -4,7 +4,7 @@ import {
   MAP_TILE_URL,
   PICK_ZOOM,
   PIN_ICON,
-} from './mapConfig.js'
+} from './mapConfig'
 
 const DEFAULT_HEIGHT_CLASS = 'h-[240px]'
 

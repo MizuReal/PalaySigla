@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { resetSupabaseMock } from '../../test/supabaseMock.js'
-import type { SupabaseMock } from '../../test/supabaseMock.js'
-import type { ChatTurn } from '../../types/api.js'
+import { resetSupabaseMock } from '../../test/supabaseMock'
+import type { SupabaseMock } from '../../test/supabaseMock'
+import type { ChatTurn } from '../../types/api'
 
-vi.mock('../supabaseClient.js', async () => {
-  const { createSupabaseMock } = await import('../../test/supabaseMock.js')
+vi.mock('../supabaseClient', async () => {
+  const { createSupabaseMock } = await import('../../test/supabaseMock')
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase as supabaseClient } from '../supabaseClient.js'
-import { sendChatMessage } from '../chatbot.js'
+import { supabase as supabaseClient } from '../supabaseClient'
+import { sendChatMessage } from '../chatbot'
 
 // vi.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
 const supabase = supabaseClient as unknown as SupabaseMock
@@ -123,7 +123,7 @@ describe('sendChatMessage', () => {
   it('rejects when the API base URL is not configured', async () => {
     vi.stubEnv('VITE_API_URL', '')
     vi.resetModules()
-    const { sendChatMessage: freshSend } = await import('../chatbot.js')
+    const { sendChatMessage: freshSend } = await import('../chatbot')
 
     await expect(freshSend(MESSAGES)).rejects.toThrow('VITE_API_URL is not configured.')
   })

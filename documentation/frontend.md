@@ -207,5 +207,5 @@ Coding rules live in `AGENTS.md` (read it before editing). Design tokens and
 component treatments live in `DESIGN.md` — no ad-hoc colors/spacing. Any
 visual change ships with its `DESIGN.md` update.
 
-Explicit `.js`/`.jsx` import specifiers may stay in place as files convert:
-Vite and `tsc` map them to the corresponding `.ts`/`.tsx` modules.
+Relative imports of TypeScript modules are extensionless — no `.js`/`.jsx`
+specifiers: Vite, `tsc`, and Vitest resolve them directly.

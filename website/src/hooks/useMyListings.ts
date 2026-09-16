@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchMyListings, MY_LISTING_FILTERS } from '../services/listings.js'
-import type { MyListingFilter } from '../services/listings.js'
+import { fetchMyListings, MY_LISTING_FILTERS } from '../services/listings'
+import type { MyListingFilter } from '../services/listings'
 import type { ListingWithImages } from '../types/domain'
 
 const PAGE_SIZE = 12

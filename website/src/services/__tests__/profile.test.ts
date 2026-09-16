@@ -3,15 +3,15 @@ import {
   createQueryBuilder,
   createStorageBucketMock,
   resetSupabaseMock,
-} from '../../test/supabaseMock.js'
-import type { SupabaseMock } from '../../test/supabaseMock.js'
+} from '../../test/supabaseMock'
+import type { SupabaseMock } from '../../test/supabaseMock'
 
-vi.mock('../supabaseClient.js', async () => {
-  const { createSupabaseMock } = await import('../../test/supabaseMock.js')
+vi.mock('../supabaseClient', async () => {
+  const { createSupabaseMock } = await import('../../test/supabaseMock')
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase as supabaseClient } from '../supabaseClient.js'
+import { supabase as supabaseClient } from '../supabaseClient'
 import {
   fetchProfile,
   getAvatarStoragePath,
@@ -21,8 +21,8 @@ import {
   syncProfileName,
   uploadAvatar,
   upsertProfile,
-} from '../profile.js'
-import type { UpsertProfileInput } from '../profile.js'
+} from '../profile'
+import type { UpsertProfileInput } from '../profile'
 
 // vi.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
 const supabase = supabaseClient as unknown as SupabaseMock

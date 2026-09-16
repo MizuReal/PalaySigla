@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { resetSupabaseMock } from '../../test/supabaseMock.js'
-import type { SupabaseMock } from '../../test/supabaseMock.js'
+import { resetSupabaseMock } from '../../test/supabaseMock'
+import type { SupabaseMock } from '../../test/supabaseMock'
 
-vi.mock('../supabaseClient.js', async () => {
-  const { createSupabaseMock } = await import('../../test/supabaseMock.js')
+vi.mock('../supabaseClient', async () => {
+  const { createSupabaseMock } = await import('../../test/supabaseMock')
   return { supabase: createSupabaseMock() }
 })
 
-import { supabase as supabaseClient } from '../supabaseClient.js'
+import { supabase as supabaseClient } from '../supabaseClient'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
@@ -15,7 +15,7 @@ import {
   signInWithEmail,
   signOut,
   signUpWithEmail,
-} from '../auth.js'
+} from '../auth'
 
 // vi.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
 const supabase = supabaseClient as unknown as SupabaseMock

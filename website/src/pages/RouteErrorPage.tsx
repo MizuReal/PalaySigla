@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useRouteError } from 'react-router-dom'
-import Button from '../components/Button.jsx'
-import FullPageMessage from '../components/site/FullPageMessage.jsx'
+import Button from '../components/Button'
+import FullPageMessage from '../components/site/FullPageMessage'
 
 function RouteErrorPage() {
   const error = useRouteError()

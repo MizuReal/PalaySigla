@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient.js'
+import { supabase } from './supabaseClient'
 import type { ListingWithImages } from '../types/domain'
 
 const PAGE_SIZE_DEFAULT = 12

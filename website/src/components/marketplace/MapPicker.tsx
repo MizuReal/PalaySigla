@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
-import Icon from '../Icon.jsx'
-import { reverseGeocode, searchPlace } from '../../services/geocode.js'
+import Icon from '../Icon'
+import { reverseGeocode, searchPlace } from '../../services/geocode'
 import type { GeocodeResult } from '../../types/api'
 import {
   DEFAULT_ZOOM,
@@ -10,7 +10,7 @@ import {
   PHILIPPINES_CENTER,
   PICK_ZOOM,
   PIN_ICON,
-} from './mapConfig.js'
+} from './mapConfig'
 
 type MapPosition = [number, number]
 

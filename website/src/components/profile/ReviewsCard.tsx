@@ -1,4 +1,4 @@
-import Icon from '../Icon.jsx'
+import Icon from '../Icon'
 
 const MAX_RATING = 5
 const STAR_GLYPH_COUNT = MAX_RATING

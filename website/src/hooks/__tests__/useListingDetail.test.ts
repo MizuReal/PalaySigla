@@ -1,14 +1,14 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../../services/listings.js', () => ({
+vi.mock('../../services/listings', () => ({
   getListing: vi.fn(),
   getListingImageUrl: vi.fn(),
 }))
 
-import { getListing, getListingImageUrl } from '../../services/listings.js'
-import type { ListingWithImages } from '../../types/domain.js'
-import useListingDetail from '../useListingDetail.js'
+import { getListing, getListingImageUrl } from '../../services/listings'
+import type { ListingWithImages } from '../../types/domain'
+import useListingDetail from '../useListingDetail'
 
 const getListingMock = vi.mocked(getListing)
 const getListingImageUrlMock = vi.mocked(getListingImageUrl)

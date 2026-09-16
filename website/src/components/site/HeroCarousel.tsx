@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import Button from '../Button.jsx'
-import Container from '../Container.jsx'
-import Icon from '../Icon.jsx'
-import Photo from '../Photo.jsx'
-import PADDY_SLIDES from '../../data/paddySlides.js'
-import { RICE_FIELD_VIDEO_URL } from '../../data/media.js'
+import Button from '../Button'
+import Container from '../Container'
+import Icon from '../Icon'
+import Photo from '../Photo'
+import PADDY_SLIDES from '../../data/paddySlides'
+import { RICE_FIELD_VIDEO_URL } from '../../data/media'
 
 const SLIDE_INTERVAL_MS = 6000
 

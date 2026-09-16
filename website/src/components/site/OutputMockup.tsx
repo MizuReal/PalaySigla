@@ -1,8 +1,8 @@
-import Icon from '../Icon.jsx'
-import Photo from '../Photo.jsx'
-import Section from '../Section.jsx'
-import SectionHeader from '../SectionHeader.jsx'
-import { GOLDEN_PADDY_IMAGE } from '../../data/paddySlides.js'
+import Icon from '../Icon'
+import Photo from '../Photo'
+import Section from '../Section'
+import SectionHeader from '../SectionHeader'
+import { GOLDEN_PADDY_IMAGE } from '../../data/paddySlides'
 
 const SAMPLE_RESULTS = [
   { icon: 'quality', label: 'Quality status', value: 'Dry · Clean', confidence: 96 },

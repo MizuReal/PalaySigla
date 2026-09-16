@@ -1,5 +1,5 @@
-import Button from '../components/Button.jsx'
-import FullPageMessage from '../components/site/FullPageMessage.jsx'
+import Button from '../components/Button'
+import FullPageMessage from '../components/site/FullPageMessage'
 
 function NotFoundPage() {
   return (

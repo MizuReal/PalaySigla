@@ -6,7 +6,7 @@ import {
   formatDate,
   formatPrice,
   formatRelativeTime,
-} from '../format.js'
+} from '../format'
 
 describe('formatPrice', () => {
   it('formats PHP amounts with the en-PH peso symbol', () => {

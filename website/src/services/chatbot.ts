@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient.js'
+import { supabase } from './supabaseClient'
 import type { ApiEnvelope, ChatReply, ChatTurn } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL

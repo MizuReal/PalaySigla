@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getListing, getListingImageUrl } from '../services/listings.js'
+import { getListing, getListingImageUrl } from '../services/listings'
 import type { ListingWithImages } from '../types/domain'
 
 export interface UseListingDetailResult {

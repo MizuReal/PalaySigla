@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../context/authContext.js'
-import { getOwnAvatarUrl } from '../services/profile.js'
+import { useAuth } from '../context/authContext'
+import { getOwnAvatarUrl } from '../services/profile'
 
 interface AvatarState {
   userId: string | null

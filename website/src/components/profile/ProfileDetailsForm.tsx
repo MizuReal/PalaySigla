@@ -1,7 +1,7 @@
 import type { ComponentProps, FormEvent } from 'react'
-import Button from '../Button.jsx'
-import Icon from '../Icon.jsx'
-import type { ProfileFieldErrors } from '../../utils/profileValidation.js'
+import Button from '../Button'
+import Icon from '../Icon'
+import type { ProfileFieldErrors } from '../../utils/profileValidation'
 
 const INPUT_CLASSES =
   'h-11 w-full border border-hairline bg-canvas px-4 body-md text-ink placeholder:text-stone focus:border-2 focus:border-primary focus:px-[15px]'

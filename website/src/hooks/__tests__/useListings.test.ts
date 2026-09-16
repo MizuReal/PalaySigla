@@ -1,15 +1,15 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../../services/listings.js', () => ({
+vi.mock('../../services/listings', () => ({
   fetchListings: vi.fn(),
   LISTING_SORTS: { NEWEST: 'newest', PRICE_ASC: 'price_asc', PRICE_DESC: 'price_desc' },
 }))
 
-import { fetchListings } from '../../services/listings.js'
-import type { ListingsPage } from '../../services/listings.js'
-import type { ListingWithImages } from '../../types/domain.js'
-import useListings from '../useListings.js'
+import { fetchListings } from '../../services/listings'
+import type { ListingsPage } from '../../services/listings'
+import type { ListingWithImages } from '../../types/domain'
+import useListings from '../useListings'
 
 // the hook only reads `data` and `total`; rows are minimal fixtures, not full listing records
 function page(data: { id: string }[], total: number): ListingsPage {

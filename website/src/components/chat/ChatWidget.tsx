@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext.js'
-import { sendChatMessage } from '../../services/chatbot.js'
+import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext'
+import { sendChatMessage } from '../../services/chatbot'
 import type { ChatTurn } from '../../types/api'
-import Icon from '../Icon.jsx'
+import Icon from '../Icon'
 
 const MAX_HISTORY_MESSAGES = 20
 const MAX_MESSAGE_CHARS = 2000

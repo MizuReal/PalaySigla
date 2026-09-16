@@ -1,7 +1,7 @@
-import Icon from '../Icon.jsx'
-import type { IconName } from '../Icon.jsx'
-import Section from '../Section.jsx'
-import SectionHeader from '../SectionHeader.jsx'
+import Icon from '../Icon'
+import type { IconName } from '../Icon'
+import Section from '../Section'
+import SectionHeader from '../SectionHeader'
 
 const MILL_BENEFITS = [
   'Consistent grading at intake — the same standard for every supplier, every sack',

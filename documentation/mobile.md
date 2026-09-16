@@ -231,5 +231,5 @@ password-reset links return into the app via its URL scheme:
   DESIGN.md documents); fonts load once in `App.tsx`.
 - No component may reach for `supabase` directly — every call goes through
   `src/services/` once features exist.
-- Relative imports of TypeScript modules are extensionless: Jest and Metro do not
-  map `.js` specifiers to `.ts`/`.tsx` files.
+- Relative imports of TypeScript modules are extensionless — Jest and Metro do not
+  map `.js` specifiers to `.ts`/`.tsx` files (same rule on the website).

@@ -1,11 +1,11 @@
-import AudienceSection from '../components/site/AudienceSection.jsx'
-import CtaStrip from '../components/site/CtaStrip.jsx'
-import FeatureGrid from '../components/site/FeatureGrid.jsx'
-import Footer from '../components/site/Footer.jsx'
-import HeroCarousel from '../components/site/HeroCarousel.jsx'
-import HowItWorks from '../components/site/HowItWorks.jsx'
-import OutputMockup from '../components/site/OutputMockup.jsx'
-import PrimaryNav from '../components/site/PrimaryNav.jsx'
+import AudienceSection from '../components/site/AudienceSection'
+import CtaStrip from '../components/site/CtaStrip'
+import FeatureGrid from '../components/site/FeatureGrid'
+import Footer from '../components/site/Footer'
+import HeroCarousel from '../components/site/HeroCarousel'
+import HowItWorks from '../components/site/HowItWorks'
+import OutputMockup from '../components/site/OutputMockup'
+import PrimaryNav from '../components/site/PrimaryNav'
 
 function Home() {
   return (

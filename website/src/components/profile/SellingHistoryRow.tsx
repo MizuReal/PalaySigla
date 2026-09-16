@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { getListingImageUrl } from '../../services/listings.js'
+import { getListingImageUrl } from '../../services/listings'
 import {
   CATEGORY_LABELS,
   formatDate,
   formatPrice,
   UNIT_LABELS,
-} from '../../utils/format.js'
+} from '../../utils/format'
 import type { ListingWithImages } from '../../types/domain'
 
 const ROW_STATUS = Object.freeze({

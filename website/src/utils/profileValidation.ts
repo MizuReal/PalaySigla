@@ -1,4 +1,4 @@
-import { NAME_PATTERN } from './validation.js'
+import { NAME_PATTERN } from './validation'
 
 export const NAME_REQUIRED_ERROR =
   'Please enter your name (2\u201360 characters, letters with spaces, hyphens, or apostrophes).'

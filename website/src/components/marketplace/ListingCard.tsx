@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import Icon from '../Icon.jsx'
-import Photo from '../Photo.jsx'
-import { getListingImageUrl } from '../../services/listings.js'
+import Icon from '../Icon'
+import Photo from '../Photo'
+import { getListingImageUrl } from '../../services/listings'
 import {
   CATEGORY_LABELS,
   formatPrice,
   formatRelativeTime,
   UNIT_LABELS,
-} from '../../utils/format.js'
+} from '../../utils/format'
 import type { ListingWithImages } from '../../types/domain'
 
 interface ListingCardProps {

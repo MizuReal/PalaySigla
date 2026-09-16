@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { supabase } from '../services/supabaseClient.js'
-import { signInWithEmail, signOut, signUpWithEmail } from '../services/auth.js'
-import { AUTH_MODAL_MODES, AuthContext } from './authContext.js'
-import type { AuthContextValue, AuthModalMode } from './authContext.js'
+import { supabase } from '../services/supabaseClient'
+import { signInWithEmail, signOut, signUpWithEmail } from '../services/auth'
+import { AUTH_MODAL_MODES, AuthContext } from './authContext'
+import type { AuthContextValue, AuthModalMode } from './authContext'
 
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)

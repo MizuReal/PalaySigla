@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchListings, LISTING_SORTS } from '../services/listings.js'
-import type { ListingCategory, ListingSort } from '../services/listings.js'
+import { fetchListings, LISTING_SORTS } from '../services/listings'
+import type { ListingCategory, ListingSort } from '../services/listings'
 import type { ListingWithImages } from '../types/domain'
 
 const PAGE_SIZE = 12

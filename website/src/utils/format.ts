@@ -1,4 +1,4 @@
-import type { ListingCategory, ListingUnit } from '../services/listings.js'
+import type { ListingCategory, ListingUnit } from '../services/listings'
 
 const MINUTE_MS = 60_000
 const HOUR_MS = 60 * MINUTE_MS

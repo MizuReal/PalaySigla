@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { reverseGeocode, searchPlace } from '../geocode.js'
+import { reverseGeocode, searchPlace } from '../geocode'
 
 const API_BASE_URL = 'https://api.palaysigla.test'
 
@@ -78,7 +78,7 @@ describe('error handling', () => {
   it('rejects when the API base URL is not configured', async () => {
     vi.stubEnv('VITE_API_URL', '')
     vi.resetModules()
-    const { searchPlace: freshSearch } = await import('../geocode.js')
+    const { searchPlace: freshSearch } = await import('../geocode')
 
     await expect(freshSearch('Manila')).rejects.toThrow('VITE_API_URL is not configured.')
   })

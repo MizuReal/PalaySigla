@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useAuth } from '../context/authContext.js'
+import { useAuth } from '../context/authContext'
 import {
   fetchProfile,
   getAvatarUrl,
@@ -7,21 +7,21 @@ import {
   syncProfileName,
   uploadAvatar,
   upsertProfile,
-} from '../services/profile.js'
+} from '../services/profile'
 import {
   MAX_AVATAR_DIMENSION,
   compressImage,
   validateImageFile,
-} from '../utils/image.js'
+} from '../utils/image'
 import {
   toE164Phone,
   toLocalPhoneDisplay,
   validateName,
   validatePhone,
   validateProfileFields,
-} from '../utils/profileValidation.js'
-import type { ProfileFieldErrors } from '../utils/profileValidation.js'
-import { getInitials } from '../utils/userProfile.js'
+} from '../utils/profileValidation'
+import type { ProfileFieldErrors } from '../utils/profileValidation'
+import { getInitials } from '../utils/userProfile'
 import type { ProfileRow } from '../types/domain'
 
 const NO_PROFILE: Partial<ProfileRow> = Object.freeze({})

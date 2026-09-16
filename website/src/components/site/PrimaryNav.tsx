@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import Button from '../Button.jsx'
-import Container from '../Container.jsx'
-import Icon from '../Icon.jsx'
-import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext.js'
-import useAvatar from '../../hooks/useAvatar.js'
-import { getDisplayName, getInitials } from '../../utils/userProfile.js'
+import Button from '../Button'
+import Container from '../Container'
+import Icon from '../Icon'
+import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext'
+import useAvatar from '../../hooks/useAvatar'
+import { getDisplayName, getInitials } from '../../utils/userProfile'
 
 interface PageLink {
   label: string

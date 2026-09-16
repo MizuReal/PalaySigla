@@ -4,7 +4,7 @@ import {
   TITLE_MAX_LENGTH,
   TITLE_MIN_LENGTH,
   validateListingStep,
-} from '../listingValidation.js'
+} from '../listingValidation'
 
 const VALID_DETAILS = Object.freeze({
   title: 'Fresh palay harvest',

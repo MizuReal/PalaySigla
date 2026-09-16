@@ -1,7 +1,7 @@
-import Icon from './Icon.jsx'
-import type { IconName } from './Icon.jsx'
-import { TOAST_VARIANTS } from '../context/toastContext.js'
-import type { ToastItem, ToastVariant } from '../context/toastContext.js'
+import Icon from './Icon'
+import type { IconName } from './Icon'
+import { TOAST_VARIANTS } from '../context/toastContext'
+import type { ToastItem, ToastVariant } from '../context/toastContext'
 
 interface ToastVariantStyle {
   border: string

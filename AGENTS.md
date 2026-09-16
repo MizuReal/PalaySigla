@@ -92,9 +92,9 @@ project-root/
   `mobile/jest.setup.js`, and the ESLint/Vite/Vitest config files.
 - No JSDoc type annotations. No `any` except with an inline justification comment — prefer
   `unknown` plus narrowing. No `@ts-ignore`; `@ts-expect-error` with a reason only.
-- Relative imports of `.ts`/`.tsx` modules: mobile uses extensionless specifiers (Jest and
-  Metro do not map `.js` specifiers to TypeScript files); website may keep explicit
-  `.js`/`.jsx` specifiers — Vite and `tsc` map them to the converted files.
+- Relative imports of `.ts`/`.tsx` modules are extensionless in both frontends — never
+  `.js`/`.jsx` specifiers. Jest/Metro do not map `.js` specifiers to TypeScript files, and
+  Vite, `tsc`, and Vitest all resolve extensionless specifiers.
 - `const` by default. `let` only when reassignment is required. `var` is forbidden.
 - Functional components and hooks only. No class components.
 - Named exports preferred over default exports, except for page/screen components.

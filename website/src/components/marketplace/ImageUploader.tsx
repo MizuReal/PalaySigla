@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
-import Icon from '../Icon.jsx'
-import { compressImage, validateImageFile } from '../../utils/image.js'
+import Icon from '../Icon'
+import { compressImage, validateImageFile } from '../../utils/image'
 
 export interface ImageUploaderChange {
   file?: Blob | null

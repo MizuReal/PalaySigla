@@ -1,4 +1,4 @@
-import { isListingCategory, isListingUnit } from '../services/listings.js'
+import { isListingCategory, isListingUnit } from '../services/listings'
 
 export const TITLE_MIN_LENGTH = 3
 export const TITLE_MAX_LENGTH = 80

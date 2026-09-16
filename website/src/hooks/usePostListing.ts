@@ -3,10 +3,10 @@ import {
   createListing,
   softDeleteListing,
   uploadListingImage,
-} from '../services/listings.js'
-import type { ListingCategory, ListingUnit } from '../services/listings.js'
-import { useAuth } from '../context/authContext.js'
-import { getDisplayName } from '../utils/userProfile.js'
+} from '../services/listings'
+import type { ListingCategory, ListingUnit } from '../services/listings'
+import { useAuth } from '../context/authContext'
+import { getDisplayName } from '../utils/userProfile'
 
 export interface PostListingInput {
   title: string

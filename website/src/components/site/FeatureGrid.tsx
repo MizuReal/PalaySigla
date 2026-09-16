@@ -1,6 +1,6 @@
-import Icon from '../Icon.jsx'
-import Section from '../Section.jsx'
-import SectionHeader from '../SectionHeader.jsx'
+import Icon from '../Icon'
+import Section from '../Section'
+import SectionHeader from '../SectionHeader'
 
 const FEATURES = [
   {

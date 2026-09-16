@@ -1,8 +1,8 @@
-import Container from '../Container.jsx'
-import { LISTING_CATEGORIES, LISTING_SORTS } from '../../services/listings.js'
-import type { ListingCategory, ListingSort } from '../../services/listings.js'
-import { CATEGORY_LABELS } from '../../utils/format.js'
-import { pillTabClasses } from '../../utils/pillTab.js'
+import Container from '../Container'
+import { LISTING_CATEGORIES, LISTING_SORTS } from '../../services/listings'
+import type { ListingCategory, ListingSort } from '../../services/listings'
+import { CATEGORY_LABELS } from '../../utils/format'
+import { pillTabClasses } from '../../utils/pillTab'
 
 const SEARCH_INPUT_CLASSES =
   'h-11 w-full border border-hairline bg-canvas px-4 body-md text-ink placeholder:text-stone focus:border-2 focus:border-primary focus:px-[15px]'

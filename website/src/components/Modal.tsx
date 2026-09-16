@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
-import Icon from './Icon.jsx'
+import Icon from './Icon'
 
 interface ModalProps {
   onClose: () => void

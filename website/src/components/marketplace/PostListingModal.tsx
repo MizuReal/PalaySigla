@@ -1,21 +1,21 @@
 import { useState } from 'react'
 import type { ChangeEventHandler } from 'react'
-import Button from '../Button.jsx'
-import Icon from '../Icon.jsx'
-import ImageUploader from './ImageUploader.jsx'
-import MapPicker from './MapPicker.jsx'
-import Modal from '../Modal.jsx'
-import usePostListing from '../../hooks/usePostListing.js'
+import Button from '../Button'
+import Icon from '../Icon'
+import ImageUploader from './ImageUploader'
+import MapPicker from './MapPicker'
+import Modal from '../Modal'
+import usePostListing from '../../hooks/usePostListing'
 import {
   LISTING_CATEGORIES,
   LISTING_UNITS,
   isListingCategory,
   isListingUnit,
-} from '../../services/listings.js'
-import { CATEGORY_LABELS, UNIT_LABELS } from '../../utils/format.js'
-import { validateListingStep } from '../../utils/listingValidation.js'
-import type { ListingStepErrors } from '../../utils/listingValidation.js'
-import { TOAST_VARIANTS, useToast } from '../../context/toastContext.js'
+} from '../../services/listings'
+import { CATEGORY_LABELS, UNIT_LABELS } from '../../utils/format'
+import { validateListingStep } from '../../utils/listingValidation'
+import type { ListingStepErrors } from '../../utils/listingValidation'
+import { TOAST_VARIANTS, useToast } from '../../context/toastContext'
 
 const MODAL_TITLE_ID = 'post-listing-title'
 const TOTAL_STEPS = 3

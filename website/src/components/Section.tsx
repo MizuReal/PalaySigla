@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import Container from './Container.jsx'
+import Container from './Container'
 
 const TONE_CLASSES = {
   canvas: 'bg-canvas',

@@ -1,20 +1,20 @@
 import { useState } from 'react'
-import Icon from '../Icon.jsx'
-import ListingLocationMap from './ListingLocationMap.jsx'
-import { buildOpenStreetMapUrl } from './mapConfig.js'
-import Modal from '../Modal.jsx'
-import Photo from '../Photo.jsx'
-import useListingDetail from '../../hooks/useListingDetail.js'
-import { softDeleteListing, updateListingStatus } from '../../services/listings.js'
-import { useAuth } from '../../context/authContext.js'
-import { TOAST_VARIANTS, useToast } from '../../context/toastContext.js'
+import Icon from '../Icon'
+import ListingLocationMap from './ListingLocationMap'
+import { buildOpenStreetMapUrl } from './mapConfig'
+import Modal from '../Modal'
+import Photo from '../Photo'
+import useListingDetail from '../../hooks/useListingDetail'
+import { softDeleteListing, updateListingStatus } from '../../services/listings'
+import { useAuth } from '../../context/authContext'
+import { TOAST_VARIANTS, useToast } from '../../context/toastContext'
 import {
   CATEGORY_LABELS,
   formatCoordinates,
   formatPrice,
   formatRelativeTime,
   UNIT_LABELS,
-} from '../../utils/format.js'
+} from '../../utils/format'
 
 const DETAIL_TITLE_ID = 'listing-detail-title'
 

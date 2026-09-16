@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import ListingDetailModal from '../marketplace/ListingDetailModal.jsx'
-import SellingHistoryRow from './SellingHistoryRow.jsx'
-import { useAuth } from '../../context/authContext.js'
-import useMyListings from '../../hooks/useMyListings.js'
-import { MY_LISTING_FILTERS } from '../../services/listings.js'
-import type { MyListingFilter } from '../../services/listings.js'
-import { pillTabClasses } from '../../utils/pillTab.js'
+import ListingDetailModal from '../marketplace/ListingDetailModal'
+import SellingHistoryRow from './SellingHistoryRow'
+import { useAuth } from '../../context/authContext'
+import useMyListings from '../../hooks/useMyListings'
+import { MY_LISTING_FILTERS } from '../../services/listings'
+import type { MyListingFilter } from '../../services/listings'
+import { pillTabClasses } from '../../utils/pillTab'
 import type { ListingWithImages } from '../../types/domain'
 
 interface HistoryFilter {

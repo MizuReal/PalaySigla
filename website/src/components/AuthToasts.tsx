@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { useAuth } from '../context/authContext.js'
-import { TOAST_VARIANTS, useToast } from '../context/toastContext.js'
-import { getAuthUrlHint } from '../utils/authUrlHint.js'
-import { getDisplayName } from '../utils/userProfile.js'
+import { useAuth } from '../context/authContext'
+import { TOAST_VARIANTS, useToast } from '../context/toastContext'
+import { getAuthUrlHint } from '../utils/authUrlHint'
+import { getDisplayName } from '../utils/userProfile'
 
 function AuthToasts() {
   const { user, isInitializing } = useAuth()

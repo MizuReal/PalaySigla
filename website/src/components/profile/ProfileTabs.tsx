@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { pillTabClasses } from '../../utils/pillTab.js'
-import { PROFILE_TAB_IDS } from '../../utils/profileTabs.js'
-import type { ProfileTabId } from '../../utils/profileTabs.js'
+import { pillTabClasses } from '../../utils/pillTab'
+import { PROFILE_TAB_IDS } from '../../utils/profileTabs'
+import type { ProfileTabId } from '../../utils/profileTabs'
 
 interface ProfileTab {
   id: ProfileTabId

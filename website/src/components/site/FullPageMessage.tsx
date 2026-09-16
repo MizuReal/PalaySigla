@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import Icon from '../Icon.jsx'
-import type { IconName } from '../Icon.jsx'
+import Icon from '../Icon'
+import type { IconName } from '../Icon'
 
 interface FullPageMessageProps {
   icon?: IconName | null

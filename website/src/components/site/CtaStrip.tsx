@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import Button from '../Button.jsx'
-import Container from '../Container.jsx'
-import Icon from '../Icon.jsx'
-import { EMAIL_PATTERN } from '../../utils/validation.js'
+import Button from '../Button'
+import Container from '../Container'
+import Icon from '../Icon'
+import { EMAIL_PATTERN } from '../../utils/validation'
 
 function EarlyAccessForm() {
   const [email, setEmail] = useState('')
