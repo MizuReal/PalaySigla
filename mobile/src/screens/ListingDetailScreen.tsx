@@ -1,7 +1,8 @@
 // Full-screen listing detail, pushed on the root stack above the tab bar
-// (the mobile equivalent of the web marketplace's detail modal). Read-only
-// browse surface: photo, category, title, price, quantity, description, and
-// the seller block. Owner actions stay absent until auth exists.
+// (the mobile equivalent of the web marketplace's detail modal). Browse
+// surface: photo, category, title, price, quantity, description, and the
+// seller block — plus the owner action block (mark as sold, remove with an
+// inline two-tap confirm) when the signed-in reader owns the listing.
 import { useState } from 'react'
 import {
   Animated,
@@ -11,10 +12,13 @@ import {
   Text,
   View,
 } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack'
 import Icon from '../components/Icon'
 import Photo from '../components/Photo'
+import { useAuth } from '../context/authContext'
+import useListingActions from '../hooks/useListingActions'
 import useListingDetail from '../hooks/useListingDetail'
 import usePulseOpacity from '../hooks/usePulseOpacity'
 import {
@@ -66,6 +70,148 @@ interface ListingDetailContentProps {
 
 function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps) {
   const { listing, imageUrl, isLoading, error } = useListingDetail(listingId)
+  const { user } = useAuth()
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
+  const { isActing, error: actionError, markSold, remove, clearError } =
+    useListingActions()
+  const [isConfirmingRemove, setIsConfirmingRemove] = useState(false)
+
+  const isOwner = user !== null && listing?.user_id === user.id
+
+  const handleMarkSold = async () => {
+    if (!listing) {
+      return
+    }
+    const succeeded = await markSold(listing.id)
+    if (succeeded) {
+      navigation.goBack()
+    }
+  }
+
+  const handleRemove = async () => {
+    if (!listing) {
+      return
+    }
+    if (!isConfirmingRemove) {
+      clearError()
+      setIsConfirmingRemove(true)
+      return
+    }
+    const succeeded = await remove(listing.id)
+    if (succeeded) {
+      navigation.goBack()
+    }
+  }
+
+  const handleCancelRemove = () => {
+    clearError()
+    setIsConfirmingRemove(false)
+  }
+
+  const renderOwnerActions = () => {
+    if (!isOwner || !listing) {
+      return null
+    }
+    if (isConfirmingRemove) {
+      return (
+        <View style={styles.confirmPanel}>
+          <Text style={[TYPE.bodySm, styles.confirmText]}>
+            Remove this listing permanently?
+          </Text>
+          <View style={styles.confirmActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isActing }}
+              disabled={isActing}
+              onPress={handleRemove}
+              style={({ pressed }) => [
+                styles.dangerButton,
+                isActing && styles.actionDisabled,
+                pressed && !isActing && styles.dangerButtonPressed,
+              ]}
+            >
+              <Text
+                style={[
+                  TYPE.buttonSm,
+                  styles.dangerLabel,
+                  isActing && styles.actionLabelDisabled,
+                ]}
+              >
+                {isActing ? 'Removing…' : 'Yes, remove it'}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isActing }}
+              disabled={isActing}
+              onPress={handleCancelRemove}
+              style={({ pressed }) => [
+                styles.cancelButton,
+                isActing && styles.actionDisabled,
+                pressed && !isActing && styles.cancelButtonPressed,
+              ]}
+            >
+              <Text style={[TYPE.buttonSm, styles.cancelLabel]}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      )
+    }
+    return (
+      <View style={styles.ownerBlock}>
+        {actionError ? (
+          <View accessibilityRole="alert" style={styles.actionError}>
+            <Icon name="info" size={20} color={COLORS.error} />
+            <Text style={[TYPE.bodySm, styles.actionErrorText]}>{actionError}</Text>
+          </View>
+        ) : null}
+        {listing.status === 'active' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isActing }}
+            disabled={isActing}
+            onPress={handleMarkSold}
+            style={({ pressed }) => [
+              styles.markSoldButton,
+              isActing && styles.actionDisabled,
+              pressed && !isActing && styles.markSoldButtonPressed,
+            ]}
+          >
+            <Text
+              style={[
+                TYPE.buttonSm,
+                styles.markSoldLabel,
+                isActing && styles.actionLabelDisabled,
+              ]}
+            >
+              {isActing ? 'Updating…' : 'Mark as sold'}
+            </Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isActing }}
+          disabled={isActing}
+          onPress={handleRemove}
+          style={({ pressed }) => [
+            styles.dangerOutlineButton,
+            isActing && styles.actionDisabled,
+            pressed && !isActing && styles.dangerOutlineButtonPressed,
+          ]}
+        >
+          <Text
+            style={[
+              TYPE.buttonSm,
+              styles.dangerOutlineLabel,
+              isActing && styles.actionLabelDisabled,
+            ]}
+          >
+            Remove listing
+          </Text>
+        </Pressable>
+      </View>
+    )
+  }
 
   const renderBody = () => {
     if (isLoading) {
@@ -131,6 +277,7 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
               {listing.description}
             </Text>
           ) : null}
+          {renderOwnerActions()}
           <View style={styles.sellerBlock}>
             <Text style={[TYPE.bodyStrong, styles.sellerName]}>
               {listing.seller_name}
@@ -279,6 +426,111 @@ const styles = StyleSheet.create({
   description: {
     color: COLORS.body,
     marginTop: SPACING.lg,
+  },
+  ownerBlock: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.hairline,
+    marginTop: SPACING.xl,
+    paddingTop: SPACING.lg,
+    gap: SPACING.md,
+  },
+  actionError: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    backgroundColor: COLORS.surfaceSoft,
+    padding: SPACING.lg,
+  },
+  actionErrorText: {
+    flex: 1,
+    color: COLORS.ink,
+  },
+  markSoldButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.canvas,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.lg,
+  },
+  markSoldButtonPressed: {
+    backgroundColor: COLORS.primary,
+  },
+  markSoldLabel: {
+    color: COLORS.ink,
+  },
+  dangerOutlineButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    backgroundColor: COLORS.canvas,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.lg,
+  },
+  dangerOutlineButtonPressed: {
+    backgroundColor: COLORS.error,
+  },
+  dangerOutlineLabel: {
+    color: COLORS.error,
+  },
+  actionDisabled: {
+    opacity: 0.5,
+  },
+  actionLabelDisabled: {
+    color: COLORS.ash,
+  },
+  confirmPanel: {
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    backgroundColor: COLORS.surfaceSoft,
+    marginTop: SPACING.xl,
+    padding: SPACING.lg,
+  },
+  confirmText: {
+    color: COLORS.ink,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    marginTop: SPACING.md,
+  },
+  dangerButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.lg,
+  },
+  dangerButtonPressed: {
+    backgroundColor: COLORS.error,
+  },
+  dangerLabel: {
+    color: COLORS.error,
+  },
+  cancelButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.canvas,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.lg,
+  },
+  cancelButtonPressed: {
+    borderColor: COLORS.primary,
+  },
+  cancelLabel: {
+    color: COLORS.ink,
   },
   sellerBlock: {
     borderTopWidth: 1,

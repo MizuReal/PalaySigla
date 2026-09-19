@@ -1,17 +1,20 @@
 // Marketplace tab — the live browse feed. Signed-out users can read every
 // active listing (RLS allows public select of non-deleted rows); posting
-// and owner management need an account, so the Post CTA explains honestly
-// that sign-in ships with the next phase instead of opening a dead form.
+// needs an account, so the Post CTA opens the auth dialog (web parity: once
+// signed in, the user taps Post again). Any listing mutation elsewhere in the
+// app refreshes the keyed feed through the listings-changed event.
 import { useEffect, useState } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import type { CompositeScreenProps } from '@react-navigation/native'
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import BrandBar from '../components/BrandBar'
 import ListingFeed from '../components/marketplace/ListingFeed'
 import ListingFilters from '../components/marketplace/ListingFilters'
+import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import { LISTING_SORTS } from '../services/listings'
 import type { ListingCategory, ListingSort } from '../services/listings'
+import { subscribeToListingsChanged } from '../utils/listingEvents'
 import type { ListingWithImages } from '../types/domain'
 import type { MainTabParamList, RootStackParamList } from '../types/navigation'
 import { COLORS } from '../theme/designTokens'
@@ -24,6 +27,7 @@ type MarketplaceScreenProps = CompositeScreenProps<
 >
 
 function MarketplaceScreen({ navigation }: MarketplaceScreenProps) {
+  const { user, openAuthModal } = useAuth()
   const [category, setCategory] = useState<ListingCategory | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -39,15 +43,24 @@ function MarketplaceScreen({ navigation }: MarketplaceScreenProps) {
     return () => clearTimeout(timer)
   }, [searchInput])
 
+  // subscribe once for the lifetime of the tab: a post or owner action
+  // anywhere in the app remounts the keyed feed with fresh data
+  useEffect(() => {
+    return subscribeToListingsChanged(() => {
+      setRefreshNonce((current) => current + 1)
+    })
+  }, [])
+
   // remounting the feed on any filter change resets it to page 1 with a
   // fresh loading state (matches the web marketplace's keyed feed)
   const feedKey = `${category ?? 'all'}|${search}|${sort}|${refreshNonce}`
 
   const handlePostPress = () => {
-    Alert.alert(
-      'Posting arrives in a later phase',
-      'Posting a listing needs the full marketplace flow, which ships later. Until then, every active listing stays open to browse here.'
-    )
+    if (user) {
+      navigation.navigate('PostListing')
+      return
+    }
+    openAuthModal(AUTH_MODAL_MODES.LOGIN)
   }
 
   const handleSelectListing = (listing: ListingWithImages) => {

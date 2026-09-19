@@ -6,6 +6,12 @@ const MINUTE_MS = 60_000
 const HOUR_MS = 60 * MINUTE_MS
 const DAY_MS = 24 * HOUR_MS
 
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = Object.freeze({
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+})
+
 export const CATEGORY_LABELS: Record<ListingCategory, string> = Object.freeze({
   palay: 'Palay',
   rice: 'Rice',
@@ -32,6 +38,10 @@ export function formatPrice(price: number): string {
   return priceFormatter.format(price)
 }
 
+export function formatDate(isoTimestamp: string): string {
+  return new Date(isoTimestamp).toLocaleDateString('en-PH', DATE_OPTIONS)
+}
+
 export function formatRelativeTime(isoTimestamp: string): string {
   const elapsedMs = Date.now() - new Date(isoTimestamp).getTime()
   if (elapsedMs < MINUTE_MS) {
@@ -49,9 +59,5 @@ export function formatRelativeTime(isoTimestamp: string): string {
   if (days < 7) {
     return `${days}d ago`
   }
-  return new Date(isoTimestamp).toLocaleDateString('en-PH', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+  return formatDate(isoTimestamp)
 }

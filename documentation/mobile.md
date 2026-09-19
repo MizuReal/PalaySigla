@@ -2,10 +2,12 @@
 
 Expo SDK 57 (managed workflow) + React Navigation v7 + TypeScript (`strict`),
 migrating from JavaScript phase by phase. Ships the **light-only landing screen**, the tab shell, the
-**marketplace browse feed**, **full email/password auth** (login / register /
-forgot password with in-app email-link returns), and the **Palay Assistant
-chat** (root-level bottom sheet over the tabs); posting, scanning, and
-community flows arrive in later phases.
+**marketplace** — browse feed, 3-step posting wizard (photo + map pin),
+listing detail with owner actions (mark sold / remove), and the
+**location picker** — **full email/password auth** (login / register /
+forgot password with in-app email-link returns), the **Selling history**
+profile tab, and the **Palay Assistant chat** (root-level bottom sheet over
+the tabs); scanning and community flows arrive in later phases.
 
 ## Requirements
 
@@ -28,7 +30,7 @@ npx expo start         # press a / i, or scan the QR code with Expo Go
 | `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL (Project Settings → API) |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase **anon public** key — never the service-role key |
 | `EXPO_PUBLIC_AUTH_REDIRECT_URL` | Optional fixed target for verification / password-reset email links. **Leave empty** so links return to the app's own deep link (`palaysigla://auth/callback`, `Linking.createURL` at runtime). See the ACTION REQUIRED marker in `setup-supabase.md` |
-| `EXPO_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — used by the Palay Assistant (`services/chatbot.ts`); future API calls too |
+| `EXPO_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — used by the Palay Assistant (`services/chatbot.ts`) and the location picker's geocoding (`services/geocode.ts`); future API calls too |
 
 `.env` is gitignored; `.env.example` documents every key with empty values.
 Only `EXPO_PUBLIC_*` variables reach client code.
@@ -71,18 +73,27 @@ src/
 │   │                       Button, FeatureNotice, TabScreen, AppTabBar (custom bottom tab bar), Photo,
 │   │                       AuthModal (multi-view auth dialog)
 │   ├── chat/               ChatLauncher (floating button over the tabs), ChatModal (root bottom-sheet overlay)
-│   ├── marketplace/        ListingCard, ListingCardSkeleton, ListingFilters, ListingFeed (marketplace browse UI)
+│   ├── marketplace/        ListingCard, ListingCardSkeleton, ListingFilters, ListingFeed (marketplace browse UI),
+│   │                       MapPicker + mapConfig/mapHtml (WebView Leaflet location picker),
+│   │                       PostListingImageUploader (camera/library photo step)
+│   ├── profile/            SellingHistoryPanel + SellingHistoryRow (profile "Selling history" tab)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
 ├── screens/                LandingScreen (intro), MainTabs, Marketplace (feed), ListingDetail (root-stack push),
-│   │                       Community/Scan/Settings tab screens
+│   │                       PostListing (3-step wizard), Community/Scan/Settings tab screens
 ├── services/               supabaseClient (AsyncStorage session persistence), auth
 │   │                       (sign-in/up/out, reset, deep-link hand-off), chatbot (sendChatMessage), listings
+│   │                       (browse + create/upload/soft-delete/status/my-listings), geocode (place search +
+│   │                       reverse geocoding through the backend)
 ├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
+│   │                       useImagePicker (camera/library + permissions + compression), usePostListing,
+│   │                       useListingActions (mark sold / remove), useMyListings,
 │   │                       usePalayAssistant (chat state + history), usePulseOpacity
 ├── types/                  database.ts (generated Supabase types; copy of the website file) + api.ts (backend contracts)
-├── utils/                  format.ts — listing label maps, PHP price + relative-time formatters;
+├── utils/                  format.ts — listing label maps, PHP price, date + relative-time formatters;
 │   │                       validation.ts — NAME/EMAIL_PATTERN ports; userProfile.ts — display-name
-│   │                       resolution; authUrlHint.ts — auth return-URL builder/parser
+│   │                       resolution; authUrlHint.ts — auth return-URL builder/parser;
+│   │                       image.ts — validate/compress/read photo bytes; listingValidation.ts — wizard
+│   │                       step gate; listingEvents.ts — listings-changed broadcast
 └── data/                   paddySlides.ts — landing slide content, mirrored from website/src/data
 ```
 
@@ -122,10 +133,91 @@ ride the anon key + RLS, which allows selecting non-deleted listings):
   tab bar: eager 4:3 photo, category badge + "Sold" chip, title, price +
   unit, optional quantity and description, and the seller block with the
   map-pinned location label and posted time.
-- **Posting and owner management are deliberately absent.** Sign-in has
-  shipped but posting is not wired to it yet (RLS insert/update would allow
-  it); the "Post a listing" CTA states this honestly instead of opening a
-  dead form. Posting arrives in a later phase.
+- **Posting and owner management are live.** The "Post a listing" CTA opens
+  the auth dialog when signed out (web parity: sign in, then tap again) and
+  pushes the posting wizard when signed in; signed-in owners get Mark as
+  sold / Remove on the detail screen. Both are described below.
+
+### Location picker (current)
+
+The posting wizard's third step is a self-contained, controlled `MapPicker`
+(`components/marketplace/MapPicker.tsx`) — the mobile port of the website's
+`MapPicker` and `services/geocode.ts`:
+
+- **Search** runs through the backend's Nominatim proxy
+  (`GET /api/geocode/search`) with the web's 2-character minimum and 5-result
+  limit; results render as hairline rows and picking one moves the pin and
+  flies the map to the pick zoom (15). Empty and failure states are inline
+  captions, never silent.
+- **Map** is a `react-native-webview` rendering Leaflet 1.9.4 from unpkg over
+  OpenStreetMap tiles with the mandatory attribution (AGENTS.md mandates
+  WebView Leaflet, not a native map SDK). Tap-to-place and a draggable pin
+  post `{type: 'pick', lat, lng}` across the bridge; the native side injects
+  `setMarker` back, so a parent position update never reloads the WebView and
+  the map document itself is built once.
+- **Reverse geocoding** (`GET /api/geocode/reverse`) runs on every position
+  change behind a request-id guard; the label reaches the parent through
+  `onLocationLabel` and a failure clears it, exactly like the web. No GPS
+  action is offered — parity with the web picker, which places the pin by
+  search and map only.
+- **Presentation** follows the DESIGN.md mobile notes: 44px search field,
+  hairline result rows, the 320px `surface-soft`/hairline/2px map frame, the
+  web marker geometry in primary/primary-dark, status captions, and a
+  "Reload map" affordance when the WebView itself fails.
+- The component is fully tested (`MapPicker.test.tsx`, `mapHtml.test.ts`,
+  `geocode.test.ts`); the posting wizard mounts it as the third step, where
+  the position + label pair feeds the listing form.
+
+### Post a listing (current)
+
+The **Post a listing** CTA in the marketplace hero pushes a full-screen
+three-step wizard (`screens/PostListingScreen.tsx`) — the web
+`PostListingModal` ported to the root stack:
+
+- **Gate.** Signed out, the CTA opens the auth dialog (Login mode); signing
+  in returns the user to the marketplace, where a second tap opens the
+  wizard (web parity). The wizard is only reachable signed in.
+- **Steps.** Details (title, optional description, ₱ price, unit, category,
+  optional quantity) → photo → location. The shared
+  `utils/listingValidation.ts` (verbatim web port) gates Continue and
+  submit; errors focus the first invalid field and clear as fields change.
+- **Photo.** `hooks/useImagePicker.ts` offers "Take photo" (explicit
+  `requestCameraPermissionsAsync` with denied / permanently-blocked copy and
+  an "Open settings" link) and "Choose from library" (no runtime permission
+  needed on SDK 57 pickers). Captures stay at full resolution; `utils/image.ts`
+  re-encodes to ≤1600px JPEG 0.82, which strips EXIF/GPS, and the 10 MB cap
+  applies to the compressed upload payload. Android's
+  `getPendingResultAsync` recovers a capture if the OS killed the app.
+- **Submit.** `hooks/usePostListing.ts` creates the listing row, uploads the
+  JPEG to the private `listings` bucket at `{user_id}/{listing_id}/0.jpg`,
+  and inserts the `listing_images` row; a failed upload rolls the listing
+  back with a soft delete. Buttons show a "Posting…" busy state, the header
+  back button is held during the upload, and service failures render inline
+  (mobile has no toast layer). Success shows a "Listing posted!" panel whose
+  one action returns to the marketplace.
+- **Refresh.** `utils/listingEvents.ts` broadcasts every mutation; the keyed
+  marketplace feed and Selling history subscribe, so a post or owner action
+  anywhere refreshes those lists.
+
+### Owner actions (current)
+
+Owners (signed-in `user.id === listing.user_id`) get an action block on
+**ListingDetail**: "Mark as sold" while `active`, and "Remove listing" with
+the web's inline two-tap confirm (error-bordered panel, "Yes, remove it" /
+Cancel). Actions show busy labels, surface failures inline, and leave the
+screen on success; the mutation event refreshes the marketplace feed and
+Selling history. Deleted rows stay owner-visible under the schema-003 RLS
+policy and remain in Selling history.
+
+### Selling history (current)
+
+Signed-in **Settings** is the profile surface: an Account / Selling history
+pair of pill tabs. Selling history uses `hooks/useMyListings.ts` (12/page,
+load more) against `fetchMyListings` with All / Active / Sold / Deleted
+filters; rows show a 96px 4:3 signed-URL thumbnail, title + status chip,
+price + unit, and a category / Listed · Sold · Deleted date line. Deleted
+rows are read-only; active and sold rows push **ListingDetail** for owner
+actions, and the list reloads through the listings-changed event.
 
 ### Palay Assistant (current)
 
@@ -216,9 +308,10 @@ password-reset links return into the app via its URL scheme:
   any open overlay first), then resets the root stack to the Landing intro.
 - Tab content is honest, designed placeholder panels (`FeatureNotice`):
   each states what the phase will bring — no fake data, no dead controls.
-  Marketplace and Settings (account) are now live; community and scanning
-  flows replace the remaining panels phase by phase. The assistant launcher
-  floats over all tabs and the auth dialog overlays everything when open.
+  Marketplace (browse + posting + owner actions) and Settings (account +
+  Selling history) are live; community and scanning flows replace the
+  remaining panels phase by phase. The assistant launcher floats over all
+  tabs and the auth dialog overlays everything when open.
 - Landing CTA buttons, nav auth links, and the early-access form stay absent:
   sign-in lives behind the assistant launcher and the Settings tab.
 

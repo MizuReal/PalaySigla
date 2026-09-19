@@ -11,12 +11,18 @@ jest.mock('../supabaseClient', () => {
 import type { SupabaseMock } from '../../test/supabaseMock'
 import { supabase as supabaseClient } from '../supabaseClient'
 import {
+  createListing,
   fetchListings,
+  fetchMyListings,
   getListing,
   getListingImageUrl,
   LISTING_CATEGORIES,
   LISTING_SORTS,
   LISTING_UNITS,
+  MY_LISTING_FILTERS,
+  softDeleteListing,
+  updateListingStatus,
+  uploadListingImage,
 } from '../listings'
 import type { ListingSort } from '../listings'
 
@@ -40,8 +46,15 @@ describe('constants', () => {
       PRICE_ASC: 'price_asc',
       PRICE_DESC: 'price_desc',
     })
+    expect(MY_LISTING_FILTERS).toEqual({
+      ALL: 'all',
+      ACTIVE: 'active',
+      SOLD: 'sold',
+      DELETED: 'deleted',
+    })
     expect(Object.isFrozen(LISTING_UNITS)).toBe(true)
     expect(Object.isFrozen(LISTING_SORTS)).toBe(true)
+    expect(Object.isFrozen(MY_LISTING_FILTERS)).toBe(true)
   })
 })
 
@@ -179,6 +192,206 @@ describe('getListingImageUrl', () => {
 
     await expect(getListingImageUrl('missing/listings/0.jpg')).rejects.toThrow(
       'Could not load the listing photo.'
+    )
+  })
+})
+
+describe('fetchMyListings', () => {
+  it('scopes to the owner and paginates', async () => {
+    const builder = createQueryBuilder({ data: [{ id: 'L1' }], error: null, count: 3 })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(fetchMyListings({ userId: 'u1', page: 2, limit: 5 })).resolves.toEqual({
+      data: [{ id: 'L1' }],
+      total: 3,
+    })
+
+    expect(builder.eq).toHaveBeenCalledWith('user_id', 'u1')
+    expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false })
+    expect(builder.range).toHaveBeenCalledWith(5, 9)
+  })
+
+  it('applies the active, sold, and deleted filters', async () => {
+    const activeBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(activeBuilder)
+    await fetchMyListings({ userId: 'u1', filter: MY_LISTING_FILTERS.ACTIVE })
+    expect(activeBuilder.eq).toHaveBeenCalledWith('status', 'active')
+    expect(activeBuilder.is).toHaveBeenCalledWith('deleted_at', null)
+
+    const soldBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(soldBuilder)
+    await fetchMyListings({ userId: 'u1', filter: MY_LISTING_FILTERS.SOLD })
+    expect(soldBuilder.eq).toHaveBeenCalledWith('status', 'sold')
+
+    const deletedBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(deletedBuilder)
+    await fetchMyListings({ userId: 'u1', filter: MY_LISTING_FILTERS.DELETED })
+    expect(deletedBuilder.not).toHaveBeenCalledWith('deleted_at', 'is', null)
+  })
+
+  it('rejects a missing user id without querying', async () => {
+    await expect(fetchMyListings()).rejects.toThrow(
+      'Could not load your listings. Please try again.'
+    )
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+
+  it('throws a friendly error when the query fails', async () => {
+    const builder = createQueryBuilder({ data: null, error: { message: 'boom' } })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(fetchMyListings({ userId: 'u1' })).rejects.toThrow(
+      'Could not load your listings. Please try again.'
+    )
+  })
+})
+
+describe('createListing', () => {
+  const INPUT = {
+    userId: 'u1',
+    title: 'Fresh palay',
+    description: 'Dry and clean',
+    price: 1200,
+    unit: 'sack' as const,
+    category: 'palay' as const,
+    quantity: 50,
+    lat: 14.9548,
+    lng: 120.8969,
+    locationLabel: 'Baliuag, Bulacan',
+    sellerName: 'Juan',
+  }
+
+  it('inserts the listing fields and returns the new id', async () => {
+    const builder = createQueryBuilder({ data: { id: 'L9' }, error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(createListing(INPUT)).resolves.toBe('L9')
+
+    expect(supabase.from).toHaveBeenCalledWith('listings')
+    expect(builder.insert).toHaveBeenCalledWith({
+      user_id: 'u1',
+      title: 'Fresh palay',
+      description: 'Dry and clean',
+      price: 1200,
+      unit: 'sack',
+      category: 'palay',
+      quantity: 50,
+      lat: 14.9548,
+      lng: 120.8969,
+      location_label: 'Baliuag, Bulacan',
+      seller_name: 'Juan',
+    })
+    expect(builder.select).toHaveBeenCalledWith('id')
+    expect(builder.single).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws a friendly error when the insert fails', async () => {
+    const builder = createQueryBuilder({ data: null, error: { message: 'boom' } })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(createListing(INPUT)).rejects.toThrow(
+      'Could not create the listing. Please try again.'
+    )
+  })
+})
+
+describe('uploadListingImage', () => {
+  const IMAGE = { uri: 'file:///cache/prepared.jpg', width: 1600, height: 1200 }
+
+  function mockImageBytes(bytes: ArrayBuffer): void {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue({ arrayBuffer: async () => bytes } as unknown as Response)
+  }
+
+  it('uploads the prepared bytes under the owner path and records the image row', async () => {
+    const bytes = new ArrayBuffer(16)
+    mockImageBytes(bytes)
+    const bucket = createStorageBucketMock()
+    supabase.storage.from.mockReturnValue(bucket)
+    const builder = createQueryBuilder({ data: null, error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(uploadListingImage(IMAGE, 'L1', 'u1')).resolves.toBe('u1/L1/0.jpg')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(IMAGE.uri)
+    expect(supabase.storage.from).toHaveBeenCalledWith('listings')
+    expect(bucket.upload).toHaveBeenCalledWith('u1/L1/0.jpg', bytes, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    })
+    expect(supabase.from).toHaveBeenCalledWith('listing_images')
+    expect(builder.insert).toHaveBeenCalledWith({
+      listing_id: 'L1',
+      storage_path: 'u1/L1/0.jpg',
+      position: 0,
+    })
+  })
+
+  it('reports storage upload failures', async () => {
+    mockImageBytes(new ArrayBuffer(16))
+    const bucket = createStorageBucketMock()
+    bucket.upload.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    supabase.storage.from.mockReturnValue(bucket)
+
+    await expect(uploadListingImage(IMAGE, 'L1', 'u1')).rejects.toThrow(
+      'Could not upload the photo. Please try again.'
+    )
+  })
+
+  it('reports image row failures', async () => {
+    mockImageBytes(new ArrayBuffer(16))
+    const bucket = createStorageBucketMock()
+    supabase.storage.from.mockReturnValue(bucket)
+    const builder = createQueryBuilder({ data: null, error: { message: 'boom' } })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(uploadListingImage(IMAGE, 'L1', 'u1')).rejects.toThrow(
+      'Could not save the photo. Please try again.'
+    )
+  })
+})
+
+describe('softDeleteListing', () => {
+  it('stamps deleted_at on the row', async () => {
+    const builder = createQueryBuilder({ data: null, error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(softDeleteListing('L1')).resolves.toBeUndefined()
+
+    expect(builder.update).toHaveBeenCalledWith({
+      deleted_at: expect.any(String),
+    })
+    expect(builder.eq).toHaveBeenCalledWith('id', 'L1')
+  })
+
+  it('throws a friendly error on failure', async () => {
+    const builder = createQueryBuilder({ data: null, error: { message: 'boom' } })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(softDeleteListing('L1')).rejects.toThrow(
+      'Could not remove the listing. Please try again.'
+    )
+  })
+})
+
+describe('updateListingStatus', () => {
+  it('updates the status column', async () => {
+    const builder = createQueryBuilder({ data: null, error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(updateListingStatus('L1', 'sold')).resolves.toBeUndefined()
+
+    expect(builder.update).toHaveBeenCalledWith({ status: 'sold' })
+    expect(builder.eq).toHaveBeenCalledWith('id', 'L1')
+  })
+
+  it('throws a friendly error on failure', async () => {
+    const builder = createQueryBuilder({ data: null, error: { message: 'boom' } })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(updateListingStatus('L1', 'sold')).rejects.toThrow(
+      'Could not update the listing. Please try again.'
     )
   })
 })

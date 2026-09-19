@@ -34,7 +34,7 @@ const SKELETON_COUNT = 6
 const EMPTY_FILTERED_COPY =
   'Nothing matches those filters right now. Try widening the search.'
 const EMPTY_MARKET_COPY =
-  'No one has posted a listing yet. Check back soon.'
+  'No one has posted a listing yet. Tap Post a listing to be the first.'
 
 interface ListingFeedProps {
   category: ListingCategory | null

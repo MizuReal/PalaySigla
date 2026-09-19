@@ -827,6 +827,80 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   affordance in the top chrome, eager 4:3 photo, category badge + "Sold"
   chip when `sold`, price/unit, quantity, description, and the seller block
   under a hairline rule.
+- **Marketplace location picker.** The posting wizard's third step is the
+  self-contained `MapPicker` on the fixed `{component.map-picker}`
+  surface. Search is a native 44px
+  `{component.form-field}` input (1px `{colors.hairline}` border turning 2px
+  `{colors.primary}` on focus, `{colors.stone}` placeholder) beside a 44px
+  canvas Search button (1px `{colors.hairline}` border,
+  `{typography.button-sm}`, border turning `{colors.primary}` while pressed,
+  label `{colors.ash}` and "Searching…" while a query is in flight). Results
+  render as hairline-separated rows — a 16px `{colors.primary}` pin glyph
+  with a `{typography.body-sm}` `{colors.ink}` label, pressed row on
+  `{colors.surface-soft}`; empty and failure states are
+  `{typography.caption-sm}` lines (`{colors.mute}` info, `{colors.error}` on
+  `role="alert"`). The map is a `react-native-webview` rendering Leaflet 1.9.4
+  from unpkg (AGENTS.md map rule) over OpenStreetMap tiles with the mandatory
+  attribution, inside a 320px `{colors.surface-soft}` block with the 2px
+  radius and a 1px `{colors.hairline}` border, zero elevation; the pin keeps
+  the web marker geometry (32×42, 16/40 anchor) in `{colors.primary}` on a
+  `{colors.primary-dark}` stroke. Tapping the map or dragging the pin sets
+  the location and the backend reverse-geocoded label reaches the parent
+  through the status caption under the map (`{typography.caption-sm}`
+  `{colors.mute}`: "Finding the address…" then "Location set — drag the pin
+  or tap the map to adjust."). A WebView load failure swaps the frame for a
+  hairline panel with a "Reload map" button instead of failing silently.
+- **Marketplace posting wizard.** A full-screen root-stack push (the web
+  posting modal's mobile equivalent) with the standard 44px back chrome.
+  Header: `{typography.caption-md}` `{colors.primary}` eyebrow "Post a
+  listing — step N of 3", `{typography.heading-md}` step title,
+  `{typography.body-sm}` `{colors.mute}` step description, and a 4px
+  `{colors.surface-soft}` progress track with a `{colors.primary}` fill.
+  Step 1 pairs `{component.form-field}` inputs (uppercase
+  `{typography.caption-md}` labels, 44px fields with 2px `{colors.primary}`
+  focus and 1px `{colors.error}` error borders, a 96px multiline description,
+  decimal keypads for price and quantity) with unit and category chosen from
+  44px `{component.pill-tab}` / `{component.pill-tab-active}` scroll rows.
+  Step 2 is the `{component.image-uploader}` treatment: a dashed 1px
+  `{colors.hairline}` dropzone on `{colors.surface-soft}` with the camera
+  glyph, a 44px `{component.button-primary}` "Take photo" beside a 44px
+  2px `{colors.primary}`-bordered "Choose from library", an indeterminate
+  "Processing photo…" spinner, and a 4:3 preview with a `{colors.error}`
+  "Remove photo" action. Errors are `{typography.caption-sm}`
+  `{colors.error}` lines on `role="alert"` (cleared on change); service
+  failures use the `form-alert-error` treatment. The footer pairs a
+  2px `{colors.primary}`-bordered Back with the
+  `{component.button-primary}` Continue / "Post listing" ("Posting…" while
+  disabled). Success swaps the body for a `form-alert-success` panel (check
+  glyph, "Listing posted!") with one full-width "Back to marketplace"
+  primary action; the feed refreshes through the listings-changed event.
+- **Listing owner actions.** When the signed-in reader owns the listing, a
+  hairline-ruled block under the description carries 44px outline actions:
+  "Mark as sold" (1px `{colors.primary}` border, only while `active`) and
+  "Remove listing" (1px `{colors.error}` border with `{colors.error}` label,
+  filling `{colors.error}` while pressed). Remove uses the web's inline
+  two-tap confirm — a 1px `{colors.error}` panel on `{colors.surface-soft}`
+  with "Yes, remove it" (error border, fill on press) and a hairline Cancel.
+  Actions show "Updating…" / "Removing…" busy labels, surface failures in an
+  inline `form-alert-error` panel, and leave the screen on success; every
+  listings surface refreshes through the listings-changed event.
+- **Settings profile surface (Selling history).** Signed-in Settings keeps
+  the account summary and gains a 44px `{component.pill-tab}` row —
+  Account / Selling history. Account keeps the email card and device note.
+  Selling history mirrors the web panel: the status filters
+  All/Active/Sold/Deleted in the same pill language, per-filter
+  `{typography.body-sm}` empty copy in a hairline `{colors.surface-soft}`
+  panel, `{colors.surface-soft}` pulsing row skeletons, an error panel with
+  a 44px Try again button, and history rows — a 96px 4:3 signed-URL
+  thumbnail (soft placeholder when missing), `{typography.card-title}` title
+  with a status chip (Active `{colors.primary}`, Sold `{colors.ink}`,
+  Deleted `{colors.mute}`, each on `{colors.surface-soft}` with a hairline
+  border), `{typography.heading-sm}` `{colors.primary}` price with a
+  `{colors.mute}` unit, and a `{typography.caption-sm}` `{colors.mute}`
+  category + Listed/Sold/Deleted date line. Deleted rows are read-only;
+  active and sold rows push the detail screen, and a 44px hairline "Load
+  more" button pages 12 at a time. The list refreshes through the
+  listings-changed event.
 - **Touch.** Interactive elements hold the `>= 44px` WCAG AA target from the
   responsive rules (chevron buttons are exactly 44×44; dot indicators expose
   44px pressable hit areas; every tab cell spans the full bar height).

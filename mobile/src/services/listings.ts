@@ -1,15 +1,19 @@
-// Marketplace data access — browse-only port of the website's listings
-// service (mobile/src/services/listings.ts mirrors website/src/services/
-// listings.ts). Reads ride the anon key + RLS (select is public for
-// non-deleted rows); create/upload/manage calls stay out until the auth
-// phase lands, so every mutation-capable function from the web build is
-// deliberately absent here.
+// Marketplace data access — port of the website's listings service
+// (mobile/src/services/listings.ts mirrors website/src/services/listings.ts).
+// Reads ride the anon key + RLS (select is public for non-deleted rows, and
+// owners keep access to their own deleted rows); writes rely on the
+// owner-scoped RLS policies (insert/update only where user_id = auth.uid()).
+// Photo bytes are read from the local file URI and uploaded to the private
+// `listings` bucket under the owner's uid path.
 import { supabase } from './supabaseClient'
+import { readPreparedImageBytes } from '../utils/image'
+import type { PreparedImage } from '../utils/image'
 import type { ListingWithImages } from '../types/domain'
 
 const PAGE_SIZE_DEFAULT = 12
 const SIGNED_URL_TTL_SECONDS = 60
 const SIGNED_URL_CACHE_TTL_MS = 45_000
+const LISTING_IMAGE_BUCKET = 'listings'
 
 export const LISTING_STATUSES = Object.freeze({
   ACTIVE: 'active',
@@ -32,10 +36,19 @@ export const LISTING_SORTS = Object.freeze({
   PRICE_DESC: 'price_desc',
 } as const)
 
+export const MY_LISTING_FILTERS = Object.freeze({
+  ALL: 'all',
+  ACTIVE: 'active',
+  SOLD: 'sold',
+  DELETED: 'deleted',
+} as const)
+
 export type ListingStatus = (typeof LISTING_STATUSES)[keyof typeof LISTING_STATUSES]
 export type ListingUnit = (typeof LISTING_UNITS)[number]
 export type ListingCategory = (typeof LISTING_CATEGORIES)[number]
 export type ListingSort = (typeof LISTING_SORTS)[keyof typeof LISTING_SORTS]
+export type MyListingFilter =
+  (typeof MY_LISTING_FILTERS)[keyof typeof MY_LISTING_FILTERS]
 
 export function isListingUnit(value: string): value is ListingUnit {
   return (LISTING_UNITS as readonly string[]).includes(value)
@@ -59,9 +72,30 @@ export interface FetchListingsParams {
   limit?: number
 }
 
+export interface FetchMyListingsParams {
+  userId?: string
+  filter?: MyListingFilter
+  page?: number
+  limit?: number
+}
+
 export interface ListingsPage {
   data: ListingWithImages[] | null
   total: number
+}
+
+export interface CreateListingInput {
+  userId: string
+  title: string
+  description: string
+  price: number
+  unit: ListingUnit
+  category: ListingCategory
+  quantity: number | null
+  lat: number
+  lng: number
+  locationLabel: string
+  sellerName: string
 }
 
 // Signed URLs expire server-side (60s); the map defers refetching until a
@@ -119,13 +153,124 @@ export async function getListing(id: string): Promise<ListingWithImages> {
   return data as ListingWithImages
 }
 
+export async function fetchMyListings({
+  userId,
+  filter = MY_LISTING_FILTERS.ALL,
+  page = 1,
+  limit = PAGE_SIZE_DEFAULT,
+}: FetchMyListingsParams = {}): Promise<ListingsPage> {
+  if (!userId) {
+    throw new Error('Could not load your listings. Please try again.')
+  }
+  const from = (page - 1) * limit
+  const to = from + limit - 1
+
+  let query = supabase
+    .from('listings')
+    .select('*, listing_images(id, storage_path, position)', { count: 'exact' })
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .order('position', { referencedTable: 'listing_images', ascending: true })
+
+  if (filter === MY_LISTING_FILTERS.ACTIVE) {
+    query = query.eq('status', LISTING_STATUSES.ACTIVE).is('deleted_at', null)
+  } else if (filter === MY_LISTING_FILTERS.SOLD) {
+    query = query.eq('status', LISTING_STATUSES.SOLD).is('deleted_at', null)
+  } else if (filter === MY_LISTING_FILTERS.DELETED) {
+    query = query.not('deleted_at', 'is', null)
+  }
+
+  const { data, error, count } = await query.range(from, to)
+  if (error) {
+    throw new Error('Could not load your listings. Please try again.')
+  }
+  // CHECK constraints guarantee the domain unions; asserted at the boundary
+  return { data: data as ListingWithImages[] | null, total: count ?? 0 }
+}
+
+export async function createListing({
+  userId,
+  title,
+  description,
+  price,
+  unit,
+  category,
+  quantity,
+  lat,
+  lng,
+  locationLabel,
+  sellerName,
+}: CreateListingInput): Promise<string> {
+  const { data, error } = await supabase
+    .from('listings')
+    .insert({
+      user_id: userId,
+      title,
+      description,
+      price,
+      unit,
+      category,
+      quantity,
+      lat,
+      lng,
+      location_label: locationLabel,
+      seller_name: sellerName,
+    })
+    .select('id')
+    .single()
+  if (error) {
+    throw new Error('Could not create the listing. Please try again.')
+  }
+  return data.id
+}
+
+export async function uploadListingImage(
+  image: PreparedImage,
+  listingId: string,
+  userId: string,
+  position = 0
+): Promise<string> {
+  const storagePath = `${userId}/${listingId}/${position}.jpg`
+  const bytes = await readPreparedImageBytes(image)
+  const { error: uploadError } = await supabase.storage
+    .from(LISTING_IMAGE_BUCKET)
+    .upload(storagePath, bytes, { contentType: 'image/jpeg', upsert: false })
+  if (uploadError) {
+    throw new Error('Could not upload the photo. Please try again.')
+  }
+  const { error: imageError } = await supabase
+    .from('listing_images')
+    .insert({ listing_id: listingId, storage_path: storagePath, position })
+  if (imageError) {
+    throw new Error('Could not save the photo. Please try again.')
+  }
+  return storagePath
+}
+
+export async function softDeleteListing(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('listings')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) {
+    throw new Error('Could not remove the listing. Please try again.')
+  }
+}
+
+export async function updateListingStatus(id: string, status: ListingStatus): Promise<void> {
+  const { error } = await supabase.from('listings').update({ status }).eq('id', id)
+  if (error) {
+    throw new Error('Could not update the listing. Please try again.')
+  }
+}
+
 export async function getListingImageUrl(storagePath: string): Promise<string> {
   const cached = signedUrlCache.get(storagePath)
   if (cached && cached.fetchedAt > Date.now() - SIGNED_URL_CACHE_TTL_MS) {
     return cached.url
   }
   const { data, error } = await supabase.storage
-    .from('listings')
+    .from(LISTING_IMAGE_BUCKET)
     .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS)
   if (error) {
     throw new Error('Could not load the listing photo.')

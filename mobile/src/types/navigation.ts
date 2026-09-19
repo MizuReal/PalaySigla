@@ -11,4 +11,5 @@ export type RootStackParamList = {
   Landing: undefined
   Main: NavigatorScreenParams<MainTabParamList> | undefined
   ListingDetail: { listingId: string }
+  PostListing: undefined
 }

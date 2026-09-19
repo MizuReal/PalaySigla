@@ -19,6 +19,7 @@ import AuthProvider from './src/context/AuthProvider'
 import LandingScreen from './src/screens/LandingScreen'
 import ListingDetailScreen from './src/screens/ListingDetailScreen'
 import MainTabs from './src/screens/MainTabs'
+import PostListingScreen from './src/screens/PostListingScreen'
 import { COLORS } from './src/theme/designTokens'
 import type { RootStackParamList } from './src/types/navigation'
 
@@ -46,6 +47,7 @@ function RootNavigator() {
         <Stack.Screen name="Landing" component={LandingScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
+        <Stack.Screen name="PostListing" component={PostListingScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   )
