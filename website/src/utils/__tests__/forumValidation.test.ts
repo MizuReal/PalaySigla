@@ -7,10 +7,12 @@ import {
   validateForumComment,
   validateForumPost,
 } from '../forumValidation'
+import type { ForumCategory } from '../../services/forum'
 
 const VALID_POST = Object.freeze({
   title: 'When should I dry palay after harvest?',
   body: 'My harvest came in wet this week and I am unsure how long to dry it.',
+  category: 'storage' as const,
 })
 
 describe('validateForumPost', () => {
@@ -42,6 +44,16 @@ describe('validateForumPost', () => {
     expect(
       validateForumPost({ ...VALID_POST, body: 'a'.repeat(POST_BODY_MAX_LENGTH) }).body
     ).toBeUndefined()
+  })
+
+  it('rejects categories outside the known set', () => {
+    expect(validateForumPost(VALID_POST).category).toBeUndefined()
+    expect(
+      validateForumPost({
+        ...VALID_POST,
+        category: 'unknown' as ForumCategory,
+      }).category
+    ).toBe('Choose a category.')
   })
 })
 

@@ -1,14 +1,38 @@
 import { supabase } from './supabaseClient'
+import { getSignedImageUrl } from './signedUrlCache'
 import type {
   ForumCommentItem,
   ForumCommentRow,
-  ForumPostRow,
+  ForumImageRef,
   ForumPostSummary,
+  ForumPostWithImages,
 } from '../types/domain'
 
 const PAGE_SIZE_DEFAULT = 10
 
+export const FORUM_MAX_IMAGES = 4
+export const FORUM_IMAGE_BUCKET = 'forum'
+
+export const FORUM_CATEGORIES = Object.freeze([
+  'general',
+  'planting',
+  'pests',
+  'harvesting',
+  'storage',
+  'quality',
+  'market',
+] as const)
+
+export type ForumCategory = (typeof FORUM_CATEGORIES)[number]
+
+export function isForumCategory(value: string): value is ForumCategory {
+  return (FORUM_CATEGORIES as readonly string[]).includes(value)
+}
+
+export type ForumCategoryCounts = Record<ForumCategory, number>
+
 export interface FetchForumPostsParams {
+  category?: ForumCategory | null
   search?: string
   page?: number
   limit?: number
@@ -37,12 +61,14 @@ export interface CreateForumPostInput {
   authorName: string
   title: string
   body: string
+  category: ForumCategory
 }
 
 export interface UpdateForumPostInput {
   postId: string
   title: string
   body: string
+  category: ForumCategory
 }
 
 export interface CreateForumCommentInput {
@@ -103,6 +129,7 @@ export async function fetchMyCommentHeartIds(
 }
 
 export async function fetchForumPosts({
+  category = null,
   search = '',
   page = 1,
   limit = PAGE_SIZE_DEFAULT,
@@ -114,9 +141,14 @@ export async function fetchForumPosts({
 
   let query = supabase
     .from('forum_posts')
-    .select('*', { count: 'exact' })
+    .select('*, forum_images(id, storage_path, position)', { count: 'exact' })
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
+    .order('position', { referencedTable: 'forum_images', ascending: true })
+
+  if (category) {
+    query = query.eq('category', category)
+  }
 
   if (normalizedSearch) {
     query = query.or(
@@ -128,7 +160,7 @@ export async function fetchForumPosts({
   if (error) {
     throw new Error('Could not load discussions. Please try again.')
   }
-  const posts = (data ?? []) as ForumPostRow[]
+  const posts = (data ?? []) as ForumPostWithImages[]
   const heartedIds = await fetchMyPostHeartIds(
     userId,
     posts.map((post) => post.id)
@@ -139,20 +171,43 @@ export async function fetchForumPosts({
   }
 }
 
+function createEmptyCategoryCounts(): ForumCategoryCounts {
+  return FORUM_CATEGORIES.reduce((counts, category) => {
+    counts[category] = 0
+    return counts
+  }, {} as ForumCategoryCounts)
+}
+
+export async function fetchForumCategoryCounts(): Promise<ForumCategoryCounts> {
+  const { data, error } = await supabase.rpc('forum_category_counts')
+  if (error) {
+    throw new Error('Could not load categories. Please try again.')
+  }
+  const counts = createEmptyCategoryCounts()
+  for (const row of data ?? []) {
+    // the CHECK constraint guarantees the union; rows outside it are ignored
+    if (isForumCategory(row.category)) {
+      counts[row.category] = row.post_count
+    }
+  }
+  return counts
+}
+
 export async function getForumPost(
   postId: string,
   userId: string | null = null
 ): Promise<ForumPostSummary> {
   const { data, error } = await supabase
     .from('forum_posts')
-    .select('*')
+    .select('*, forum_images(id, storage_path, position)')
     .eq('id', postId)
     .is('deleted_at', null)
+    .order('position', { referencedTable: 'forum_images', ascending: true })
     .single()
   if (error) {
     throw new Error('That discussion could not be found.')
   }
-  const post = data as ForumPostRow
+  const post = data as ForumPostWithImages
   const heartedIds = await fetchMyPostHeartIds(userId, [post.id])
   return { ...post, hasHearted: heartedIds.has(post.id) }
 }
@@ -195,6 +250,7 @@ export async function createForumPost({
   authorName,
   title,
   body,
+  category,
 }: CreateForumPostInput): Promise<string> {
   const { data, error } = await supabase
     .from('forum_posts')
@@ -203,6 +259,7 @@ export async function createForumPost({
       author_name: authorName,
       title: title.trim(),
       body: body.trim(),
+      category,
     })
     .select('id')
     .single()
@@ -216,10 +273,11 @@ export async function updateForumPost({
   postId,
   title,
   body,
+  category,
 }: UpdateForumPostInput): Promise<void> {
   const { error } = await supabase
     .from('forum_posts')
-    .update({ title: title.trim(), body: body.trim() })
+    .update({ title: title.trim(), body: body.trim(), category })
     .eq('id', postId)
   if (error) {
     throw new Error('Could not save the changes. Please try again.')
@@ -234,6 +292,61 @@ export async function softDeleteForumPost(postId: string): Promise<void> {
   if (error) {
     throw new Error('Could not remove the discussion. Please try again.')
   }
+}
+
+export async function markForumPostEdited(postId: string): Promise<void> {
+  // explicit stamp: the content trigger only fires on title/body/category
+  const { error } = await supabase
+    .from('forum_posts')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('id', postId)
+  if (error) {
+    throw new Error('Could not save the changes. Please try again.')
+  }
+}
+
+export interface UploadForumImageInput {
+  file: Blob
+  postId: string
+  userId: string
+  position: number
+}
+
+export async function uploadForumImage({
+  file,
+  postId,
+  userId,
+  position,
+}: UploadForumImageInput): Promise<ForumImageRef> {
+  const storagePath = `${userId}/${postId}/${position}.jpg`
+  const { error: uploadError } = await supabase.storage
+    .from(FORUM_IMAGE_BUCKET)
+    .upload(storagePath, file, { contentType: 'image/jpeg', upsert: false })
+  if (uploadError) {
+    throw new Error('Could not upload the photo. Please try again.')
+  }
+  const { data, error } = await supabase
+    .from('forum_images')
+    .insert({ post_id: postId, storage_path: storagePath, position })
+    .select('id')
+    .single()
+  if (error) {
+    throw new Error('Could not save the photo. Please try again.')
+  }
+  return { id: data.id, storage_path: storagePath, position }
+}
+
+export async function deleteForumImage(image: ForumImageRef): Promise<void> {
+  const { error } = await supabase.from('forum_images').delete().eq('id', image.id)
+  if (error) {
+    throw new Error('Could not remove the photo. Please try again.')
+  }
+  // the row is the source of truth; the object is best-effort cleanup
+  await supabase.storage.from(FORUM_IMAGE_BUCKET).remove([image.storage_path])
+}
+
+export async function getForumImageUrl(storagePath: string): Promise<string> {
+  return getSignedImageUrl(FORUM_IMAGE_BUCKET, storagePath, 'Could not load the photo.')
 }
 
 export async function createForumComment({

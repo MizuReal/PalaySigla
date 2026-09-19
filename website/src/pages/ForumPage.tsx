@@ -1,27 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Container from '../components/Container'
 import Footer from '../components/site/Footer'
 import PrimaryNav from '../components/site/PrimaryNav'
+import ForumCategorySection from '../components/forum/ForumCategorySection'
+import ForumFilters from '../components/forum/ForumFilters'
 import ForumPostCard from '../components/forum/ForumPostCard'
 import ForumPostCardSkeleton from '../components/forum/ForumPostCardSkeleton'
 import ForumThreadModal from '../components/forum/ForumThreadModal'
 import PostEditorModal from '../components/forum/PostEditorModal'
+import useForumCategoryCounts from '../hooks/useForumCategoryCounts'
 import useForumPosts from '../hooks/useForumPosts'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
+import { isForumCategory } from '../services/forum'
+import type { ForumCategory } from '../services/forum'
+import { FORUM_CATEGORY_LABELS } from '../utils/forumCategories'
 
 const SEARCH_DEBOUNCE_MS = 350
 const SKELETON_COUNT = 4
-const SEARCH_INPUT_CLASSES =
-  'h-11 w-full border border-hairline bg-canvas px-4 body-md text-ink placeholder:text-stone focus:border-2 focus:border-primary focus:px-[15px]'
+const FEED_ANCHOR_ID = 'forum-feed'
 
 interface ForumFeedProps {
+  category: ForumCategory | null
   search: string
   refreshNonce: number
   onSelect: (postId: string) => void
 }
 
-function ForumFeed({ search, refreshNonce, onSelect }: ForumFeedProps) {
+function ForumFeed({ category, search, refreshNonce, onSelect }: ForumFeedProps) {
   const {
     posts,
     total,
@@ -31,8 +38,8 @@ function ForumFeed({ search, refreshNonce, onSelect }: ForumFeedProps) {
     loadMore,
     hasMore,
     refresh,
-  } = useForumPosts({ search })
-  // the feed remounts on a new search, so only a nonce change after mount
+  } = useForumPosts({ category, search })
+  // the feed remounts on a new filter, so only a nonce change after mount
   // should reload; reacting to the starting value would double-fetch
   const seenRefreshNonceRef = useRef(refreshNonce)
 
@@ -71,16 +78,23 @@ function ForumFeed({ search, refreshNonce, onSelect }: ForumFeedProps) {
   }
 
   if (posts.length === 0) {
+    const categoryLabel = category ? FORUM_CATEGORY_LABELS[category] : ''
+    let emptyTitle = 'No discussions yet.'
+    let emptyHint = 'Be the first to ask a question or share what worked in the field.'
+    if (search && category) {
+      emptyTitle = `No discussions match that search in ${categoryLabel}.`
+      emptyHint = 'Try a different word, or clear the search to see everything.'
+    } else if (search) {
+      emptyTitle = 'No discussions match that search.'
+      emptyHint = 'Try a different word, or clear the search to see everything.'
+    } else if (category) {
+      emptyTitle = `No discussions in ${categoryLabel} yet.`
+      emptyHint = 'Be the first to start a conversation here.'
+    }
     return (
       <div className="border border-hairline bg-surface-soft p-10 text-center">
-        <p className="heading-sm text-ink">
-          {search ? 'No discussions match that search.' : 'No discussions yet.'}
-        </p>
-        <p className="body-sm mt-2 text-mute">
-          {search
-            ? 'Try a different word, or clear the search to see everything.'
-            : 'Be the first to ask a question or share what worked in the field.'}
-        </p>
+        <p className="heading-sm text-ink">{emptyTitle}</p>
+        <p className="body-sm mt-2 text-mute">{emptyHint}</p>
       </div>
     )
   }
@@ -113,17 +127,48 @@ function ForumFeed({ search, refreshNonce, onSelect }: ForumFeedProps) {
 
 function ForumPage() {
   const { user, openAuthModal } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [refreshNonce, setRefreshNonce] = useState(0)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
 
+  const rawCategory = searchParams.get('category')
+  const activeCategory =
+    rawCategory !== null && isForumCategory(rawCategory) ? rawCategory : null
+
+  const {
+    counts,
+    isLoading: isCountsLoading,
+    error: countsError,
+    retry: retryCounts,
+  } = useForumCategoryCounts(refreshNonce)
+
   // debounce keystrokes so the feed only refetches after typing pauses
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(timer)
   }, [searchInput])
+
+  const handleCategoryChange = (category: ForumCategory | null) => {
+    const nextParams = new URLSearchParams(searchParams)
+    if (category) {
+      nextParams.set('category', category)
+    } else {
+      nextParams.delete('category')
+    }
+    setSearchParams(nextParams)
+  }
+
+  const handleCategorySelect = (category: ForumCategory) => {
+    handleCategoryChange(category)
+    // choosing a card collapses the grid and hides the clicked button, so move
+    // focus with the scroll to keep keyboard users in view of the feed
+    const feedContainer = document.getElementById(FEED_ANCHOR_ID)
+    feedContainer?.scrollIntoView()
+    feedContainer?.focus()
+  }
 
   const handleStartDiscussion = () => {
     if (user) {
@@ -132,6 +177,9 @@ function ForumPage() {
     }
     openAuthModal(AUTH_MODAL_MODES.LOGIN)
   }
+
+  // remounting the feed on a filter change gives it fresh loading state and page 1
+  const feedKey = `${search}|${activeCategory ?? 'all'}`
 
   return (
     <>
@@ -152,28 +200,31 @@ function ForumPage() {
             </div>
           </Container>
         </div>
-        <div className="border-b border-hairline bg-surface-soft">
-          <Container className="py-6">
-            <label htmlFor="forum-search" className="sr-only">
-              Search discussions
-            </label>
-            <input
-              id="forum-search"
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search discussions…"
-              className={SEARCH_INPUT_CLASSES}
-            />
-          </Container>
-        </div>
+        <ForumCategorySection
+          activeCategory={activeCategory}
+          counts={counts}
+          isLoading={isCountsLoading}
+          error={countsError}
+          onSelect={handleCategorySelect}
+          onRetry={retryCounts}
+        />
+        <ForumFilters
+          category={activeCategory}
+          counts={counts}
+          search={searchInput}
+          onCategoryChange={handleCategoryChange}
+          onSearchChange={setSearchInput}
+        />
         <Container className="py-10 md:py-[64px]">
-          <ForumFeed
-            key={search}
-            search={search}
-            refreshNonce={refreshNonce}
-            onSelect={setSelectedPostId}
-          />
+          <div id={FEED_ANCHOR_ID} className="scroll-mt-16" tabIndex={-1}>
+            <ForumFeed
+              key={feedKey}
+              category={activeCategory}
+              search={search}
+              refreshNonce={refreshNonce}
+              onSelect={setSelectedPostId}
+            />
+          </div>
         </Container>
       </main>
       <Footer />

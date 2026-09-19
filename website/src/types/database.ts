@@ -58,10 +58,43 @@ export type Database = {
           },
         ]
       }
+      forum_images: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          post_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number
+          post_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          post_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_images_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forum_posts: {
         Row: {
           author_name: string
           body: string
+          category: string
           comment_count: number
           created_at: string
           deleted_at: string | null
@@ -74,6 +107,7 @@ export type Database = {
         Insert: {
           author_name: string
           body: string
+          category?: string
           comment_count?: number
           created_at?: string
           deleted_at?: string | null
@@ -86,6 +120,7 @@ export type Database = {
         Update: {
           author_name?: string
           body?: string
+          category?: string
           comment_count?: number
           created_at?: string
           deleted_at?: string | null
@@ -269,7 +304,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      forum_category_counts: {
+        Args: never
+        Returns: {
+          category: string
+          post_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

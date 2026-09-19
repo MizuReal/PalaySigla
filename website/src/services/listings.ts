@@ -1,9 +1,9 @@
 import { supabase } from './supabaseClient'
+import { getSignedImageUrl } from './signedUrlCache'
 import type { ListingWithImages } from '../types/domain'
 
 const PAGE_SIZE_DEFAULT = 12
-const SIGNED_URL_TTL_SECONDS = 60
-const SIGNED_URL_CACHE_TTL_MS = 45_000
+const LISTING_IMAGE_BUCKET = 'listings'
 
 export const LISTING_STATUSES = Object.freeze({
   ACTIVE: 'active',
@@ -87,8 +87,6 @@ export interface CreateListingInput {
   locationLabel: string
   sellerName: string
 }
-
-const signedUrlCache = new Map<string, { url: string; fetchedAt: number }>()
 
 export async function fetchListings({
   category = null,
@@ -219,7 +217,7 @@ export async function uploadListingImage(
 ): Promise<string> {
   const storagePath = `${userId}/${listingId}/${position}.jpg`
   const { error: uploadError } = await supabase.storage
-    .from('listings')
+    .from(LISTING_IMAGE_BUCKET)
     .upload(storagePath, file, { contentType: 'image/jpeg', upsert: false })
   if (uploadError) {
     throw new Error('Could not upload the photo. Please try again.')
@@ -251,16 +249,9 @@ export async function updateListingStatus(id: string, status: ListingStatus): Pr
 }
 
 export async function getListingImageUrl(storagePath: string): Promise<string> {
-  const cached = signedUrlCache.get(storagePath)
-  if (cached && cached.fetchedAt > Date.now() - SIGNED_URL_CACHE_TTL_MS) {
-    return cached.url
-  }
-  const { data, error } = await supabase.storage
-    .from('listings')
-    .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS)
-  if (error) {
-    throw new Error('Could not load the listing photo.')
-  }
-  signedUrlCache.set(storagePath, { url: data.signedUrl, fetchedAt: Date.now() })
-  return data.signedUrl
+  return getSignedImageUrl(
+    LISTING_IMAGE_BUCKET,
+    storagePath,
+    'Could not load the listing photo.'
+  )
 }

@@ -56,6 +56,9 @@ Current migrations:
 | `schemas/001_marketplace.sql` | `listings`, `listing_images`, private `listings` bucket, indexes, `updated_at` trigger, RLS policies |
 | `schemas/002_profiles.sql` | `profiles` (name, PH contact number in E.164, avatar path, rating aggregates), private `avatars` bucket, signup-trigger row creation, RLS policies |
 | `schemas/003_listing_history.sql` | `listings.sold_at` + transition trigger, `(user_id, created_at desc)` index, owner-select RLS policy for soft-deleted rows |
+| `schemas/004_forum.sql` | `forum_posts`, `forum_comments`, `forum_reactions`, indexes, edited-at/counter triggers, RLS policies |
+| `schemas/005_forum_categories.sql` | `forum_posts.category` (CHECK-constrained, defaults to `general`), `(category, created_at desc)` index, category-aware edited-at trigger, `forum_category_counts()` RPC |
+| `schemas/006_forum_images.sql` | `forum_images` (optional post photos, up to 4), private `forum` bucket, indexes, RLS policies (rows scoped to visible posts) |
 | `schemas/seed_demo_listings.sql` | Demo rows for local testing (idempotent inserts; safe to run anytime) |
 
 ## Row-level security model
@@ -70,6 +73,11 @@ there is no implicit public access.
 | `storage.objects` (`listings` bucket) | Everyone (object metadata) | Insert/update/delete: path must start with `auth.uid()::text/` |
 | `profiles` | Owner only (`auth.uid() = id`, `deleted_at IS NULL`) | Insert/update: owner. A row is created by trigger on `auth.users` insert; pre-existing users get one on their first profile save (upsert). |
 | `storage.objects` (`avatars` bucket) | Owner only | Insert/update/delete: path must start with `auth.uid()::text/` |
+| `forum_posts` | Everyone for `deleted_at IS NULL` rows | Insert/update: owner (`user_id = auth.uid()`). No hard-delete policy — removals are soft deletes via `UPDATE`. |
+| `forum_comments` | Everyone for `deleted_at IS NULL` rows | Insert/update: owner. No hard-delete policy — removals are soft deletes via `UPDATE`. |
+| `forum_reactions` | Everyone (reaction rows/counts) | Insert/delete: owner. `forum_category_counts()` is `SECURITY INVOKER`, so the caller's row policy still applies. |
+| `forum_images` | Photos of visible (`deleted_at IS NULL`) posts | Insert/update/delete: owner of the parent post. No hard-delete policy on posts — photo rows are deleted by the owner when a photo is removed, and cascade with a hard post delete. |
+| `storage.objects` (`forum` bucket) | Signed URLs only while the parent post is visible | Insert/update/delete: path must start with `auth.uid()::text/` |
 
 Consequences:
 
@@ -89,6 +97,9 @@ Consequences:
 
 - Client uploads go to `{user_id}/{listing_id}/0.jpg` in the private
   `listings` bucket.
+- Forum photos go to `{user_id}/{post_id}/{position}.jpg` in the private
+  `forum` bucket; the storage select policy only signs URLs while the parent
+  post is visible.
 - Images are served to clients through short-lived signed URLs
   (`createSignedUrl`, 60 s expiry; the frontend caches them ~45 s).
 - There is no public bucket.
@@ -100,4 +111,5 @@ rejections for writes):
 
 - `SELECT` from `listings` succeeds.
 - `INSERT` into `listings` / `listing_images` as anon is rejected.
+- `SELECT` from `forum_images` returns rows only for visible posts.
 - Uploading to storage under a non-`auth.uid()` path is rejected.

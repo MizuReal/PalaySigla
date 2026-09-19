@@ -76,6 +76,7 @@ export function createStorageBucketMock(): StorageBucketMock {
 
 export interface SupabaseMock {
   from: Mock
+  rpc: Mock
   storage: { from: Mock }
   auth: {
     signInWithPassword: Mock
@@ -90,6 +91,7 @@ export interface SupabaseMock {
 export function createSupabaseMock(): SupabaseMock {
   const from = vi.fn()
   from.mockImplementation(() => createQueryBuilder())
+  const rpc = vi.fn()
   const storageFrom = vi.fn()
   storageFrom.mockImplementation(() => createStorageBucketMock())
   const auth = {
@@ -100,7 +102,7 @@ export function createSupabaseMock(): SupabaseMock {
     getSession: vi.fn(),
     updateUser: vi.fn(),
   }
-  const supabase: SupabaseMock = { from, storage: { from: storageFrom }, auth }
+  const supabase: SupabaseMock = { from, rpc, storage: { from: storageFrom }, auth }
   resetSupabaseMock(supabase)
   return supabase
 }
@@ -108,6 +110,7 @@ export function createSupabaseMock(): SupabaseMock {
 export function resetSupabaseMock(supabase: SupabaseMock): void {
   vi.resetAllMocks()
   supabase.from.mockImplementation(() => createQueryBuilder())
+  supabase.rpc.mockResolvedValue({ data: [], error: null })
   supabase.storage.from.mockImplementation(() => createStorageBucketMock())
   supabase.auth.signInWithPassword.mockResolvedValue({ data: null, error: null })
   supabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: null })

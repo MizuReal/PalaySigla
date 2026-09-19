@@ -35,6 +35,7 @@ describe('useForumPosts', () => {
     await waitFor(() => expect(result.current.isInitialLoading).toBe(false))
 
     expect(fetchForumPosts).toHaveBeenCalledWith({
+      category: null,
       search: '',
       page: 1,
       limit: 10,
@@ -53,7 +54,23 @@ describe('useForumPosts', () => {
     await waitFor(() => expect(fetchForumPosts).toHaveBeenCalledTimes(1))
 
     expect(fetchForumPosts).toHaveBeenCalledWith({
+      category: null,
       search: 'pests',
+      page: 1,
+      limit: 10,
+      userId: 'u1',
+    })
+  })
+
+  it('forwards the active category', async () => {
+    fetchForumPostsMock.mockResolvedValue(page([], 0))
+
+    renderHook(() => useForumPosts({ category: 'pests' }))
+    await waitFor(() => expect(fetchForumPosts).toHaveBeenCalledTimes(1))
+
+    expect(fetchForumPosts).toHaveBeenCalledWith({
+      category: 'pests',
+      search: '',
       page: 1,
       limit: 10,
       userId: 'u1',
@@ -86,6 +103,7 @@ describe('useForumPosts', () => {
 
     expect(fetchForumPosts).toHaveBeenCalledTimes(2)
     expect(fetchForumPosts).toHaveBeenLastCalledWith({
+      category: null,
       search: '',
       page: 2,
       limit: 10,
@@ -120,6 +138,7 @@ describe('useForumPosts', () => {
 
     await waitFor(() => expect(fetchForumPosts).toHaveBeenCalledTimes(2))
     expect(fetchForumPosts).toHaveBeenLastCalledWith({
+      category: null,
       search: '',
       page: 1,
       limit: 10,

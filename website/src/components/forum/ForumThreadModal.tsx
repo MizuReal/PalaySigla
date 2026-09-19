@@ -3,6 +3,7 @@ import AuthorBadge from './AuthorBadge'
 import CommentComposer from './CommentComposer'
 import CommentItem from './CommentItem'
 import DeleteInlineConfirm from './DeleteInlineConfirm'
+import ForumPostImage from './ForumPostImage'
 import HeartButton from './HeartButton'
 import PostEditorModal from './PostEditorModal'
 import Modal from '../Modal'
@@ -11,6 +12,7 @@ import useForumPost from '../../hooks/useForumPost'
 import { useAuth } from '../../context/authContext'
 import { TOAST_VARIANTS, useToast } from '../../context/toastContext'
 import { softDeleteForumPost } from '../../services/forum'
+import { FORUM_CATEGORY_LABELS } from '../../utils/forumCategories'
 
 const THREAD_TITLE_ID = 'forum-thread-title'
 const COMMENT_SKELETON_COUNT = 3
@@ -194,15 +196,36 @@ function ForumThreadModal({ postId, onClose, onChanged }: ForumThreadModalProps)
     }
     return (
       <>
-        <AuthorBadge
-          name={post.author_name}
-          timestamp={post.created_at}
-          isEdited={post.updated_at !== null}
-        />
+        <div className="flex items-start justify-between gap-3">
+          <AuthorBadge
+            name={post.author_name}
+            timestamp={post.created_at}
+            isEdited={post.updated_at !== null}
+          />
+          <span className="shrink-0 rounded-sm bg-surface-soft px-2.5 py-1 caption-md text-body">
+            {FORUM_CATEGORY_LABELS[post.category]}
+          </span>
+        </div>
         <h2 id={THREAD_TITLE_ID} className="heading-lg mt-4 text-ink">
           {post.title}
         </h2>
         <p className="body-md mt-4 whitespace-pre-line text-body">{post.body}</p>
+        {post.forum_images.length > 0 && (
+          <div
+            className={`mt-5 ${
+              post.forum_images.length === 1 ? '' : 'grid grid-cols-2 gap-3'
+            }`}
+          >
+            {post.forum_images.map((image, index) => (
+              <ForumPostImage
+                key={image.id}
+                image={image}
+                alt={`Photo ${index + 1} attached to this discussion`}
+                aspectClass="aspect-[4/3]"
+              />
+            ))}
+          </div>
+        )}
         <div className="mt-5 flex flex-wrap items-center gap-4">
           <HeartButton
             postId={post.id}

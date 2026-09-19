@@ -1,5 +1,9 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
-import { createQueryBuilder, resetSupabaseMock } from '../../test/supabaseMock'
+import {
+  createQueryBuilder,
+  createStorageBucketMock,
+  resetSupabaseMock,
+} from '../../test/supabaseMock'
 import type { SupabaseMock } from '../../test/supabaseMock'
 
 vi.mock('../supabaseClient', async () => {
@@ -9,23 +13,33 @@ vi.mock('../supabaseClient', async () => {
 
 import { supabase as supabaseClient } from '../supabaseClient'
 import {
+  FORUM_CATEGORIES,
   createForumComment,
   createForumPost,
+  deleteForumImage,
+  fetchForumCategoryCounts,
   fetchForumComments,
   fetchForumPosts,
   fetchMyCommentHeartIds,
   fetchMyPostHeartIds,
+  getForumImageUrl,
   getForumPost,
+  markForumPostEdited,
   setForumCommentHeart,
   setForumPostHeart,
   softDeleteForumComment,
   softDeleteForumPost,
   updateForumComment,
   updateForumPost,
+  uploadForumImage,
 } from '../forum'
 
 // vi.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
 const supabase = supabaseClient as unknown as SupabaseMock
+
+// the mocked storage client never inspects the payload, so a plain object
+// stands in for the Blob the real upload accepts
+const EMPTY_FILE = {} as Blob
 
 beforeEach(() => {
   resetSupabaseMock(supabase)
@@ -110,10 +124,18 @@ describe('fetchForumPosts', () => {
 
     expect(supabase.from).toHaveBeenNthCalledWith(1, 'forum_posts')
     expect(supabase.from).toHaveBeenNthCalledWith(2, 'forum_reactions')
-    expect(postsBuilder.select).toHaveBeenCalledWith('*', { count: 'exact' })
+    expect(postsBuilder.select).toHaveBeenCalledWith(
+      '*, forum_images(id, storage_path, position)',
+      { count: 'exact' }
+    )
     expect(postsBuilder.is).toHaveBeenCalledWith('deleted_at', null)
     expect(postsBuilder.order).toHaveBeenCalledWith('created_at', { ascending: false })
+    expect(postsBuilder.order).toHaveBeenCalledWith('position', {
+      referencedTable: 'forum_images',
+      ascending: true,
+    })
     expect(postsBuilder.range).toHaveBeenCalledWith(0, 9)
+    expect(postsBuilder.eq).not.toHaveBeenCalled()
     expect(postsBuilder.or).not.toHaveBeenCalled()
     expect(result).toEqual({
       data: [
@@ -138,6 +160,15 @@ describe('fetchForumPosts', () => {
     expect(supabase.from).toHaveBeenCalledTimes(1)
   })
 
+  it('filters by category when one is selected', async () => {
+    const postsBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(postsBuilder)
+
+    await fetchForumPosts({ category: 'pests' })
+
+    expect(postsBuilder.eq).toHaveBeenCalledWith('category', 'pests')
+  })
+
   it('defaults the total to 0 when the count is missing', async () => {
     supabase.from.mockReturnValue(
       createQueryBuilder({ data: null, error: null, count: null })
@@ -157,6 +188,51 @@ describe('fetchForumPosts', () => {
   })
 })
 
+describe('fetchForumCategoryCounts', () => {
+  it('maps RPC rows onto every category, defaulting missing ones to zero', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: [
+        { category: 'pests', post_count: 3 },
+        { category: 'market', post_count: 1 },
+      ],
+      error: null,
+    })
+
+    const counts = await fetchForumCategoryCounts()
+
+    expect(supabase.rpc).toHaveBeenCalledWith('forum_category_counts')
+    expect(Object.keys(counts)).toEqual([...FORUM_CATEGORIES])
+    expect(counts).toEqual({
+      general: 0,
+      planting: 0,
+      pests: 3,
+      harvesting: 0,
+      storage: 0,
+      quality: 0,
+      market: 1,
+    })
+  })
+
+  it('ignores rows outside the known category set', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: [{ category: 'unknown', post_count: 9 }],
+      error: null,
+    })
+
+    const counts = await fetchForumCategoryCounts()
+
+    expect(Object.values(counts)).toEqual(FORUM_CATEGORIES.map(() => 0))
+  })
+
+  it('throws a friendly error when the RPC fails', async () => {
+    supabase.rpc.mockResolvedValue({ data: null, error: { message: 'boom' } })
+
+    await expect(fetchForumCategoryCounts()).rejects.toThrow(
+      'Could not load categories. Please try again.'
+    )
+  })
+})
+
 describe('getForumPost', () => {
   it('returns the post with the viewer heart state', async () => {
     const postBuilder = createQueryBuilder({ data: { id: 'p1', title: 'T' }, error: null })
@@ -168,8 +244,15 @@ describe('getForumPost', () => {
       title: 'T',
       hasHearted: true,
     })
+    expect(postBuilder.select).toHaveBeenCalledWith(
+      '*, forum_images(id, storage_path, position)'
+    )
     expect(postBuilder.eq).toHaveBeenCalledWith('id', 'p1')
     expect(postBuilder.is).toHaveBeenCalledWith('deleted_at', null)
+    expect(postBuilder.order).toHaveBeenCalledWith('position', {
+      referencedTable: 'forum_images',
+      ascending: true,
+    })
     expect(postBuilder.single).toHaveBeenCalledTimes(1)
   })
 
@@ -233,6 +316,7 @@ describe('createForumPost', () => {
         authorName: 'Juan',
         title: '  Question  ',
         body: '  Body  ',
+        category: 'planting',
       })
     ).resolves.toBe('new-id')
 
@@ -241,6 +325,7 @@ describe('createForumPost', () => {
       author_name: 'Juan',
       title: 'Question',
       body: 'Body',
+      category: 'planting',
     })
     expect(builder.select).toHaveBeenCalledWith('id')
     expect(builder.single).toHaveBeenCalledTimes(1)
@@ -252,7 +337,13 @@ describe('createForumPost', () => {
     )
 
     await expect(
-      createForumPost({ userId: 'u1', authorName: 'Juan', title: 'T', body: 'B' })
+      createForumPost({
+        userId: 'u1',
+        authorName: 'Juan',
+        title: 'T',
+        body: 'B',
+        category: 'general',
+      })
     ).rejects.toThrow('Could not publish the discussion. Please try again.')
   })
 })
@@ -262,9 +353,13 @@ describe('updateForumPost', () => {
     const builder = createQueryBuilder({ error: null })
     supabase.from.mockReturnValue(builder)
 
-    await updateForumPost({ postId: 'p1', title: ' T ', body: ' B ' })
+    await updateForumPost({ postId: 'p1', title: ' T ', body: ' B ', category: 'storage' })
 
-    expect(builder.update).toHaveBeenCalledWith({ title: 'T', body: 'B' })
+    expect(builder.update).toHaveBeenCalledWith({
+      title: 'T',
+      body: 'B',
+      category: 'storage',
+    })
     expect(builder.eq).toHaveBeenCalledWith('id', 'p1')
   })
 
@@ -273,9 +368,9 @@ describe('updateForumPost', () => {
       createQueryBuilder({ data: null, error: { message: 'boom' } })
     )
 
-    await expect(updateForumPost({ postId: 'p1', title: 'T', body: 'B' })).rejects.toThrow(
-      'Could not save the changes. Please try again.'
-    )
+    await expect(
+      updateForumPost({ postId: 'p1', title: 'T', body: 'B', category: 'general' })
+    ).rejects.toThrow('Could not save the changes. Please try again.')
   })
 })
 
@@ -447,6 +542,149 @@ describe('setForumCommentHeart', () => {
 
     await expect(setForumCommentHeart('c1', 'u1', true)).rejects.toThrow(
       'Could not add your heart. Please try again.'
+    )
+  })
+})
+
+describe('markForumPostEdited', () => {
+  it('stamps updated_at on the given post', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-19T12:00:00Z'))
+    const builder = createQueryBuilder({ error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await markForumPostEdited('p1')
+
+    expect(builder.update).toHaveBeenCalledWith({
+      updated_at: '2026-09-19T12:00:00.000Z',
+    })
+    expect(builder.eq).toHaveBeenCalledWith('id', 'p1')
+    vi.useRealTimers()
+  })
+
+  it('throws a friendly error when the update fails', async () => {
+    supabase.from.mockReturnValue(
+      createQueryBuilder({ data: null, error: { message: 'boom' } })
+    )
+
+    await expect(markForumPostEdited('p1')).rejects.toThrow(
+      'Could not save the changes. Please try again.'
+    )
+  })
+})
+
+describe('uploadForumImage', () => {
+  it('uploads to the uid-scoped path and inserts the image row', async () => {
+    const bucket = createStorageBucketMock()
+    supabase.storage.from.mockReturnValue(bucket)
+    const builder = createQueryBuilder({ data: { id: 'img1' }, error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await expect(
+      uploadForumImage({ file: EMPTY_FILE, postId: 'p1', userId: 'u1', position: 2 })
+    ).resolves.toEqual({ id: 'img1', storage_path: 'u1/p1/2.jpg', position: 2 })
+
+    expect(supabase.storage.from).toHaveBeenCalledWith('forum')
+    expect(bucket.upload).toHaveBeenCalledWith('u1/p1/2.jpg', EMPTY_FILE, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    })
+    expect(builder.insert).toHaveBeenCalledWith({
+      post_id: 'p1',
+      storage_path: 'u1/p1/2.jpg',
+      position: 2,
+    })
+    expect(builder.select).toHaveBeenCalledWith('id')
+    expect(builder.single).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws a friendly error when the upload fails', async () => {
+    const bucket = createStorageBucketMock()
+    bucket.upload.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    supabase.storage.from.mockReturnValue(bucket)
+
+    await expect(
+      uploadForumImage({ file: EMPTY_FILE, postId: 'p1', userId: 'u1', position: 0 })
+    ).rejects.toThrow('Could not upload the photo. Please try again.')
+  })
+
+  it('throws a friendly error when the image row insert fails', async () => {
+    const bucket = createStorageBucketMock()
+    supabase.storage.from.mockReturnValue(bucket)
+    supabase.from.mockReturnValue(
+      createQueryBuilder({ data: null, error: { message: 'boom' } })
+    )
+
+    await expect(
+      uploadForumImage({ file: EMPTY_FILE, postId: 'p1', userId: 'u1', position: 0 })
+    ).rejects.toThrow('Could not save the photo. Please try again.')
+  })
+})
+
+describe('deleteForumImage', () => {
+  it('deletes the row then best-effort removes the storage object', async () => {
+    const bucket = createStorageBucketMock()
+    supabase.storage.from.mockReturnValue(bucket)
+    const builder = createQueryBuilder({ error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await deleteForumImage({ id: 'img1', storage_path: 'u1/p1/0.jpg', position: 0 })
+
+    expect(builder.delete).toHaveBeenCalledTimes(1)
+    expect(builder.eq).toHaveBeenCalledWith('id', 'img1')
+    expect(bucket.remove).toHaveBeenCalledWith(['u1/p1/0.jpg'])
+  })
+
+  it('still resolves when the storage cleanup fails', async () => {
+    const bucket = createStorageBucketMock()
+    bucket.remove.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    supabase.storage.from.mockReturnValue(bucket)
+    supabase.from.mockReturnValue(createQueryBuilder({ error: null }))
+
+    await expect(
+      deleteForumImage({ id: 'img1', storage_path: 'u1/p1/0.jpg', position: 0 })
+    ).resolves.toBeUndefined()
+  })
+
+  it('throws a friendly error when the row delete fails', async () => {
+    supabase.from.mockReturnValue(
+      createQueryBuilder({ data: null, error: { message: 'boom' } })
+    )
+
+    await expect(
+      deleteForumImage({ id: 'img1', storage_path: 'u1/p1/0.jpg', position: 0 })
+    ).rejects.toThrow('Could not remove the photo. Please try again.')
+  })
+})
+
+describe('getForumImageUrl', () => {
+  it('creates a signed URL from the forum bucket and caches it', async () => {
+    const bucket = createStorageBucketMock()
+    bucket.createSignedUrl.mockResolvedValue({
+      data: { signedUrl: 'https://signed.test/forum/cache' },
+      error: null,
+    })
+    supabase.storage.from.mockReturnValue(bucket)
+
+    await expect(getForumImageUrl('cache/forum/0.jpg')).resolves.toBe(
+      'https://signed.test/forum/cache'
+    )
+    await expect(getForumImageUrl('cache/forum/0.jpg')).resolves.toBe(
+      'https://signed.test/forum/cache'
+    )
+
+    expect(supabase.storage.from).toHaveBeenCalledWith('forum')
+    expect(bucket.createSignedUrl).toHaveBeenCalledTimes(1)
+    expect(bucket.createSignedUrl).toHaveBeenCalledWith('cache/forum/0.jpg', 60)
+  })
+
+  it('throws a friendly error when signing fails', async () => {
+    const bucket = createStorageBucketMock()
+    bucket.createSignedUrl.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    supabase.storage.from.mockReturnValue(bucket)
+
+    await expect(getForumImageUrl('missing/forum/0.jpg')).rejects.toThrow(
+      'Could not load the photo.'
     )
   })
 })

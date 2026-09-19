@@ -1,3 +1,6 @@
+import { isForumCategory } from '../services/forum'
+import type { ForumCategory } from '../services/forum'
+
 export const POST_TITLE_MIN_LENGTH = 3
 export const POST_TITLE_MAX_LENGTH = 120
 export const POST_BODY_MAX_LENGTH = 5000
@@ -7,23 +10,30 @@ const ERROR_MESSAGES = Object.freeze({
   title: `Title must be ${POST_TITLE_MIN_LENGTH}-${POST_TITLE_MAX_LENGTH} characters.`,
   body: `Post content must be 1-${POST_BODY_MAX_LENGTH} characters.`,
   comment: `Comment must be 1-${COMMENT_BODY_MAX_LENGTH} characters.`,
+  category: 'Choose a category.',
 })
 
 export interface ForumPostInput {
   title: string
   body: string
+  category: ForumCategory
 }
 
 export interface ForumPostErrors {
   title?: string
   body?: string
+  category?: string
 }
 
 export interface ForumCommentErrors {
   body?: string
 }
 
-export function validateForumPost({ title, body }: ForumPostInput): ForumPostErrors {
+export function validateForumPost({
+  title,
+  body,
+  category,
+}: ForumPostInput): ForumPostErrors {
   const errors: ForumPostErrors = {}
   const normalizedTitle = title.trim()
   if (
@@ -35,6 +45,9 @@ export function validateForumPost({ title, body }: ForumPostInput): ForumPostErr
   const normalizedBody = body.trim()
   if (normalizedBody.length === 0 || normalizedBody.length > POST_BODY_MAX_LENGTH) {
     errors.body = ERROR_MESSAGES.body
+  }
+  if (!isForumCategory(category)) {
+    errors.category = ERROR_MESSAGES.category
   }
   return errors
 }

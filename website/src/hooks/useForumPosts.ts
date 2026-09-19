@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchForumPosts } from '../services/forum'
+import type { ForumCategory } from '../services/forum'
 import { useAuth } from '../context/authContext'
 import type { ForumPostSummary } from '../types/domain'
 
 const PAGE_SIZE = 10
 
 export interface UseForumPostsParams {
+  category?: ForumCategory | null
   search?: string
 }
 
@@ -20,7 +22,10 @@ export interface UseForumPostsResult {
   hasMore: boolean
 }
 
-function useForumPosts({ search = '' }: UseForumPostsParams = {}): UseForumPostsResult {
+function useForumPosts({
+  category = null,
+  search = '',
+}: UseForumPostsParams = {}): UseForumPostsResult {
   const { user } = useAuth()
   const userId = user?.id ?? null
   const [posts, setPosts] = useState<ForumPostSummary[]>([])
@@ -38,6 +43,7 @@ function useForumPosts({ search = '' }: UseForumPostsParams = {}): UseForumPosts
     const loadFirstPage = async () => {
       try {
         const result = await fetchForumPosts({
+          category,
           search,
           page: 1,
           limit: PAGE_SIZE,
@@ -67,7 +73,7 @@ function useForumPosts({ search = '' }: UseForumPostsParams = {}): UseForumPosts
     return () => {
       isCurrent = false
     }
-  }, [search, userId, refreshNonce])
+  }, [category, search, userId, refreshNonce])
 
   const loadMore = useCallback(async () => {
     if (isLoadingMore || posts.length >= total) {
@@ -77,6 +83,7 @@ function useForumPosts({ search = '' }: UseForumPostsParams = {}): UseForumPosts
     const nextPage = page + 1
     try {
       const result = await fetchForumPosts({
+        category,
         search,
         page: nextPage,
         limit: PAGE_SIZE,
@@ -93,7 +100,7 @@ function useForumPosts({ search = '' }: UseForumPostsParams = {}): UseForumPosts
       setIsLoadingMore(false)
       setPage(nextPage)
     }
-  }, [isLoadingMore, posts.length, total, page, search, userId])
+  }, [isLoadingMore, posts.length, total, page, category, search, userId])
 
   const refresh = useCallback(() => {
     setPage(1)
