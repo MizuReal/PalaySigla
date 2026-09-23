@@ -7,6 +7,7 @@ const mockGoBack = jest.fn()
 const mockMarkSold = jest.fn()
 const mockRemove = jest.fn()
 const mockClearError = jest.fn()
+const mockShowToast = jest.fn()
 
 interface MockLocationMapProps {
   lat: number
@@ -50,6 +51,11 @@ jest.mock('../../hooks/useListingActions', () => ({
 }))
 
 jest.mock('../../context/authContext', () => ({ useAuth: jest.fn() }))
+
+jest.mock('../../context/toastContext', () => ({
+  TOAST_VARIANTS: { SUCCESS: 'success', INFO: 'info', ERROR: 'error' },
+  useToast: () => ({ showToast: mockShowToast }),
+}))
 
 import { useAuth } from '../../context/authContext'
 import useListingActions from '../../hooks/useListingActions'
@@ -123,6 +129,7 @@ describe('ListingDetailScreen owner actions', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Mark as sold' }))
 
     await waitFor(() => expect(mockMarkSold).toHaveBeenCalledWith('L1'))
+    expect(mockShowToast).toHaveBeenCalledWith('Listing marked as sold.', 'success')
     expect(mockGoBack).toHaveBeenCalledTimes(1)
   })
 
@@ -138,6 +145,7 @@ describe('ListingDetailScreen owner actions', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Yes, remove it' }))
 
     await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('L1'))
+    expect(mockShowToast).toHaveBeenCalledWith('Listing removed.', 'success')
     expect(mockGoBack).toHaveBeenCalledTimes(1)
   })
 

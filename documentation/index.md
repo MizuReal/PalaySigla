@@ -42,14 +42,17 @@ and how to run it.
 - **Mobile** (Expo SDK 57 + React Native): intro landing screen handing off
   into a bottom-tab shell — Marketplace (live browse feed, 3-step posting
   wizard with photo + map pin, listing detail with static map + owner
-  actions),
-  Community, Scan (raised center action), Settings (account + Selling
-  history), and a fifth session action cell (Login signed-out / Logout
+  actions), Community (live forum: feed, categories, threads, comments,
+  hearts, photos), Scan (raised center action), Settings (profile: avatar,
+  name, PH contact number, and Selling history), and a fifth session action
+  cell (Login signed-out / Logout
   signed-in) keeping the bar at five even cells — full email/password auth
-  with in-app email-link returns, and the **Palay Assistant** bottom-sheet
-  chat (root-level overlay over the tabs) — all rendered from the DESIGN.md
-  token set via `mobile/src/theme/designTokens.ts`. Community and Scan
-  panels are designed placeholders; scanning arrives in a later phase.
+  with in-app email-link returns, toast notifications, and the **Palay
+  Assistant** bottom-sheet chat (root-level overlay over the tabs) — all
+  rendered from the DESIGN.md token set via
+  `mobile/src/theme/designTokens.ts`. The Scan panel is a designed
+  placeholder; scanning arrives in a later phase. A full-page message shell
+  covers render errors (root error boundary) and unknown addresses.
 
 ML inference (quality, mold, grade, variety from photos) is planned and not
 yet implemented — no model artifacts or inference endpoints exist.

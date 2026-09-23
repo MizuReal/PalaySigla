@@ -21,6 +21,7 @@ import ListingLocationMap from '../components/marketplace/ListingLocationMap'
 import { buildOpenStreetMapUrl } from '../components/marketplace/mapConfig'
 import Photo from '../components/Photo'
 import { useAuth } from '../context/authContext'
+import { TOAST_VARIANTS, useToast } from '../context/toastContext'
 import useListingActions from '../hooks/useListingActions'
 import useListingDetail from '../hooks/useListingDetail'
 import usePulseOpacity from '../hooks/usePulseOpacity'
@@ -75,6 +76,7 @@ interface ListingDetailContentProps {
 function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps) {
   const { listing, imageUrl, isLoading, error } = useListingDetail(listingId)
   const { user } = useAuth()
+  const { showToast } = useToast()
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const { isActing, error: actionError, markSold, remove, clearError } =
     useListingActions()
@@ -97,6 +99,7 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
     }
     const succeeded = await markSold(listing.id)
     if (succeeded) {
+      showToast('Listing marked as sold.', TOAST_VARIANTS.SUCCESS)
       navigation.goBack()
     }
   }
@@ -112,6 +115,7 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
     }
     const succeeded = await remove(listing.id)
     if (succeeded) {
+      showToast('Listing removed.', TOAST_VARIANTS.SUCCESS)
       navigation.goBack()
     }
   }

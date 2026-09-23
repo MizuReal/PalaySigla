@@ -19,6 +19,7 @@ jest.mock('base64-arraybuffer', () => ({
 import {
   compressImage,
   decodePreparedImage,
+  MAX_AVATAR_DIMENSION,
   MAX_IMAGE_BYTES,
   validateImageAsset,
 } from '../image'
@@ -108,6 +109,12 @@ describe('compressImage', () => {
     await compressImage({ ...ASSET, width: 2000, height: 3000 })
 
     expect(mockResize).toHaveBeenCalledWith({ width: null, height: 1600 })
+  })
+
+  it('honors a caller-supplied max dimension for avatars', async () => {
+    await compressImage({ ...ASSET, width: 2000, height: 3000 }, MAX_AVATAR_DIMENSION)
+
+    expect(mockResize).toHaveBeenCalledWith({ width: null, height: MAX_AVATAR_DIMENSION })
   })
 
   it('re-encodes without resizing when the photo already fits', async () => {

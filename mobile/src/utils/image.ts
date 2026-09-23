@@ -15,6 +15,7 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
 
 const MAX_IMAGE_DIMENSION = 1600
+export const MAX_AVATAR_DIMENSION = 512
 const JPEG_QUALITY = 0.82
 const PROCESS_FAILED_MESSAGE = 'Could not process the photo.'
 const EMPTY_IMAGE_MESSAGE = 'The photo could not be read. Please choose it again.'
@@ -41,15 +42,18 @@ export function validateImageAsset(asset: PickedImageAsset): string {
   return ''
 }
 
-export async function compressImage(asset: PickedImageAsset): Promise<PreparedImage> {
+export async function compressImage(
+  asset: PickedImageAsset,
+  maxDimension = MAX_IMAGE_DIMENSION
+): Promise<PreparedImage> {
   const longEdge = Math.max(asset.width, asset.height)
   try {
     const context = ImageManipulator.manipulate(asset.uri)
-    if (longEdge > MAX_IMAGE_DIMENSION) {
+    if (longEdge > maxDimension) {
       if (asset.width >= asset.height) {
-        context.resize({ width: MAX_IMAGE_DIMENSION, height: null })
+        context.resize({ width: maxDimension, height: null })
       } else {
-        context.resize({ width: null, height: MAX_IMAGE_DIMENSION })
+        context.resize({ width: null, height: maxDimension })
       }
     }
     const rendered = await context.renderAsync()

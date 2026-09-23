@@ -311,6 +311,12 @@ components:
     typography: "{typography.body-md}"
     rounded: "{rounded.sm}"
     padding: 24px 24px
+  full-page-message:
+    backgroundColor: "{colors.surface-soft}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.sm}"
+    padding: 48px
   form-label:
     textColor: "{colors.ink}"
     typography: "{typography.caption-md}"
@@ -902,7 +908,23 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   listings surface refreshes through the listings-changed event.
 - **Settings profile surface (Selling history).** Signed-in Settings keeps
   the account summary and gains a 44px `{component.pill-tab}` row —
-  Account / Selling history. Account keeps the email card and device note.
+  Account / Selling history. The Account tab is the management surface: a
+  hairline card with a 96px `{rounded.full}` avatar (photo or
+  `{typography.heading-xl}` initials monogram on `{colors.surface-soft}`),
+  `{typography.body-strong}` name, `{typography.caption-sm}` `{colors.mute}`
+  email and "Member since" line, and the 44px `{component.button-primary}`
+  "Change photo" with a `{colors.error}` "Remove photo" and a 2px
+  `{colors.primary}`-bordered Undo/Keep action while a change is staged
+  (`caption-sm` `{colors.mute}` preview note, errors in `{colors.error}`,
+  "JPEG or PNG, up to 10 MB"); a details card with `{component.form-field}`
+  full-name and PH contact-number inputs (uppercase `{typography.caption-md}`
+  labels, focus/error borders, hint line), a `{component.button-primary}` Save
+  disabled while pristine/invalid, a `{typography.caption-sm}` dirty status,
+  and a `{component.form-alert-error}` banner on failure; and the read-only
+  `{component.badge-tag}`-free Ratings &amp; reviews card — five 20px stars
+  (`{colors.primary}` filled / `{colors.stone}` outline) with the placeholder
+  copy "Reviews open with the next release." A failed profile load swaps the
+  tab for a hairline error card with a "Try again" action.
   Selling history mirrors the web panel: the status filters
   All/Active/Sold/Deleted in the same pill language, per-filter
   `{typography.body-sm}` empty copy in a hairline `{colors.surface-soft}`
@@ -917,9 +939,62 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   active and sold rows push the detail screen, and a 44px hairline "Load
   more" button pages 12 at a time. The list refreshes through the
   listings-changed event.
+- **Community forum.** The Community tab is the live forum (the web `/forum`
+  at phone scale). A `{colors.canvas}` feed: hero (primary `{typography.caption-md}`
+  eyebrow, `{typography.heading-xl}` title, `{typography.body-md}` lead, one
+  full-width `{component.button-primary}` "Start a discussion"); a collapsible
+  "Browse by category" band of 2-up hairline tiles (40px `{rounded.sm}`
+  `{colors.surface-soft}` icon tile — `{colors.primary}` when active — with
+  `{typography.card-title}` label, `{typography.caption-sm}` count, and
+  `{typography.body-sm}` description, toggled by a 44px `{colors.primary}`
+  square chevron); and a `{colors.surface-soft}` toolbar with the
+  `{component.search-input}` field over a horizontal 44px `{component.pill-tab}`
+  / `{component.pill-tab-active}` category row carrying counts. Discussion
+  cards are hairline `{colors.canvas}` stacks: 32px initials monogram
+  (`{rounded.full}` avatar exception) with `{typography.body-strong}` author +
+  `{typography.caption-sm}` relative time, a `{component.badge-tag}` category
+  chip, `{typography.card-title}` title, a 3-line `{typography.body-sm}`
+  excerpt beside a 96px 4:3 first-photo thumbnail, and a footer with the 44px
+  hairline heart (outline `{colors.mute}` → filled `{colors.primary}`,
+  optimistic with rollback) plus a `{typography.caption-sm}` reply count.
+  Thread and editor are root-stack pushes: the thread shows the post
+  (`{typography.heading-lg}` title, `{typography.body-md}` body, 4:3 photos,
+  heart, owner Edit/Delete via the shared two-tap confirm) over an
+  oldest-first comment list with a `{component.form-field}` composer; the
+  editor carries title, category pills, a 160px body field, and the up-to-four
+  `{component.image-uploader}` photo grid (kept/removed/new tiles, used-slot
+  counter, indeterminate spinner). Signed-out actions open the auth dialog;
+  mutations refresh the feed and counts through the forum event.
 - **Touch.** Interactive elements hold the `>= 44px` WCAG AA target from the
   responsive rules (chevron buttons are exactly 44×44; dot indicators expose
   44px pressable hit areas; every tab cell spans the full bar height).
+- **Toast notifications.** A root-level viewport stacks
+  `{component.toast-surface}` panels at the top of the screen (safe-area
+  padded, newest four, 4s auto-dismiss) whose 1px variant border comes from
+  `{component.toast-success}` (`{colors.primary}`), `{component.toast-info}`
+  (`{colors.hairline}`), or `{component.toast-error}` (`{colors.error}`) on
+  the `{colors.canvas}` surface, with the 2px radius, zero elevation, a 20px
+  leading glyph (`check` / `info` / `close` matching the variant) in
+  `{colors.primary}` / `{colors.ink}` / `{colors.error}`,
+  `{typography.body-sm}` `{colors.ink}` message, and a 44px `{colors.mute}`
+  close affordance. The viewport renders above screens but **below** the
+  auth/chat `Modal` overlays (a documented deviation — call sites fire as an
+  overlay closes), and announces politely (`accessibilityLiveRegion="polite"`).
+  Sign-in/sign-out use it (`AuthToasts`); email-verification feedback stays in
+  the auth dialog panel, and posting/owner-action success surfaces from the
+  same layer.
+- **Error / not-found surfaces.** The web's `{component.full-page-message}`
+  shell at phone scale: a full-viewport `{colors.canvas}` view with a centered
+  `{colors.surface-soft}` panel (max-width 448, `{rounded.sm}`, 48px padding)
+  carrying an optional 40px glyph, a `{typography.heading-lg}` statement, a
+  `{typography.body-md}` `{colors.body}` line, and an action pair. A root
+  error boundary (`react-error-boundary`, so no class component) wraps the
+  navigator and renders the **error** variant — 1px `{colors.error}` border,
+  `{colors.error}` `info` glyph, `{colors.error}`-alert semantics, and a
+  `{component.button-primary}` "Try again" that resets the boundary
+  (diagnostics are logged, never shown). The `NotFound` route uses the
+  neutral hairline variant with "Go to Marketplace" plus a 2px
+  `{colors.primary}`-bordered "Back to home", mirroring the web copy.
 - **Auth dialog (login / register / forgot password).** Rendered at the root
   beside the navigator like the website's `AppModals`, so it overlays every
   screen natively (no route). It is the literal web auth dialog treatment at

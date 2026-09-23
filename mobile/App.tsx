@@ -12,13 +12,20 @@ import type { Theme } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useFonts } from 'expo-font'
 import { StatusBar } from 'expo-status-bar'
+import { ErrorBoundary } from 'react-error-boundary'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import AuthModal from './src/components/AuthModal'
+import AuthToasts from './src/components/AuthToasts'
 import ChatModal from './src/components/chat/ChatModal'
+import RootErrorFallback from './src/components/RootErrorFallback'
 import AuthProvider from './src/context/AuthProvider'
+import ToastProvider from './src/context/ToastProvider'
 import LandingScreen from './src/screens/LandingScreen'
+import ForumPostEditorScreen from './src/screens/ForumPostEditorScreen'
+import ForumThreadScreen from './src/screens/ForumThreadScreen'
 import ListingDetailScreen from './src/screens/ListingDetailScreen'
 import MainTabs from './src/screens/MainTabs'
+import NotFoundScreen from './src/screens/NotFoundScreen'
 import PostListingScreen from './src/screens/PostListingScreen'
 import { COLORS } from './src/theme/designTokens'
 import type { RootStackParamList } from './src/types/navigation'
@@ -48,6 +55,9 @@ function RootNavigator() {
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
         <Stack.Screen name="PostListing" component={PostListingScreen} />
+        <Stack.Screen name="ForumThread" component={ForumThreadScreen} />
+        <Stack.Screen name="ForumPostEditor" component={ForumPostEditorScreen} />
+        <Stack.Screen name="NotFound" component={NotFoundScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   )
@@ -69,9 +79,20 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AuthProvider>
-        <RootNavigator />
-        <AuthModal />
-        <ChatModal />
+        <ToastProvider>
+          <ErrorBoundary
+            FallbackComponent={RootErrorFallback}
+            onError={(error) => {
+              // diagnostics belong in the console; the UI never leaks details
+              console.error('Unhandled app error:', error)
+            }}
+          >
+            <RootNavigator />
+            <AuthModal />
+            <ChatModal />
+            <AuthToasts />
+          </ErrorBoundary>
+        </ToastProvider>
       </AuthProvider>
     </SafeAreaProvider>
   )

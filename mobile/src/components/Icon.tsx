@@ -8,6 +8,7 @@ import { COLORS } from '../theme/designTokens'
 
 interface GlyphProps {
   color: string
+  filled?: boolean
 }
 
 const strokeProps = (color: string) => ({
@@ -239,6 +240,76 @@ function TrashGlyph({ color }: GlyphProps): ReactElement {
   )
 }
 
+function SproutGlyph({ color }: GlyphProps): ReactElement {
+  return (
+    <>
+      <Path d="M12 21v-9" {...strokeProps(color)} />
+      <Path d="M12 12C8 12 5.5 9.5 5.5 5.5 9.5 5.5 12 8 12 12z" {...strokeProps(color)} />
+      <Path d="M12 12c0-3.5 2.3-6 6.5-6 0 3.5-2.3 6-6.5 6z" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function BugGlyph({ color }: GlyphProps): ReactElement {
+  return (
+    <>
+      <Circle cx="12" cy="13" r="5.5" {...strokeProps(color)} />
+      <Path d="M9.2 8.7 7.3 5.8" {...strokeProps(color)} />
+      <Path d="M14.8 8.7l1.9-2.9" {...strokeProps(color)} />
+      <Path d="M12 7.5v11" {...strokeProps(color)} />
+      <Path d="M6.8 10.8H3.5" {...strokeProps(color)} />
+      <Path d="M20.5 10.8h-3.3" {...strokeProps(color)} />
+      <Path d="M6.8 15.4H4" {...strokeProps(color)} />
+      <Path d="M20 15.4h-2.8" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function BasketGlyph({ color }: GlyphProps): ReactElement {
+  return (
+    <>
+      <Path d="M4 10h16" {...strokeProps(color)} />
+      <Path
+        d="M5.5 10l1.3 8.3a2 2 0 0 0 2 1.7h6.4a2 2 0 0 0 2-1.7L18.5 10"
+        {...strokeProps(color)}
+      />
+      <Path d="M8.5 10a3.5 3.5 0 0 1 7 0" {...strokeProps(color)} />
+      <Path d="M9.5 13.5v3" {...strokeProps(color)} />
+      <Path d="M14.5 13.5v3" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function DropGlyph({ color }: GlyphProps): ReactElement {
+  return (
+    <>
+      <Path
+        d="M12 3.5c3 3.8 6 6.8 6 10.5a6 6 0 0 1-12 0c0-3.7 3-6.7 6-10.5z"
+        {...strokeProps(color)}
+      />
+      <Path d="M8.5 14.5c1.2.9 2.3.9 3.5 0s2.3-.9 3.5 0" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function HeartGlyph({ color, filled = false }: GlyphProps): ReactElement {
+  return (
+    <Path
+      d="M12 20.5S4.5 15.8 2.7 11.3C1.4 8 3.4 4.5 7 4.5c2 0 3.7 1.1 5 2.9 1.3-1.8 3-2.9 5-2.9 3.6 0 5.6 3.5 4.3 6.8C19.5 15.8 12 20.5 12 20.5z"
+      {...(filled ? { fill: color, stroke: 'none' } : strokeProps(color))}
+    />
+  )
+}
+
+function StarGlyph({ color, filled = false }: GlyphProps): ReactElement {
+  return (
+    <Path
+      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+      {...(filled ? { fill: color, stroke: 'none' } : strokeProps(color))}
+    />
+  )
+}
+
 const ICON_GLYPHS = {
   camera: CameraGlyph,
   scan: ScanGlyph,
@@ -264,6 +335,12 @@ const ICON_GLYPHS = {
   chat: ChatGlyph,
   send: SendGlyph,
   trash: TrashGlyph,
+  sprout: SproutGlyph,
+  bug: BugGlyph,
+  basket: BasketGlyph,
+  drop: DropGlyph,
+  heart: HeartGlyph,
+  star: StarGlyph,
 }
 
 export type IconName = keyof typeof ICON_GLYPHS
@@ -272,9 +349,10 @@ interface IconProps {
   name: IconName
   size?: number
   color?: string
+  filled?: boolean
 }
 
-function Icon({ name, size = 24, color = COLORS.primary }: IconProps) {
+function Icon({ name, size = 24, color = COLORS.primary, filled = false }: IconProps) {
   const Glyph = ICON_GLYPHS[name]
   if (!Glyph) {
     // JS callers can still pass an unknown name at runtime
@@ -288,7 +366,7 @@ function Icon({ name, size = 24, color = COLORS.primary }: IconProps) {
       accessible={false}
       importantForAccessibility="no-hide-descendants"
     >
-      <Glyph color={color} />
+      <Glyph color={color} filled={filled} />
     </Svg>
   )
 }

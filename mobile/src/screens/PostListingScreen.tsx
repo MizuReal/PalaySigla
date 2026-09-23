@@ -21,6 +21,7 @@ import Button from '../components/Button'
 import Icon from '../components/Icon'
 import MapPicker from '../components/marketplace/MapPicker'
 import PostListingImageUploader from '../components/marketplace/PostListingImageUploader'
+import { TOAST_VARIANTS, useToast } from '../context/toastContext'
 import useImagePicker from '../hooks/useImagePicker'
 import usePostListing from '../hooks/usePostListing'
 import {
@@ -269,6 +270,7 @@ type PostListingScreenProps = NativeStackScreenProps<RootStackParamList, 'PostLi
 
 function PostListingScreen({ navigation }: PostListingScreenProps) {
   const insets = useSafeAreaInsets()
+  const { showToast } = useToast()
   const { postListing, isSubmitting } = usePostListing()
   const {
     image,
@@ -427,6 +429,7 @@ function PostListingScreen({ navigation }: PostListingScreenProps) {
   }
 
   const handleDone = () => {
+    showToast('Listing posted! Buyers can now find it.', TOAST_VARIANTS.SUCCESS)
     navigation.navigate('Main', { screen: 'Marketplace' })
   }
 

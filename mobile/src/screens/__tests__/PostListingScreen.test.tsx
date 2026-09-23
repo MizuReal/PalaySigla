@@ -3,9 +3,15 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 const mockPostListing = jest.fn()
+const mockShowToast = jest.fn()
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}))
+
+jest.mock('../../context/toastContext', () => ({
+  TOAST_VARIANTS: { SUCCESS: 'success', INFO: 'info', ERROR: 'error' },
+  useToast: () => ({ showToast: mockShowToast }),
 }))
 
 jest.mock('../../hooks/usePostListing', () => ({
@@ -159,6 +165,10 @@ describe('PostListingScreen', () => {
     expect(await screen.findByText('Listing posted!')).toBeTruthy()
     await fireEvent.press(
       screen.getByRole('button', { name: 'Back to marketplace' })
+    )
+    expect(mockShowToast).toHaveBeenCalledWith(
+      'Listing posted! Buyers can now find it.',
+      'success'
     )
     expect(navigation.navigate).toHaveBeenCalledWith('Main', {
       screen: 'Marketplace',

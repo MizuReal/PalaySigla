@@ -5,15 +5,20 @@
 // Session actions live in the tab bar's fifth action cell (Login signed-out /
 // Logout signed-in, DESIGN.md chrome rule).
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { CompositeScreenProps } from '@react-navigation/native'
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { User } from '@supabase/supabase-js'
 import Button from '../components/Button'
 import TabScreen from '../components/TabScreen'
+import AvatarEditor from '../components/profile/AvatarEditor'
+import ProfileDetailsForm from '../components/profile/ProfileDetailsForm'
+import ReviewsCard from '../components/profile/ReviewsCard'
 import SellingHistoryPanel from '../components/profile/SellingHistoryPanel'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
+import { TOAST_VARIANTS, useToast } from '../context/toastContext'
+import useProfile from '../hooks/useProfile'
 import { getDisplayName } from '../utils/userProfile'
 import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../theme/designTokens'
 import type { ListingWithImages } from '../types/domain'
@@ -122,6 +127,80 @@ interface SignedInProfileProps {
 
 function SignedInProfile({ user, onSelectListing }: SignedInProfileProps) {
   const [activeTab, setActiveTab] = useState<ProfileTab>(PROFILE_TABS.ACCOUNT)
+  const profile = useProfile()
+  const { showToast } = useToast()
+  const memberSinceLabel = new Date(user.created_at).toLocaleDateString('en-PH', {
+    year: 'numeric',
+    month: 'long',
+  })
+
+  const handleSave = async () => {
+    const saved = await profile.saveProfile()
+    if (saved) {
+      showToast('Profile updated.', TOAST_VARIANTS.SUCCESS)
+    }
+  }
+
+  const renderAccount = () => {
+    if (profile.isInitialLoading) {
+      return (
+        <View style={styles.loadingBlock}>
+          <ActivityIndicator color={COLORS.primary} />
+        </View>
+      )
+    }
+    if (profile.loadError) {
+      return (
+        <View style={styles.card}>
+          <Text accessibilityRole="alert" style={[TYPE.bodySm, styles.errorText]}>
+            {profile.loadError}
+          </Text>
+          <View style={styles.retryWrap}>
+            <Button label="Try again" onPress={profile.retryLoad} />
+          </View>
+        </View>
+      )
+    }
+    return (
+      <>
+        <AvatarEditor
+          avatarUrl={profile.displayAvatarUrl}
+          fallbackInitials={profile.fallbackInitials}
+          displayName={profile.fullName || getDisplayName(user)}
+          email={user.email ?? ''}
+          memberSinceLabel={memberSinceLabel}
+          hasAvatar={profile.hasAvatar}
+          hasPendingFile={profile.hasPendingFile}
+          isRemovalStaged={profile.isRemovalStaged}
+          busy={profile.avatarBusy || profile.isSaving}
+          error={profile.avatarError}
+          urlError={profile.avatarUrlError}
+          previewNote={profile.previewNote}
+          onPickFile={profile.pickAvatar}
+          onRemove={profile.onRequestRemoveAvatar}
+          onCancel={profile.onCancelAvatarChange}
+        />
+        <ProfileDetailsForm
+          fullName={profile.fullName}
+          phoneInput={profile.phoneInput}
+          errors={profile.errors}
+          isSaving={profile.isSaving}
+          canSave={profile.canSave}
+          isDirty={profile.isDirty}
+          saveError={profile.saveError}
+          onNameChange={profile.onNameChange}
+          onPhoneChange={profile.onPhoneChange}
+          onNameBlur={profile.onNameBlur}
+          onPhoneBlur={profile.onPhoneBlur}
+          onSave={handleSave}
+        />
+        <ReviewsCard
+          ratingAvg={profile.ratingAvg}
+          ratingCount={profile.ratingCount}
+        />
+      </>
+    )
+  }
 
   return (
     <View style={styles.panel}>
@@ -131,19 +210,7 @@ function SignedInProfile({ user, onSelectListing }: SignedInProfileProps) {
       </Text>
       <ProfileTabs activeTab={activeTab} onSelect={setActiveTab} />
       {activeTab === PROFILE_TABS.ACCOUNT ? (
-        <>
-          <View style={styles.card}>
-            <View style={styles.detailRow}>
-              <Text style={[TYPE.captionSm, styles.detailKey]}>Email</Text>
-              <Text style={[TYPE.bodySm, styles.detailValue]} numberOfLines={2}>
-                {user.email}
-              </Text>
-            </View>
-          </View>
-          <Text style={[TYPE.captionSm, styles.status]}>
-            Signed in on this device. Sign out lives in the tab bar.
-          </Text>
-        </>
+        renderAccount()
       ) : (
         <SellingHistoryPanel onSelectListing={onSelectListing} />
       )}
@@ -225,14 +292,16 @@ const styles = StyleSheet.create({
   status: {
     color: COLORS.mute,
   },
-  detailRow: {
-    gap: SPACING.xs,
+  loadingBlock: {
+    paddingVertical: SPACING.xxl,
+    alignItems: 'center',
   },
-  detailKey: {
-    color: COLORS.mute,
-  },
-  detailValue: {
+  errorText: {
     color: COLORS.ink,
+  },
+  retryWrap: {
+    marginTop: SPACING.lg,
+    alignSelf: 'flex-start',
   },
   tabRow: {
     flexDirection: 'row',

@@ -4,10 +4,12 @@ Expo SDK 57 (managed workflow) + React Navigation v7 + TypeScript (`strict`),
 migrating from JavaScript phase by phase. Ships the **light-only landing screen**, the tab shell, the
 **marketplace** — browse feed, 3-step posting wizard (photo + map pin),
 listing detail with owner actions (mark sold / remove), and the
-**location picker** — **full email/password auth** (login / register /
-forgot password with in-app email-link returns), the **Selling history**
-profile tab, and the **Palay Assistant chat** (root-level bottom sheet over
-the tabs); scanning and community flows arrive in later phases.
+**location picker** — the live **Community forum** (feed, categories,
+threads, comments, hearts, photos), **full email/password auth** (login /
+register / forgot password with in-app email-link returns), toast
+notifications, the **Selling history** profile tab, and the **Palay
+Assistant chat** (root-level bottom sheet over the tabs); the scanning flow
+arrives in a later phase.
 
 ## Requirements
 
@@ -71,29 +73,45 @@ src/
 ├── theme/designTokens.ts   All DESIGN.md tokens (colors, type scale, spacing, radius) — the only place raw values appear
 ├── components/             BrandBar, Section, SectionHeader, Icon (react-native-svg port of the web icon set),
 │   │                       Button, FeatureNotice, TabScreen, AppTabBar (custom bottom tab bar), Photo,
-│   │                       AuthModal (multi-view auth dialog)
+│   │                       AuthModal (multi-view auth dialog), Toast (root toast panel),
+│   │                       AuthToasts (sign-in / sign-out announcements), FullPageMessage +
+│   │                       RootErrorFallback (error / not-found shell)
 │   ├── chat/               ChatLauncher (floating button over the tabs), ChatModal (root bottom-sheet overlay)
 │   ├── marketplace/        ListingCard, ListingCardSkeleton, ListingFilters, ListingFeed (marketplace browse UI),
 │   │                       MapPicker + mapConfig/mapHtml (WebView Leaflet location picker + detail map),
 │   │                       ListingLocationMap (read-only detail map), PostListingImageUploader (camera/library photo step)
-│   ├── profile/            SellingHistoryPanel + SellingHistoryRow (profile "Selling history" tab)
+│   ├── profile/            AvatarEditor + ProfileDetailsForm + ReviewsCard (Account tab),
+│   │                       SellingHistoryPanel + SellingHistoryRow (Selling history tab)
+│   ├── forum/              ForumPostCard(+Skeleton), ForumPostImage, AuthorBadge, HeartButton,
+│   │                       ForumCategorySection, ForumFilters, ForumImageUploader, CommentComposer,
+│   │                       CommentItem, DeleteInlineConfirm (community feed/thread/editor UI)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
+├── context/                authContext + AuthProvider (session + overlays), toastContext + ToastProvider
+│   │                       (root toast layer, under the modal overlays)
 ├── screens/                LandingScreen (intro), MainTabs, Marketplace (feed), ListingDetail (root-stack push),
-│   │                       PostListing (3-step wizard), Community/Scan/Settings tab screens
+│   │                       PostListing (3-step wizard), ForumThread + ForumPostEditor (root-stack pushes),
+│   │                       Community (forum feed), NotFound (unknown-address fallback), Scan/Settings tab screens
 ├── services/               supabaseClient (AsyncStorage session persistence), auth
 │   │                       (sign-in/up/out, reset, deep-link hand-off), chatbot (sendChatMessage), listings
 │   │                       (browse + create/upload/soft-delete/status/my-listings), geocode (place search +
-│   │                       reverse geocoding through the backend)
+│   │                       reverse geocoding through the backend), signedUrlCache (shared 60s/45s cache),
+│   │                       forum (posts/comments/reactions/images + category counts),
+│   │                       profile (fetch/upsert/name sync + avatar upload/remove/URLs)
 ├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
 │   │                       useImagePicker (camera/library + permissions + compression), usePostListing,
 │   │                       useListingActions (mark sold / remove), useMyListings,
+│   │                       useForumPosts, useForumPost, useForumComments, useForumPostEditor,
+│   │                       useForumCategoryCounts, useForumImagePicker, useForumImageUrl,
+│   │                       useProfile (account details + staged avatar),
 │   │                       usePalayAssistant (chat state + history), usePulseOpacity
 ├── types/                  database.ts (generated Supabase types; copy of the website file) + api.ts (backend contracts)
 ├── utils/                  format.ts — listing label maps, PHP price, date + relative-time formatters;
 │   │                       validation.ts — NAME/EMAIL_PATTERN ports; userProfile.ts — display-name
-│   │                       resolution; authUrlHint.ts — auth return-URL builder/parser;
+│   │                       resolution + initials; authUrlHint.ts — auth return-URL builder/parser;
 │   │                       image.ts — validate/compress/decode photo bytes; listingValidation.ts — wizard
-│   │                       step gate; listingEvents.ts — listings-changed broadcast
+│   │                       step gate; listingEvents.ts — listings-changed broadcast;
+│   │                       forumCategories.ts + forumValidation.ts + forumEvents.ts — forum vocabulary/gate/events;
+│   │                       profileValidation.ts — PH phone formats + E.164 normalization
 └── data/                   paddySlides.ts — landing slide content, mirrored from website/src/data
 ```
 
@@ -237,6 +255,81 @@ price + unit, and a category / Listed · Sold · Deleted date line. Deleted
 rows are read-only; active and sold rows push **ListingDetail** for owner
 actions, and the list reloads through the listings-changed event.
 
+### Profile management (current)
+
+The Settings **Account** tab is the profile surface (`hooks/useProfile.ts` +
+`services/profile.ts`, the web profile page trimmed to its Account tab):
+
+- **Avatar** — `AvatarEditor` shows the saved photo (signed URL) or the
+  initials monogram, with "Change photo" (library picker → validate →
+  `compressImage` at `MAX_AVATAR_DIMENSION = 512`), a destructive "Remove
+  photo", and an undo/keep action while a change is staged. The photo uploads
+  as a base64-decoded `ArrayBuffer` to the private `avatars` bucket at
+  `{user_id}/avatar.jpg`.
+- **Account details** — full name (required, 2–60 chars) and the optional PH
+  contact number (`profileValidation.ts` normalizes `0917…`, `63…`, and
+  `+63…` to E.164; the hint documents both display forms). Save uploads the
+  photo, upserts the `profiles` row, and — when the name changed — syncs
+  `user_metadata.full_name` so the rest of the app reflects it; success shows
+  a toast, failures render inline.
+- **Ratings & reviews** — the read-only `ReviewsCard` placeholder
+  (stars from `profiles.rating_avg/count`, "Reviews open with the next
+  release."); review submission is deferred (needs a schema migration).
+
+### Toast notifications (current)
+
+A root-level toast layer (`context/ToastProvider.tsx` + `components/Toast.tsx`,
+port of the web system) stacks up to four canvas panels at the top of the
+screen with a 1px variant border (success `primary` / info `hairline` / error
+`error`), a matching leading glyph, and a 44px close affordance; each
+auto-dismisses after 4s and the viewport announces politely. It renders above
+screens but under the auth/chat `Modal` overlays — every call site fires as an
+overlay closes. `components/AuthToasts.tsx` announces sign-in/sign-out only
+(the cold-start session restore is never toasted, and email-verification
+feedback stays in the auth dialog); posting and owner actions surface their
+success through the same layer.
+
+### Community forum (current)
+
+The **Community** tab is the live forum (website `/forum` parity), backed by
+`services/forum.ts` and the forum tables copied into `src/types/database.ts`:
+
+- **Feed** — hero with "Start a discussion", a collapsible "Browse by category"
+  band (2-up tiles, icon + count + description, counts from the
+  `forum_category_counts` RPC with an inline retry), a surface-soft toolbar
+  (search + All/7 category pills with counts), and a paginated list of
+  discussion cards (author monogram + relative time, category chip, title,
+  3-line excerpt beside the first photo thumbnail, heart + reply count).
+  Filter/search changes remount the keyed feed to reset pagination.
+- **Thread** (`ForumThread` root-stack push) — the post (title, body, 4:3
+  photos, heart, owner Edit/Delete via the shared two-tap confirm) over an
+  oldest-first comment list with Load more and a composer. Signed-out actions
+  open the auth dialog; a signed-out comment prompt swaps in.
+- **Editor** (`ForumPostEditor` root-stack push) — title, category pills, a
+  multiline body, and up to four photos via `useForumImagePicker` +
+  `ForumImageUploader` (kept/removed/new tiles, used-slot counter, processing
+  spinner). `useForumPostEditor` creates then uploads (rolling back on failure)
+  or edits in place; validation is the shared `forumValidation.ts`.
+- **Reactions** — `HeartButton` is optimistic (±1 clamped) with rollback and an
+  inline error, on posts and comments; mutations broadcast through
+  `utils/forumEvents.ts`, so the feed and counts refresh behind the thread.
+- Feedback is inline (mobile has no toast requirement here); the section is
+  fully tested (`forum.test.ts`, `forumValidation.test.ts`, `HeartButton`,
+  plus the feed/thread coverage).
+
+### Error &amp; not-found surfaces (current)
+
+`components/FullPageMessage.tsx` is the mobile port of the web full-page shell
+(full-viewport canvas, centered `surface-soft` panel, neutral/error border,
+optional glyph, title/message/actions). A root `ErrorBoundary`
+(`react-error-boundary`, avoiding class components per AGENTS.md) wraps the
+navigator and renders `RootErrorFallback` on a render crash — friendly copy,
+`role="alert"`, and a "Try again" that resets the boundary, with the error
+logged only to the console. `screens/NotFoundScreen.tsx` (registered as the
+`NotFound` route) uses the neutral variant for unknown/unhandled navigation
+targets, mirroring the web not-found copy ("Go to Marketplace" / "Back to
+home").
+
 ### Palay Assistant (current)
 
 The same backend assistant as the website (`POST /api/chat`, Groq model,
@@ -326,9 +419,9 @@ password-reset links return into the app via its URL scheme:
   any open overlay first), then resets the root stack to the Landing intro.
 - Tab content is honest, designed placeholder panels (`FeatureNotice`):
   each states what the phase will bring — no fake data, no dead controls.
-  Marketplace (browse + posting + owner actions) and Settings (account +
-  Selling history) are live; community and scanning flows replace the
-  remaining panels phase by phase. The assistant launcher floats over all
+  Marketplace (browse + posting + owner actions), Community (forum), and
+  Settings (account + Selling history) are live; the scanning flow replaces
+  the remaining panel in a later phase. The assistant launcher floats over all
   tabs and the auth dialog overlays everything when open.
 - Landing CTA buttons, nav auth links, and the early-access form stay absent:
   sign-in lives behind the assistant launcher and the Settings tab.
