@@ -20,6 +20,7 @@ const IMAGE: PreparedImage = {
   uri: 'file:///prepared.jpg',
   width: 1600,
   height: 1200,
+  base64: 'ZmFrZQ==',
 }
 
 describe('validateListingStep step 1 (details)', () => {

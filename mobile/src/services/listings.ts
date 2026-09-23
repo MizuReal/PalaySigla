@@ -6,7 +6,7 @@
 // Photo bytes are read from the local file URI and uploaded to the private
 // `listings` bucket under the owner's uid path.
 import { supabase } from './supabaseClient'
-import { readPreparedImageBytes } from '../utils/image'
+import { decodePreparedImage } from '../utils/image'
 import type { PreparedImage } from '../utils/image'
 import type { ListingWithImages } from '../types/domain'
 
@@ -231,7 +231,7 @@ export async function uploadListingImage(
   position = 0
 ): Promise<string> {
   const storagePath = `${userId}/${listingId}/${position}.jpg`
-  const bytes = await readPreparedImageBytes(image)
+  const bytes = decodePreparedImage(image)
   const { error: uploadError } = await supabase.storage
     .from(LISTING_IMAGE_BUCKET)
     .upload(storagePath, bytes, { contentType: 'image/jpeg', upsert: false })

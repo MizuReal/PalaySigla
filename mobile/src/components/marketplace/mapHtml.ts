@@ -1,7 +1,9 @@
-// Leaflet document rendered inside the picker's react-native-webview. The
-// map is a thin bridge: clicks and pin drags post `{type: 'pick', lat, lng}`
-// to React Native, the native side owns search and reverse geocoding, and
-// `setMarker` is injected back to move the pin. Only finite coordinates are
+// Leaflet documents rendered inside react-native-webview map frames. The
+// picker document is a thin bridge: clicks and pin drags post
+// `{type: 'pick', lat, lng}` to React Native, the native side owns search and
+// reverse geocoding, and `setMarker` is injected back to move the pin. The
+// detail document is read-only: drag disabled so it never fights the screen
+// scroll, pinch-zoom kept, one static marker. Only finite coordinates are
 // interpolated, so no user-supplied text ever reaches the HTML.
 import { COLORS } from '../../theme/designTokens'
 import {
@@ -25,6 +27,11 @@ export interface MapHtmlOptions {
   position: MapPosition | null
 }
 
+export interface MapViewHtmlOptions {
+  lat: number
+  lng: number
+}
+
 function formatCoordinate(value: number): string {
   if (!Number.isFinite(value)) {
     throw new RangeError('Map coordinates must be finite numbers.')
@@ -42,6 +49,28 @@ export function buildSetMarkerScript(position: MapPosition, flyTo: boolean): str
   return `window.setMarker && window.setMarker(${formatPosition(position)}, ${flyTo}); true;`
 }
 
+function buildMapHead(): string {
+  return `  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="${LEAFLET_STYLESHEET_URL}" />
+    <style>
+      html, body, #map { height: 100%; margin: 0; }
+      body { background: ${COLORS.surfaceSoft}; }
+      .leaflet-control-attribution { font-size: 10px; }
+    </style>
+  </head>`
+}
+
+function buildPinIconScript(): string {
+  return `var PIN_ICON = L.divIcon({
+          className: '',
+          html: '<svg viewBox="0 0 24 24" width="${PIN_ICON_WIDTH}" height="${PIN_ICON_HEIGHT}" aria-hidden="true"><path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z" fill="${PIN_ICON_FILL}" stroke="${PIN_ICON_STROKE}" stroke-width="1.5"/><circle cx="12" cy="10" r="2.5" fill="${PIN_ICON_DOT}" stroke="none"/></svg>',
+          iconSize: [${PIN_ICON_WIDTH}, ${PIN_ICON_HEIGHT}],
+          iconAnchor: [${PIN_ICON_ANCHOR[0]}, ${PIN_ICON_ANCHOR[1]}]
+        });`
+}
+
 export function buildMapHtml({ position }: MapHtmlOptions): string {
   const initialCenter = formatPosition(position ?? PHILIPPINES_CENTER)
   const initialZoom = position ? PICK_ZOOM : DEFAULT_ZOOM
@@ -49,30 +78,13 @@ export function buildMapHtml({ position }: MapHtmlOptions): string {
 
   return `<!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <link rel="stylesheet" href="${LEAFLET_STYLESHEET_URL}" />
-    <style>
-      html, body, #map { height: 100%; margin: 0; }
-      body { background: ${COLORS.surfaceSoft}; }
-      .leaflet-control-attribution { font-size: 10px; }
-    </style>
-  </head>
+${buildMapHead()}
   <body>
     <div id="map"></div>
     <script src="${LEAFLET_SCRIPT_URL}"></script>
     <script>
       (function () {
-        var PIN_ICON = L.divIcon({
-          className: '',
-          html: '<svg viewBox="0 0 24 24" width="${PIN_ICON_WIDTH}" height="${PIN_ICON_HEIGHT}" aria-hidden="true"><path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z" fill="${PIN_ICON_FILL}" stroke="${PIN_ICON_STROKE}" stroke-width="1.5"/><circle cx="12" cy="10" r="2.5" fill="${PIN_ICON_DOT}" stroke="none"/></svg>',
-          iconSize: [${PIN_ICON_WIDTH}, ${PIN_ICON_HEIGHT}],
-          iconAnchor: [${PIN_ICON_ANCHOR[0]}, ${PIN_ICON_ANCHOR[1]}]
-        });
+        ${buildPinIconScript()}
         var map = L.map('map').setView([${initialCenter}], ${initialZoom});
         L.tileLayer('${MAP_TILE_URL}', { attribution: '${MAP_ATTRIBUTION}' }).addTo(map);
         var marker = null;
@@ -101,6 +113,33 @@ export function buildMapHtml({ position }: MapHtmlOptions): string {
           postMessage({ type: 'pick', lat: event.latlng.lat, lng: event.latlng.lng });
         });
         ${initialMarker}
+        postMessage({ type: 'ready' });
+      })();
+    </script>
+  </body>
+</html>`
+}
+
+export function buildMapViewHtml({ lat, lng }: MapViewHtmlOptions): string {
+  const position = formatPosition([lat, lng])
+
+  return `<!DOCTYPE html>
+<html>
+${buildMapHead()}
+  <body>
+    <div id="map"></div>
+    <script src="${LEAFLET_SCRIPT_URL}"></script>
+    <script>
+      (function () {
+        ${buildPinIconScript()}
+        function postMessage(payload) {
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+          }
+        }
+        var map = L.map('map', { dragging: false, scrollWheelZoom: false }).setView([${position}], ${PICK_ZOOM});
+        L.tileLayer('${MAP_TILE_URL}', { attribution: '${MAP_ATTRIBUTION}' }).addTo(map);
+        L.marker([${position}], { icon: PIN_ICON, interactive: false }).addTo(map);
         postMessage({ type: 'ready' });
       })();
     </script>

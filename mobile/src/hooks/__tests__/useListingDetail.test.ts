@@ -73,4 +73,23 @@ describe('useListingDetail', () => {
     expect(result.current.listing).toBeNull()
     expect(result.current.imageUrl).toBe('')
   })
+
+  it('keeps the listing when the photo URL fails to resolve', async () => {
+    const listing = {
+      id: 'L4',
+      title: 'Palay',
+      listing_images: [{ storage_path: 'u1/L4/0.jpg' }],
+    } as unknown as ListingWithImages
+    mockedGetListing.mockResolvedValue(listing)
+    mockedGetListingImageUrl.mockRejectedValue(
+      new Error('Could not load the listing photo.')
+    )
+
+    const { result } = await renderHook(() => useListingDetail('L4'))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    expect(result.current.listing).toEqual(listing)
+    expect(result.current.imageUrl).toBe('')
+    expect(result.current.error).toBe('')
+  })
 })

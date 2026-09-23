@@ -2,7 +2,12 @@
 import { fireEvent, render } from '@testing-library/react-native'
 import PostListingImageUploader from '../PostListingImageUploader'
 
-const IMAGE = { uri: 'file:///cache/prepared.jpg', width: 1600, height: 1200 }
+const IMAGE = {
+  uri: 'file:///cache/prepared.jpg',
+  width: 1600,
+  height: 1200,
+  base64: 'ZmFrZQ==',
+}
 
 function buildProps(overrides: Record<string, unknown> = {}) {
   return {

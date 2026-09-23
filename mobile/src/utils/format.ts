@@ -5,6 +5,7 @@ import type { ListingCategory, ListingUnit } from '../services/listings'
 const MINUTE_MS = 60_000
 const HOUR_MS = 60 * MINUTE_MS
 const DAY_MS = 24 * HOUR_MS
+const COORDINATE_DECIMALS = 4
 
 const DATE_OPTIONS: Intl.DateTimeFormatOptions = Object.freeze({
   year: 'numeric',
@@ -36,6 +37,19 @@ const priceFormatter = new Intl.NumberFormat('en-PH', {
 
 export function formatPrice(price: number): string {
   return priceFormatter.format(price)
+}
+
+function formatCoordinate(
+  value: number,
+  positiveHemisphere: string,
+  negativeHemisphere: string
+): string {
+  const hemisphere = value >= 0 ? positiveHemisphere : negativeHemisphere
+  return `${Math.abs(value).toFixed(COORDINATE_DECIMALS)}° ${hemisphere}`
+}
+
+export function formatCoordinates(lat: number, lng: number): string {
+  return `${formatCoordinate(lat, 'N', 'S')}, ${formatCoordinate(lng, 'E', 'W')}`
 }
 
 export function formatDate(isoTimestamp: string): string {

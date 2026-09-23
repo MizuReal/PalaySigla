@@ -39,6 +39,7 @@ const PREPARED = {
   uri: 'file:///cache/prepared.jpg',
   width: 800,
   height: 600,
+  base64: 'ZmFrZQ==',
 }
 
 beforeEach(() => {

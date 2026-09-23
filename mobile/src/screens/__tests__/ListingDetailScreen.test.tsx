@@ -1,4 +1,5 @@
 /// <reference types="jest" />
+import { Linking } from 'react-native'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
@@ -6,6 +7,16 @@ const mockGoBack = jest.fn()
 const mockMarkSold = jest.fn()
 const mockRemove = jest.fn()
 const mockClearError = jest.fn()
+
+interface MockLocationMapProps {
+  lat: number
+  lng: number
+  locationLabel: string
+}
+
+const mockLocationMapProps: { current: MockLocationMapProps | null } = {
+  current: null,
+}
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ goBack: mockGoBack }),
@@ -19,6 +30,14 @@ jest.mock('../../components/Photo', () => ({
   __esModule: true,
   default: () => null,
 }))
+
+jest.mock('../../components/marketplace/ListingLocationMap', () => {
+  function MockListingLocationMap(props: MockLocationMapProps) {
+    mockLocationMapProps.current = props
+    return null
+  }
+  return { __esModule: true, default: MockListingLocationMap }
+})
 
 jest.mock('../../hooks/useListingDetail', () => ({
   __esModule: true,
@@ -77,6 +96,7 @@ function buildProps() {
 
 beforeEach(() => {
   jest.resetAllMocks()
+  mockLocationMapProps.current = null
   mockedUseListingDetail.mockReturnValue({
     listing: LISTING,
     imageUrl: '',
@@ -146,5 +166,52 @@ describe('ListingDetailScreen owner actions', () => {
 
     expect(screen.queryByRole('button', { name: 'Mark as sold' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Remove listing' })).toBeNull()
+  })
+})
+
+describe('ListingDetailScreen location section', () => {
+  it('shows the map label and four-decimal coordinates', async () => {
+    const screen = await render(<ListingDetailScreen {...buildProps()} />)
+
+    expect(screen.getByText('Location')).toBeTruthy()
+    expect(screen.getByText('Baliuag, Bulacan')).toBeTruthy()
+    expect(screen.getByText('14.9548° N, 120.8969° E')).toBeTruthy()
+    expect(mockLocationMapProps.current).toEqual({
+      lat: 14.9548,
+      lng: 120.8969,
+      locationLabel: 'Baliuag, Bulacan',
+    })
+  })
+
+  it('opens OpenStreetMap from the link', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true)
+    const screen = await render(<ListingDetailScreen {...buildProps()} />)
+
+    await fireEvent.press(
+      screen.getByRole('link', { name: 'Open in OpenStreetMap' })
+    )
+
+    await waitFor(() =>
+      expect(openURL).toHaveBeenCalledWith(
+        expect.stringContaining('mlat=14.9548')
+      )
+    )
+  })
+
+  it('hides the location section without finite coordinates', async () => {
+    mockedUseListingDetail.mockReturnValue({
+      listing: {
+        ...LISTING,
+        lat: Number.NaN,
+        lng: Number.NaN,
+      } as ListingWithImages,
+      imageUrl: '',
+      isLoading: false,
+      error: '',
+    })
+    const screen = await render(<ListingDetailScreen {...buildProps()} />)
+
+    expect(screen.queryByText('Location')).toBeNull()
+    expect(screen.queryByText('Open in OpenStreetMap')).toBeNull()
   })
 })

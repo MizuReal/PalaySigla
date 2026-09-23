@@ -74,8 +74,8 @@ src/
 │   │                       AuthModal (multi-view auth dialog)
 │   ├── chat/               ChatLauncher (floating button over the tabs), ChatModal (root bottom-sheet overlay)
 │   ├── marketplace/        ListingCard, ListingCardSkeleton, ListingFilters, ListingFeed (marketplace browse UI),
-│   │                       MapPicker + mapConfig/mapHtml (WebView Leaflet location picker),
-│   │                       PostListingImageUploader (camera/library photo step)
+│   │                       MapPicker + mapConfig/mapHtml (WebView Leaflet location picker + detail map),
+│   │                       ListingLocationMap (read-only detail map), PostListingImageUploader (camera/library photo step)
 │   ├── profile/            SellingHistoryPanel + SellingHistoryRow (profile "Selling history" tab)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
 ├── screens/                LandingScreen (intro), MainTabs, Marketplace (feed), ListingDetail (root-stack push),
@@ -92,7 +92,7 @@ src/
 ├── utils/                  format.ts — listing label maps, PHP price, date + relative-time formatters;
 │   │                       validation.ts — NAME/EMAIL_PATTERN ports; userProfile.ts — display-name
 │   │                       resolution; authUrlHint.ts — auth return-URL builder/parser;
-│   │                       image.ts — validate/compress/read photo bytes; listingValidation.ts — wizard
+│   │                       image.ts — validate/compress/decode photo bytes; listingValidation.ts — wizard
 │   │                       step gate; listingEvents.ts — listings-changed broadcast
 └── data/                   paddySlides.ts — landing slide content, mirrored from website/src/data
 ```
@@ -131,8 +131,9 @@ ride the anon key + RLS, which allows selecting non-deleted listings):
   same pattern the web page uses.
 - Tapping a listing pushes **ListingDetail** on the root stack above the
   tab bar: eager 4:3 photo, category badge + "Sold" chip, title, price +
-  unit, optional quantity and description, and the seller block with the
-  map-pinned location label and posted time.
+  unit, optional quantity and description, the owner action block, a static
+  read-only map of the pinned location with an "Open in OpenStreetMap" link
+  and four-decimal coordinates, and the seller block (name + posted time).
 - **Posting and owner management are live.** The "Post a listing" CTA opens
   the auth dialog when signed out (web parity: sign in, then tap again) and
   pushes the posting wizard when signed in; signed-in owners get Mark as
@@ -168,6 +169,19 @@ The posting wizard's third step is a self-contained, controlled `MapPicker`
   `geocode.test.ts`); the posting wizard mounts it as the third step, where
   the position + label pair feeds the listing form.
 
+### Listing detail map (current)
+
+The detail screen's read-only `ListingLocationMap`
+(`components/marketplace/ListingLocationMap.tsx`) renders
+`buildMapViewHtml` from the same WebView Leaflet stack as the picker:
+centered on the listing at the pick zoom, static (dragging disabled,
+pinch-zoom kept, no bridge), with the mandatory OSM attribution; external
+navigations open through `Linking`. The screen pairs it with the "Open in
+OpenStreetMap" link (`buildOpenStreetMapUrl`), the pinned address, and
+`formatCoordinates` (4 decimals, N/S/E/W); a WebView error or a missing
+ready handshake within five seconds shows a labeled "Map unavailable."
+placeholder, and rows without finite coordinates hide the section entirely.
+
 ### Post a listing (current)
 
 The **Post a listing** CTA in the marketplace hero pushes a full-screen
@@ -186,8 +200,12 @@ three-step wizard (`screens/PostListingScreen.tsx`) — the web
   an "Open settings" link) and "Choose from library" (no runtime permission
   needed on SDK 57 pickers). Captures stay at full resolution; `utils/image.ts`
   re-encodes to ≤1600px JPEG 0.82, which strips EXIF/GPS, and the 10 MB cap
-  applies to the compressed upload payload. Android's
-  `getPendingResultAsync` recovers a capture if the OS killed the app.
+  applies to the compressed upload payload. The compressed image also carries
+  its base64 payload, which the upload decodes to an `ArrayBuffer` (React
+  Native cannot reliably read a local file for upload); an empty payload is
+  rejected before it can be saved, so a bad photo can never post silently.
+  Android's `getPendingResultAsync` recovers a capture if the OS killed the
+  app.
 - **Submit.** `hooks/usePostListing.ts` creates the listing row, uploads the
   JPEG to the private `listings` bucket at `{user_id}/{listing_id}/0.jpg`,
   and inserts the `listing_images` row; a failed upload rolls the listing

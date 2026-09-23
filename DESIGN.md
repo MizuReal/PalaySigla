@@ -850,6 +850,22 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   `{colors.mute}`: "Finding the address…" then "Location set — drag the pin
   or tap the map to adjust."). A WebView load failure swaps the frame for a
   hairline panel with a "Reload map" button instead of failing silently.
+- **Listing detail map-view.** The detail screen renders the seller's pinned
+  location as a static read-only frame — the web `{component.map-view}` at
+  phone scale: 280px tall, `{colors.surface-soft}` fill with a 1px
+  `{colors.hairline}` border and the 2px radius, sharing the Leaflet 1.9.4 /
+  OSM tiles / mandatory attribution / primary pin identity. Dragging is
+  disabled and scroll-wheel zoom is off so the map never fights the screen
+  scroll while pinch-zoom stays available. Above it, a
+  `{typography.caption-md}` `{colors.primary}` "Location" header pairs with
+  a `{typography.caption-sm}` `{colors.link-blue}` "Open in OpenStreetMap"
+  link (opens externally); below it, the pin + address line
+  (`{typography.body-sm}` `{colors.ink}`) and the four-decimal coordinates
+  (`{typography.caption-sm}` `{colors.mute}`). When the map fails to
+  initialise — a WebView error or a missing ready handshake within five
+  seconds — the frame swaps for a `{colors.surface-soft}` placeholder with a
+  `{colors.stone}` pin glyph and a "Map unavailable." caption, never a
+  silent blank.
 - **Marketplace posting wizard.** A full-screen root-stack push (the web
   posting modal's mobile equivalent) with the standard 44px back chrome.
   Header: `{typography.caption-md}` `{colors.primary}` eyebrow "Post a

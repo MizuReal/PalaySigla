@@ -42,7 +42,12 @@ const INPUT: PostListingInput = {
   lat: 14.9548,
   lng: 120.8969,
   locationLabel: 'Baliuag, Bulacan',
-  image: { uri: 'file:///cache/prepared.jpg', width: 1600, height: 1200 },
+  image: {
+    uri: 'file:///cache/prepared.jpg',
+    width: 1600,
+    height: 1200,
+    base64: 'ZmFrZQ==',
+  },
 }
 
 beforeEach(() => {

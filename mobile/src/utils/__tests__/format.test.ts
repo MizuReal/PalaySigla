@@ -1,5 +1,30 @@
 /// <reference types="jest" />
-import { CATEGORY_LABELS, UNIT_LABELS, formatPrice, formatRelativeTime } from '../format'
+import {
+  CATEGORY_LABELS,
+  UNIT_LABELS,
+  formatCoordinates,
+  formatPrice,
+  formatRelativeTime,
+} from '../format'
+
+describe('formatCoordinates', () => {
+  it('renders hemispheres and four fixed decimals', () => {
+    expect(formatCoordinates(14.9548, 120.8969)).toBe(
+      '14.9548° N, 120.8969° E'
+    )
+  })
+
+  it('pads shorter values and switches hemispheres', () => {
+    expect(formatCoordinates(-8.5, 2.25)).toBe('8.5000° S, 2.2500° E')
+    expect(formatCoordinates(0, -122.4194)).toBe('0.0000° N, 122.4194° W')
+  })
+
+  it('uses absolute values for negative coordinates', () => {
+    expect(formatCoordinates(-14.9548, -120.8969)).toBe(
+      '14.9548° S, 120.8969° W'
+    )
+  })
+})
 
 describe('formatPrice', () => {
   it('formats PHP amounts with the en-PH peso symbol', () => {

@@ -23,7 +23,9 @@ interface ListingCardProps {
 
 function ListingCard({ listing, onPress }: ListingCardProps) {
   const image = listing.listing_images?.[0]
-  const imageUrl = useListingImageUrl(image ? image.storage_path : '')
+  const { url: imageUrl, isLoading: isImageLoading } = useListingImageUrl(
+    image ? image.storage_path : ''
+  )
   const categoryLabel = CATEGORY_LABELS[listing.category]
   const unitLabel = UNIT_LABELS[listing.unit]
 
@@ -39,7 +41,7 @@ function ListingCard({ listing, onPress }: ListingCardProps) {
           uri={imageUrl}
           alt={listing.title}
           fallbackLabel={listing.title}
-          loading={Boolean(image) && !imageUrl}
+          loading={isImageLoading}
           style={styles.photo}
         />
         <View pointerEvents="none" style={styles.chip}>

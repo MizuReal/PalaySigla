@@ -9,7 +9,7 @@ import {
   PHILIPPINES_CENTER,
   PICK_ZOOM,
 } from '../mapConfig'
-import { buildMapHtml, buildSetMarkerScript } from '../mapHtml'
+import { buildMapHtml, buildMapViewHtml, buildSetMarkerScript } from '../mapHtml'
 
 const PICKED: [number, number] = [14.9548, 120.8969]
 
@@ -71,5 +71,37 @@ describe('buildSetMarkerScript', () => {
 
   it('rejects non-finite coordinates', () => {
     expect(() => buildSetMarkerScript([Number.NaN, 120], false)).toThrow(RangeError)
+  })
+})
+
+describe('buildMapViewHtml', () => {
+  it('centers on the listing with the same tiles, attribution, and pin', () => {
+    const html = buildMapViewHtml({ lat: 14.9548, lng: 120.8969 })
+
+    expect(html).toContain(LEAFLET_STYLESHEET_URL)
+    expect(html).toContain(LEAFLET_SCRIPT_URL)
+    expect(html).toContain(MAP_TILE_URL)
+    expect(html).toContain(MAP_ATTRIBUTION)
+    expect(html).toContain(`setView([14.9548, 120.8969], ${PICK_ZOOM})`)
+    expect(html).toContain(`fill="${COLORS.primary}"`)
+    expect(html).toContain('L.marker([14.9548, 120.8969]')
+  })
+
+  it('signals ready and never installs the picker bridge', () => {
+    const html = buildMapViewHtml({ lat: 14.9548, lng: 120.8969 })
+
+    expect(html).toContain('dragging: false')
+    expect(html).toContain('scrollWheelZoom: false')
+    expect(html).toContain("postMessage({ type: 'ready' })")
+    expect(html).not.toContain("type: 'pick'")
+    expect(html).not.toContain('window.setMarker')
+    expect(html).not.toContain("map.on('click'")
+  })
+
+  it('rejects non-finite coordinates', () => {
+    expect(() => buildMapViewHtml({ lat: Number.NaN, lng: 120 })).toThrow(RangeError)
+    expect(() => buildMapViewHtml({ lat: 14, lng: Number.POSITIVE_INFINITY })).toThrow(
+      RangeError
+    )
   })
 })

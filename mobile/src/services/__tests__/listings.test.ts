@@ -296,17 +296,14 @@ describe('createListing', () => {
 })
 
 describe('uploadListingImage', () => {
-  const IMAGE = { uri: 'file:///cache/prepared.jpg', width: 1600, height: 1200 }
-
-  function mockImageBytes(bytes: ArrayBuffer): void {
-    jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue({ arrayBuffer: async () => bytes } as unknown as Response)
+  const IMAGE = {
+    uri: 'file:///cache/prepared.jpg',
+    width: 1600,
+    height: 1200,
+    base64: 'ZmFrZQ==',
   }
 
-  it('uploads the prepared bytes under the owner path and records the image row', async () => {
-    const bytes = new ArrayBuffer(16)
-    mockImageBytes(bytes)
+  it('decodes the base64 payload, uploads it under the owner path, and records the image row', async () => {
     const bucket = createStorageBucketMock()
     supabase.storage.from.mockReturnValue(bucket)
     const builder = createQueryBuilder({ data: null, error: null })
@@ -314,12 +311,13 @@ describe('uploadListingImage', () => {
 
     await expect(uploadListingImage(IMAGE, 'L1', 'u1')).resolves.toBe('u1/L1/0.jpg')
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(IMAGE.uri)
     expect(supabase.storage.from).toHaveBeenCalledWith('listings')
-    expect(bucket.upload).toHaveBeenCalledWith('u1/L1/0.jpg', bytes, {
+    expect(bucket.upload).toHaveBeenCalledWith('u1/L1/0.jpg', expect.any(ArrayBuffer), {
       contentType: 'image/jpeg',
       upsert: false,
     })
+    const uploaded = bucket.upload.mock.calls[0][1] as ArrayBuffer
+    expect(uploaded.byteLength).toBeGreaterThan(0)
     expect(supabase.from).toHaveBeenCalledWith('listing_images')
     expect(builder.insert).toHaveBeenCalledWith({
       listing_id: 'L1',
@@ -328,8 +326,17 @@ describe('uploadListingImage', () => {
     })
   })
 
+  it('rejects an empty decoded payload before uploading', async () => {
+    const bucket = createStorageBucketMock()
+    supabase.storage.from.mockReturnValue(bucket)
+
+    await expect(
+      uploadListingImage({ ...IMAGE, base64: '' }, 'L1', 'u1')
+    ).rejects.toThrow('The photo could not be read. Please choose it again.')
+    expect(bucket.upload).not.toHaveBeenCalled()
+  })
+
   it('reports storage upload failures', async () => {
-    mockImageBytes(new ArrayBuffer(16))
     const bucket = createStorageBucketMock()
     bucket.upload.mockResolvedValue({ data: null, error: { message: 'boom' } })
     supabase.storage.from.mockReturnValue(bucket)
@@ -340,7 +347,6 @@ describe('uploadListingImage', () => {
   })
 
   it('reports image row failures', async () => {
-    mockImageBytes(new ArrayBuffer(16))
     const bucket = createStorageBucketMock()
     supabase.storage.from.mockReturnValue(bucket)
     const builder = createQueryBuilder({ data: null, error: { message: 'boom' } })

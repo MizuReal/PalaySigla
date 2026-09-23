@@ -21,6 +21,9 @@ export const LEAFLET_SCRIPT_URL = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.
 // Mobile (React Native) Implementation Notes.
 export const MAP_HEIGHT = 320
 
+// Read-only detail map height — the web {component.map-view} phone spec.
+export const MAP_VIEW_HEIGHT = 280
+
 export const PIN_ICON_WIDTH = 32
 export const PIN_ICON_HEIGHT = 42
 export const PIN_ICON_ANCHOR: MapPosition = [16, 40]

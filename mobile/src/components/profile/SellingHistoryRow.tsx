@@ -63,7 +63,7 @@ interface SellingHistoryRowProps {
 function SellingHistoryRow({ listing, onSelect }: SellingHistoryRowProps) {
   const status = resolveStatus(listing)
   const image = listing.listing_images?.[0]
-  const imageUrl = useListingImageUrl(image?.storage_path ?? '')
+  const { url: imageUrl } = useListingImageUrl(image?.storage_path ?? '')
 
   const content = (
     <>

@@ -61,7 +61,12 @@ import type { RootStackParamList } from '../../types/navigation'
 const mockedUseImagePicker = jest.mocked(useImagePicker)
 const mockedUsePostListing = jest.mocked(usePostListing)
 
-const IMAGE = { uri: 'file:///cache/prepared.jpg', width: 1600, height: 1200 }
+const IMAGE = {
+  uri: 'file:///cache/prepared.jpg',
+  width: 1600,
+  height: 1200,
+  base64: 'ZmFrZQ==',
+}
 
 function buildScreenProps() {
   const navigation = {

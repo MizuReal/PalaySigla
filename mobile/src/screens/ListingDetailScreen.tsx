@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import {
   Animated,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,8 @@ import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack'
 import Icon from '../components/Icon'
+import ListingLocationMap from '../components/marketplace/ListingLocationMap'
+import { buildOpenStreetMapUrl } from '../components/marketplace/mapConfig'
 import Photo from '../components/Photo'
 import { useAuth } from '../context/authContext'
 import useListingActions from '../hooks/useListingActions'
@@ -23,6 +26,7 @@ import useListingDetail from '../hooks/useListingDetail'
 import usePulseOpacity from '../hooks/usePulseOpacity'
 import {
   CATEGORY_LABELS,
+  formatCoordinates,
   formatPrice,
   formatRelativeTime,
   UNIT_LABELS,
@@ -77,6 +81,15 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
   const [isConfirmingRemove, setIsConfirmingRemove] = useState(false)
 
   const isOwner = user !== null && listing?.user_id === user.id
+
+  const handleOpenStreetMap = async (lat: number, lng: number) => {
+    try {
+      await Linking.openURL(buildOpenStreetMapUrl(lat, lng))
+    } catch {
+      // the pin, label, and coordinates still locate the listing if the OS
+      // refuses to open the browser
+    }
+  }
 
   const handleMarkSold = async () => {
     if (!listing) {
@@ -236,13 +249,14 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
         </View>
       )
     }
+    const hasCoordinates =
+      Number.isFinite(listing.lat) && Number.isFinite(listing.lng)
     return (
       <View style={styles.content}>
         <Photo
           uri={imageUrl}
           alt={listing.title}
           fallbackLabel={listing.title}
-          loading={Boolean(listing.listing_images?.[0]) && !imageUrl}
           style={styles.photo}
         />
         <View style={styles.details}>
@@ -278,16 +292,46 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
             </Text>
           ) : null}
           {renderOwnerActions()}
+          {hasCoordinates ? (
+            <View style={styles.locationSection}>
+              <View style={styles.locationHeaderRow}>
+                <Text style={[TYPE.captionMd, styles.locationHeading]}>
+                  Location
+                </Text>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => handleOpenStreetMap(listing.lat, listing.lng)}
+                  hitSlop={SPACING.sm}
+                  style={({ pressed }) => [
+                    styles.osmLink,
+                    pressed && styles.osmLinkPressed,
+                  ]}
+                >
+                  <Text style={[TYPE.captionSm, styles.osmLinkLabel]}>
+                    Open in OpenStreetMap
+                  </Text>
+                </Pressable>
+              </View>
+              <ListingLocationMap
+                lat={listing.lat}
+                lng={listing.lng}
+                locationLabel={listing.location_label}
+              />
+              <View style={styles.locationRow}>
+                <Icon name="pin" size={16} color={COLORS.mute} />
+                <Text style={[TYPE.bodySm, styles.locationLabel]}>
+                  {listing.location_label}
+                </Text>
+              </View>
+              <Text style={[TYPE.captionSm, styles.coordinates]}>
+                {formatCoordinates(listing.lat, listing.lng)}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.sellerBlock}>
             <Text style={[TYPE.bodyStrong, styles.sellerName]}>
               {listing.seller_name}
             </Text>
-            <View style={styles.locationRow}>
-              <Icon name="pin" size={16} color={COLORS.mute} />
-              <Text style={[TYPE.captionSm, styles.locationText]}>
-                {listing.location_label}
-              </Text>
-            </View>
             <Text style={[TYPE.captionSm, styles.posted]}>
               Posted {formatRelativeTime(listing.created_at)}
             </Text>
@@ -532,14 +576,30 @@ const styles = StyleSheet.create({
   cancelLabel: {
     color: COLORS.ink,
   },
-  sellerBlock: {
+  locationSection: {
     borderTopWidth: 1,
     borderTopColor: COLORS.hairline,
     marginTop: SPACING.xxl,
     paddingTop: SPACING.lg,
   },
-  sellerName: {
-    color: COLORS.ink,
+  locationHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
+  locationHeading: {
+    color: COLORS.primary,
+  },
+  osmLink: {
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  osmLinkPressed: {
+    opacity: 0.6,
+  },
+  osmLinkLabel: {
+    color: COLORS.linkBlue,
   },
   locationRow: {
     flexDirection: 'row',
@@ -547,9 +607,19 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     gap: SPACING.xs,
   },
-  locationText: {
+  locationLabel: {
     flex: 1,
+    color: COLORS.ink,
+  },
+  coordinates: {
     color: COLORS.mute,
+    marginTop: SPACING.xs,
+  },
+  sellerBlock: {
+    marginTop: SPACING.md,
+  },
+  sellerName: {
+    color: COLORS.ink,
   },
   posted: {
     color: COLORS.mute,
