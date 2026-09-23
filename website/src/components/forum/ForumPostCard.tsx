@@ -10,13 +10,20 @@ interface ForumPostCardProps {
   onSelect: (postId: string) => void
 }
 
+// Feed post in the social-feed idiom: a header (author + category), the title
+// over a clamped body, an edge-to-edge first photo, and a two-segment action
+// bar. The whole card opens the thread; each action is its own target.
 function ForumPostCard({ post, onSelect }: ForumPostCardProps) {
+  const commentLabel = `${post.comment_count} comment${
+    post.comment_count === 1 ? '' : 's'
+  }`
+
   return (
     <article
       onClick={() => onSelect(post.id)}
-      className="cursor-pointer border border-hairline bg-canvas p-6 transition-colors hover:border-primary"
+      className="cursor-pointer overflow-hidden border border-hairline bg-canvas transition-colors hover:border-primary"
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 px-6 pb-4 pt-6">
         <AuthorBadge
           name={post.author_name}
           timestamp={post.created_at}
@@ -26,47 +33,58 @@ function ForumPostCard({ post, onSelect }: ForumPostCardProps) {
           {FORUM_CATEGORY_LABELS[post.category]}
         </span>
       </div>
-      <h2 className="card-title mt-4 text-ink">
+
+      <div className="px-6">
+        <h2 className="card-title text-ink">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onSelect(post.id)
+            }}
+            className="text-left transition-colors hover:text-primary"
+          >
+            {post.title}
+          </button>
+        </h2>
+        <p className="mt-2 body-sm line-clamp-4 whitespace-pre-line text-body">
+          {post.body}
+        </p>
+      </div>
+
+      {post.forum_images[0] && (
+        <div className="mt-4">
+          <ForumPostImage
+            image={post.forum_images[0]}
+            alt="Photo attached to this discussion"
+            aspectClass="aspect-[4/3]"
+            className="border-none max-h-64 sm:max-h-96"
+          />
+        </div>
+      )}
+
+      <div className="mt-4 flex items-stretch border-t border-hairline">
+        <span className="flex flex-1" onClick={(event) => event.stopPropagation()}>
+          <HeartButton
+            postId={post.id}
+            heartCount={post.heart_count}
+            hasHearted={post.hasHearted}
+            label="this discussion"
+            variant="bar"
+          />
+        </span>
         <button
           type="button"
           onClick={(event) => {
             event.stopPropagation()
             onSelect(post.id)
           }}
-          className="text-left transition-colors hover:text-primary"
+          className="flex h-11 flex-1 items-center justify-center gap-2 border-l border-hairline button-sm text-mute transition-colors hover:text-primary"
         >
-          {post.title}
-        </button>
-      </h2>
-      <div className="mt-2 flex flex-col gap-4 sm:flex-row">
-        <p className="body-sm line-clamp-3 flex-1 whitespace-pre-line text-body">
-          {post.body}
-        </p>
-        {post.forum_images[0] && (
-          <ForumPostImage
-            image={post.forum_images[0]}
-            alt="Photo attached to this discussion"
-            aspectClass="aspect-[4/3]"
-            className="shrink-0 sm:w-44"
-          />
-        )}
-      </div>
-      <div className="mt-4 flex items-center gap-4 border-t border-hairline pt-4">
-        <span className="inline-flex" onClick={(event) => event.stopPropagation()}>
-          <HeartButton
-            postId={post.id}
-            heartCount={post.heart_count}
-            hasHearted={post.hasHearted}
-            label="this discussion"
-          />
-        </span>
-        <span className="inline-flex h-11 items-center gap-2 rounded-sm border border-hairline px-3 button-sm text-mute">
           <Icon name="chat" className="h-5 w-5" />
           <span aria-hidden="true">{post.comment_count}</span>
-          <span className="sr-only">
-            {post.comment_count} comment{post.comment_count === 1 ? '' : 's'}
-          </span>
-        </span>
+          <span className="sr-only">{commentLabel}</span>
+        </button>
       </div>
     </article>
   )

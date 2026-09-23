@@ -310,6 +310,15 @@ function StarGlyph({ color, filled = false }: GlyphProps): ReactElement {
   )
 }
 
+function PlusGlyph({ color }: GlyphProps): ReactElement {
+  return (
+    <>
+      <Path d="M12 5v14" {...strokeProps(color)} />
+      <Path d="M5 12h14" {...strokeProps(color)} />
+    </>
+  )
+}
+
 const ICON_GLYPHS = {
   camera: CameraGlyph,
   scan: ScanGlyph,
@@ -341,6 +350,7 @@ const ICON_GLYPHS = {
   drop: DropGlyph,
   heart: HeartGlyph,
   star: StarGlyph,
+  plus: PlusGlyph,
 }
 
 export type IconName = keyof typeof ICON_GLYPHS

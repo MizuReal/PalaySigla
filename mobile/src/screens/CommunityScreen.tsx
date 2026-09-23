@@ -16,11 +16,9 @@ import type { CompositeScreenProps } from '@react-navigation/native'
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import BrandBar from '../components/BrandBar'
-import Button from '../components/Button'
-import ForumCategorySection from '../components/forum/ForumCategorySection'
-import ForumFilters from '../components/forum/ForumFilters'
 import ForumPostCard from '../components/forum/ForumPostCard'
 import ForumPostCardSkeleton from '../components/forum/ForumPostCardSkeleton'
+import ForumToolbar from '../components/forum/ForumToolbar'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import useForumCategoryCounts from '../hooks/useForumCategoryCounts'
 import useForumPosts from '../hooks/useForumPosts'
@@ -164,8 +162,7 @@ function CommunityScreen({ navigation }: CommunityScreenProps) {
     })
   }, [])
 
-  const { counts, isLoading: areCountsLoading, error: countsError, retry } =
-    useForumCategoryCounts(refreshNonce)
+  const { counts, error: countsError, retry } = useForumCategoryCounts(refreshNonce)
 
   const requireSignIn = () => openAuthModal(AUTH_MODAL_MODES.LOGIN)
 
@@ -184,32 +181,15 @@ function CommunityScreen({ navigation }: CommunityScreenProps) {
   return (
     <View style={styles.screen}>
       <BrandBar />
-      <View style={styles.hero}>
-        <Text style={[TYPE.captionMd, styles.eyebrow]}>Community</Text>
-        <Text style={[TYPE.headingXl, styles.title]}>
-          Growers talking to mills.
-        </Text>
-        <Text style={[TYPE.bodyMd, styles.sub]}>
-          Field notes, variety talk, and the services both sides rely on.
-        </Text>
-        <View style={styles.cta}>
-          <Button label="Start a discussion" onPress={handleStartDiscussion} fullWidth />
-        </View>
-      </View>
-      <ForumCategorySection
-        activeCategory={category}
-        counts={counts}
-        isLoading={areCountsLoading}
-        error={countsError}
-        onSelect={(next) => setCategory((current) => (current === next ? null : next))}
-        onRetry={retry}
-      />
-      <ForumFilters
+      <ForumToolbar
         category={category}
         counts={counts}
+        countsError={countsError}
         search={searchInput}
         onCategoryChange={setCategory}
         onSearchChange={setSearchInput}
+        onRetryCounts={retry}
+        onStartDiscussion={handleStartDiscussion}
       />
       <ForumFeed
         key={`${category ?? 'all'}|${search}|${refreshNonce}`}
@@ -227,26 +207,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.canvas,
-  },
-  hero: {
-    paddingHorizontal: GUTTER,
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.lg,
-  },
-  eyebrow: {
-    color: COLORS.primary,
-  },
-  title: {
-    color: COLORS.ink,
-    marginTop: SPACING.sm,
-  },
-  sub: {
-    color: COLORS.body,
-    marginTop: SPACING.sm,
-  },
-  cta: {
-    alignSelf: 'stretch',
-    marginTop: SPACING.lg,
   },
   feed: {
     flex: 1,

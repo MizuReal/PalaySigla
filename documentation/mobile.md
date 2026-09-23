@@ -83,8 +83,8 @@ src/
 │   ├── profile/            AvatarEditor + ProfileDetailsForm + ReviewsCard (Account tab),
 │   │                       SellingHistoryPanel + SellingHistoryRow (Selling history tab)
 │   ├── forum/              ForumPostCard(+Skeleton), ForumPostImage, AuthorBadge, HeartButton,
-│   │                       ForumCategorySection, ForumFilters, ForumImageUploader, CommentComposer,
-│   │                       CommentItem, DeleteInlineConfirm (community feed/thread/editor UI)
+│   │                       ReplyButton, ForumToolbar (search + create + category chips),
+│   │                       ForumImageUploader, CommentComposer, CommentItem, DeleteInlineConfirm (community UI)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
 ├── context/                authContext + AuthProvider (session + overlays), toastContext + ToastProvider
 │   │                       (root toast layer, under the modal overlays)
@@ -294,13 +294,16 @@ success through the same layer.
 The **Community** tab is the live forum (website `/forum` parity), backed by
 `services/forum.ts` and the forum tables copied into `src/types/database.ts`:
 
-- **Feed** — hero with "Start a discussion", a collapsible "Browse by category"
-  band (2-up tiles, icon + count + description, counts from the
-  `forum_category_counts` RPC with an inline retry), a surface-soft toolbar
-  (search + All/7 category pills with counts), and a paginated list of
-  discussion cards (author monogram + relative time, category chip, title,
-  3-line excerpt beside the first photo thumbnail, heart + reply count).
-  Filter/search changes remount the keyed feed to reset pagination.
+- **Feed** — content-first: the fixed chrome is one compact `ForumToolbar`
+  over the scrolling feed (no hero, no category grid). The toolbar's search
+  field pairs with a 44px primary `plus` create action ("Start a discussion",
+  auth-gated), and the second row is the horizontal All + 7 category chips
+  with counts (from the `forum_category_counts` RPC, with an inline
+  "Category counts unavailable · Retry" line on failure). Discussion cards
+  carry a compact author line; the title paired with its category tag; a
+  3-line description; a full-width 4:3 photo when present; and a footer of
+  just two buttons — the heart and a `chat`-glyph reply button. Filter/search
+  changes remount the keyed feed to reset pagination.
 - **Thread** (`ForumThread` root-stack push) — the post (title, body, 4:3
   photos, heart, owner Edit/Delete via the shared two-tap confirm) over an
   oldest-first comment list with Load more and a composer. Signed-out actions

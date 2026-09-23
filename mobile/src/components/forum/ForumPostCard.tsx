@@ -1,17 +1,17 @@
-// One discussion in the feed — author line, category chip, title, a 3-line
-// excerpt, the first photo as a 4:3 thumbnail when present, and a footer with
-// the heart plus a reply count. The whole card opens the thread; the heart is
-// its own press target.
+// One discussion in the feed — a compact author line, the title paired with
+// its category tag, a 3-line description, a full-width 4:3 first photo when
+// present, and a footer of exactly two buttons: the heart and the reply count.
+// The whole card opens the thread; the footer buttons are isolated targets.
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import AuthorBadge from './AuthorBadge'
 import ForumPostImage from './ForumPostImage'
 import HeartButton from './HeartButton'
+import ReplyButton from './ReplyButton'
 import { FORUM_CATEGORY_LABELS } from '../../utils/forumCategories'
 import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
 import type { ForumPostSummary } from '../../types/domain'
 
-const THUMB_WIDTH = 96
-const THUMB_ASPECT_RATIO = 4 / 3
+const PHOTO_ASPECT_RATIO = 4 / 3
 
 interface ForumPostCardProps {
   post: ForumPostSummary
@@ -43,26 +43,26 @@ function ForumPostCard({
         timestamp={post.created_at}
         isEdited={isEdited}
       />
-      <View style={styles.chip}>
-        <Text style={[TYPE.captionSm, styles.chipText]}>
-          {FORUM_CATEGORY_LABELS[post.category]}
+      <View style={styles.headerRow}>
+        <Text style={[TYPE.cardTitle, styles.title]} numberOfLines={2}>
+          {post.title}
         </Text>
+        <View style={styles.chip}>
+          <Text style={[TYPE.captionSm, styles.chipText]}>
+            {FORUM_CATEGORY_LABELS[post.category]}
+          </Text>
+        </View>
       </View>
-      <Text style={[TYPE.cardTitle, styles.title]} numberOfLines={2}>
-        {post.title}
+      <Text style={[TYPE.bodySm, styles.description]} numberOfLines={3}>
+        {post.body}
       </Text>
-      <View style={styles.bodyRow}>
-        {firstImage ? (
-          <ForumPostImage
-            image={firstImage}
-            alt={post.title}
-            style={styles.thumb}
-          />
-        ) : null}
-        <Text style={[TYPE.bodySm, styles.excerpt]} numberOfLines={3}>
-          {post.body}
-        </Text>
-      </View>
+      {firstImage ? (
+        <ForumPostImage
+          image={firstImage}
+          alt={post.title}
+          style={styles.photo}
+        />
+      ) : null}
       <View style={styles.footer}>
         <HeartButton
           postId={post.id}
@@ -72,11 +72,7 @@ function ForumPostCard({
           onChanged={onChanged}
           onError={onError}
         />
-        <Text style={[TYPE.captionSm, styles.replies]}>
-          {post.comment_count === 1
-            ? '1 reply'
-            : `${post.comment_count} replies`}
-        </Text>
+        <ReplyButton count={post.comment_count} onPress={() => onSelect(post)} />
       </View>
     </Pressable>
   )
@@ -93,9 +89,18 @@ const styles = StyleSheet.create({
   cardPressed: {
     borderColor: COLORS.primary,
   },
-  chip: {
-    alignSelf: 'flex-start',
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.md,
     marginTop: SPACING.sm,
+  },
+  title: {
+    flex: 1,
+    color: COLORS.ink,
+  },
+  chip: {
+    flexShrink: 0,
     borderWidth: 1,
     borderColor: COLORS.hairline,
     backgroundColor: COLORS.surfaceSoft,
@@ -105,33 +110,22 @@ const styles = StyleSheet.create({
   chipText: {
     color: COLORS.primary,
   },
-  title: {
-    color: COLORS.ink,
+  description: {
+    color: COLORS.body,
     marginTop: SPACING.sm,
   },
-  bodyRow: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-    marginTop: SPACING.sm,
-  },
-  thumb: {
-    width: THUMB_WIDTH,
-    aspectRatio: THUMB_ASPECT_RATIO,
+  photo: {
+    width: '100%',
+    aspectRatio: PHOTO_ASPECT_RATIO,
     borderWidth: 1,
     borderColor: COLORS.hairline,
-  },
-  excerpt: {
-    flex: 1,
-    color: COLORS.body,
+    marginTop: SPACING.md,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
     marginTop: SPACING.md,
-  },
-  replies: {
-    color: COLORS.mute,
   },
 })
 

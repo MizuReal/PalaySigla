@@ -1,32 +1,49 @@
-// Community filter toolbar — the search field plus the All + seven category
-// pill row (each with its discussion count), mirroring the marketplace filter
-// treatment on a surface-soft band.
+// Community toolbar — the pinned chrome above the feed: a search field with a
+// 44px primary "start a discussion" square (the `plus` glyph), and the All +
+// seven category chips with their counts. It replaces the former hero band and
+// category grid so the feed owns the viewport; a failed count offers an inline
+// retry rather than a silent zero.
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import Icon from '../Icon'
 import {
   FORUM_CATEGORIES,
   FORUM_CATEGORY_LABELS,
 } from '../../utils/forumCategories'
 import type { ForumCategory } from '../../utils/forumCategories'
 import type { ForumCategoryCounts } from '../../services/forum'
-import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
+import {
+  COLORS,
+  GUTTER,
+  RADIUS,
+  SPACING,
+  TOUCH_TARGET,
+  TYPE,
+} from '../../theme/designTokens'
 
 const SEARCH_INPUT_HEIGHT = 40
+const CREATE_ICON_SIZE = 22
 
-interface ForumFiltersProps {
+interface ForumToolbarProps {
   category: ForumCategory | null
   counts: ForumCategoryCounts | null
+  countsError: string
   search: string
   onCategoryChange: (category: ForumCategory | null) => void
   onSearchChange: (search: string) => void
+  onRetryCounts: () => void
+  onStartDiscussion: () => void
 }
 
-function ForumFilters({
+function ForumToolbar({
   category,
   counts,
+  countsError,
   search,
   onCategoryChange,
   onSearchChange,
-}: ForumFiltersProps) {
+  onRetryCounts,
+  onStartDiscussion,
+}: ForumToolbarProps) {
   const renderPill = (key: 'all' | ForumCategory, label: string, count?: number) => {
     const isActive = key === 'all' ? category === null : category === key
     return (
@@ -56,16 +73,30 @@ function ForumFilters({
 
   return (
     <View style={styles.toolbar}>
-      <TextInput
-        style={styles.searchInput}
-        value={search}
-        onChangeText={onSearchChange}
-        placeholder="Search discussions…"
-        placeholderTextColor={COLORS.stone}
-        accessibilityLabel="Search discussions"
-        autoCorrect={false}
-        returnKeyType="search"
-      />
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={onSearchChange}
+          placeholder="Search discussions…"
+          placeholderTextColor={COLORS.stone}
+          accessibilityLabel="Search discussions"
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Start a discussion"
+          onPress={onStartDiscussion}
+          style={({ pressed }) => [
+            styles.createButton,
+            pressed && styles.createButtonPressed,
+          ]}
+        >
+          <Icon name="plus" size={CREATE_ICON_SIZE} color={COLORS.onPrimary} />
+        </Pressable>
+      </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -82,6 +113,22 @@ function ForumFilters({
           )
         )}
       </ScrollView>
+
+      {countsError ? (
+        <View style={styles.countsErrorRow}>
+          <Text style={[TYPE.captionSm, styles.countsErrorText]}>
+            Category counts unavailable.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onRetryCounts}
+            hitSlop={SPACING.sm}
+            style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+          >
+            <Text style={[TYPE.captionSm, styles.retryText]}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   )
 }
@@ -94,9 +141,15 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
     paddingBottom: SPACING.md,
   },
-  searchInput: {
-    height: SEARCH_INPUT_HEIGHT,
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginHorizontal: GUTTER,
+    gap: SPACING.sm,
+  },
+  searchInput: {
+    flex: 1,
+    height: SEARCH_INPUT_HEIGHT,
     borderWidth: 1,
     borderColor: COLORS.hairline,
     backgroundColor: COLORS.canvas,
@@ -104,6 +157,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     color: COLORS.ink,
     ...TYPE.bodyMd,
+  },
+  createButton: {
+    width: TOUCH_TARGET,
+    height: TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.sm,
+  },
+  createButtonPressed: {
+    backgroundColor: COLORS.primaryDark,
   },
   pillScroller: {
     marginTop: SPACING.sm,
@@ -138,6 +202,26 @@ const styles = StyleSheet.create({
   pillTextActive: {
     color: COLORS.onDark,
   },
+  countsErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    marginHorizontal: GUTTER,
+    marginTop: SPACING.sm,
+  },
+  countsErrorText: {
+    color: COLORS.error,
+  },
+  retry: {
+    minHeight: TOUCH_TARGET,
+    justifyContent: 'center',
+  },
+  retryText: {
+    color: COLORS.linkBlue,
+  },
+  pressed: {
+    opacity: 0.6,
+  },
 })
 
-export default ForumFilters
+export default ForumToolbar

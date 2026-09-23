@@ -11,6 +11,23 @@ interface HeartButtonProps {
   postId?: string
   commentId?: string
   onChanged?: () => void
+  // 'pill' is the standalone hairline control (comments, thread); 'bar' is the
+  // borderless equal-width action segment used in the feed card's action row
+  variant?: 'pill' | 'bar'
+}
+
+const PILL_BASE =
+  'inline-flex h-11 items-center gap-2 rounded-sm border px-3 button-sm transition-colors disabled:opacity-60'
+const BAR_BASE =
+  'inline-flex h-11 flex-1 items-center justify-center gap-2 button-sm transition-colors disabled:opacity-60'
+
+function variantClasses(isHearted: boolean, variant: 'pill' | 'bar'): string {
+  if (variant === 'bar') {
+    return isHearted ? 'text-primary' : 'text-mute hover:text-primary'
+  }
+  return isHearted
+    ? 'border-primary text-primary'
+    : 'border-hairline text-mute hover:border-primary hover:text-primary'
 }
 
 // local state is the optimistic source while the request is in flight; the
@@ -22,6 +39,7 @@ function HeartButton({
   postId,
   commentId,
   onChanged,
+  variant = 'pill',
 }: HeartButtonProps) {
   const { user, openAuthModal } = useAuth()
   const { showToast } = useToast()
@@ -68,11 +86,10 @@ function HeartButton({
         isHearted ? `Remove your heart from ${label}` : `Heart ${label}`
       }
       disabled={isPending}
-      className={`inline-flex h-11 items-center gap-2 rounded-sm border px-3 button-sm transition-colors disabled:opacity-60 ${
-        isHearted
-          ? 'border-primary text-primary'
-          : 'border-hairline text-mute hover:border-primary hover:text-primary'
-      }`}
+      className={`${variant === 'bar' ? BAR_BASE : PILL_BASE} ${variantClasses(
+        isHearted,
+        variant
+      )}`}
     >
       <Icon
         name="heart"
