@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: palaysigla-backend
+    runtime: python
+    rootDir: backend
+    region: singapore
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.3"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GROQ_CHATBOT_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
