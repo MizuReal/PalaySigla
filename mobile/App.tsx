@@ -30,6 +30,7 @@ import MainTabs from './src/screens/MainTabs'
 import MessagesScreen from './src/screens/MessagesScreen'
 import NotFoundScreen from './src/screens/NotFoundScreen'
 import PostListingScreen from './src/screens/PostListingScreen'
+import ReviewFormScreen from './src/screens/ReviewFormScreen'
 import { COLORS } from './src/theme/designTokens'
 import type { RootStackParamList } from './src/types/navigation'
 
@@ -60,6 +61,7 @@ function RootNavigator() {
         <Stack.Screen name="PostListing" component={PostListingScreen} />
         <Stack.Screen name="Messages" component={MessagesScreen} />
         <Stack.Screen name="Conversation" component={ConversationScreen} />
+        <Stack.Screen name="ReviewForm" component={ReviewFormScreen} />
         <Stack.Screen name="ForumThread" component={ForumThreadScreen} />
         <Stack.Screen name="ForumPostEditor" component={ForumPostEditorScreen} />
         <Stack.Screen name="NotFound" component={NotFoundScreen} />

@@ -6,6 +6,17 @@ jest.mock('../../../hooks/useMyListings', () => ({
   __esModule: true,
   default: jest.fn(),
 }))
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: jest.fn() }),
+}))
+jest.mock('../../../hooks/useMySales', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}))
+jest.mock('../../../hooks/useMyReviewedTransactionIds', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}))
 
 jest.mock('../SellingHistoryRow', () => {
   const React = jest.requireActual<typeof import('react')>('react')
@@ -32,12 +43,16 @@ jest.mock('../SellingHistoryRow', () => {
 
 import { useAuth } from '../../../context/authContext'
 import useMyListings from '../../../hooks/useMyListings'
+import useMySales from '../../../hooks/useMySales'
+import useMyReviewedTransactionIds from '../../../hooks/useMyReviewedTransactionIds'
 import { notifyListingsChanged } from '../../../utils/listingEvents'
 import SellingHistoryPanel from '../SellingHistoryPanel'
 import type { ListingWithImages } from '../../../types/domain'
 
 const mockedUseAuth = jest.mocked(useAuth)
 const mockedUseMyListings = jest.mocked(useMyListings)
+const mockedUseMySales = jest.mocked(useMySales)
+const mockedUseMyReviewedTransactionIds = jest.mocked(useMyReviewedTransactionIds)
 
 const ROW = { id: 'L1', title: 'Fresh palay' } as unknown as ListingWithImages
 
@@ -59,6 +74,17 @@ beforeEach(() => {
   mockedUseAuth.mockReturnValue({
     user: { id: 'u1' },
   } as ReturnType<typeof useAuth>)
+  mockedUseMySales.mockReturnValue({
+    sales: [],
+    total: 0,
+    isInitialLoading: false,
+    isLoadingMore: false,
+    error: '',
+    loadMore: jest.fn(),
+    refresh: jest.fn(),
+    hasMore: false,
+  })
+  mockedUseMyReviewedTransactionIds.mockReturnValue(new Set())
   mockListings()
 })
 

@@ -1,4 +1,7 @@
 import Icon from '../Icon'
+import ReviewItem from './ReviewItem'
+import useUserReviews from '../../hooks/useUserReviews'
+import { useAuth } from '../../context/authContext'
 
 const MAX_RATING = 5
 const STAR_GLYPH_COUNT = MAX_RATING
@@ -11,6 +14,7 @@ function StarRow({ ratingAvg }: { ratingAvg: number }) {
         <Icon
           key={index}
           name="star"
+          filled={index < filledStars}
           className={`h-4 w-4 ${
             index < filledStars ? 'text-primary' : 'text-stone'
           }`}
@@ -26,7 +30,49 @@ interface ReviewsCardProps {
 }
 
 function ReviewsCard({ ratingAvg = 0, ratingCount = 0 }: ReviewsCardProps) {
-  const hasRatings = ratingCount > 0
+  const { user } = useAuth()
+  const { reviews, isInitialLoading, error, refresh } = useUserReviews(user?.id ?? null)
+
+  const renderList = () => {
+    if (isInitialLoading) {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 2 }, (_, index) => (
+            <div key={index} className="h-16 animate-pulse bg-surface-soft" />
+          ))}
+        </div>
+      )
+    }
+    if (error) {
+      return (
+        <div role="alert">
+          <p className="body-sm text-error">{error}</p>
+          <button
+            type="button"
+            onClick={refresh}
+            className="body-sm mt-2 text-link-blue transition-colors hover:text-primary"
+          >
+            Try again
+          </button>
+        </div>
+      )
+    }
+    if (reviews.length === 0) {
+      return (
+        <p className="body-sm text-body">
+          No reviews yet. Ratings from buyers and sellers you transact with will
+          show up here.
+        </p>
+      )
+    }
+    return (
+      <div className="space-y-4">
+        {reviews.map((review) => (
+          <ReviewItem key={review.id} review={review} />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <section className="border border-hairline bg-canvas p-6">
@@ -40,36 +86,10 @@ function ReviewsCard({ ratingAvg = 0, ratingCount = 0 }: ReviewsCardProps) {
         </div>
         <p className="body-strong text-ink">
           {ratingAvg.toFixed(1)}
-          <span className="body-sm font-normal text-mute">
-            {' '}
-            / {MAX_RATING}
-          </span>
+          <span className="body-sm font-normal text-mute"> / {MAX_RATING}</span>
         </p>
       </div>
-      <div className="mt-5 border-t border-hairline pt-5">
-        {hasRatings ? (
-          <>
-            <p className="body-sm text-body">
-              Written reviews from marketplace buyers will appear here.
-            </p>
-            <p className="caption-sm mt-3 flex items-center gap-1.5 text-mute">
-              <Icon name="info" className="h-3.5 w-3.5 shrink-0" />
-              Reviews open with the next release.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="body-sm text-body">
-              No reviews yet. Ratings from buyers on your marketplace
-              transactions will show up here.
-            </p>
-            <p className="caption-sm mt-3 flex items-center gap-1.5 text-mute">
-              <Icon name="info" className="h-3.5 w-3.5 shrink-0" />
-              Reviews open with the next release.
-            </p>
-          </>
-        )}
-      </div>
+      <div className="mt-5 border-t border-hairline pt-5">{renderList()}</div>
     </section>
   )
 }

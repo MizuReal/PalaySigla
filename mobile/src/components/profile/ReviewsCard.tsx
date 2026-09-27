@@ -1,8 +1,10 @@
-// Ratings & reviews card — the web ReviewsCard placeholder ported: five stars
-// from the rating average plus the exact "Reviews open with the next release."
-// copy. Read-only until review submission ships.
-import { StyleSheet, Text, View } from 'react-native'
+// Ratings & reviews card — aggregate stars plus the public reviews received by
+// the signed-in user, backed by services/reviews.ts under public RLS.
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import Icon from '../Icon'
+import ReviewItem from './ReviewItem'
+import useUserReviews from '../../hooks/useUserReviews'
+import { useAuth } from '../../context/authContext'
 import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
 
 const MAX_RATING = 5
@@ -13,37 +15,65 @@ interface ReviewsCardProps {
 }
 
 function ReviewsCard({ ratingAvg, ratingCount }: ReviewsCardProps) {
+  const { user } = useAuth()
+  const { reviews, isInitialLoading, error, refresh } = useUserReviews(user?.id ?? null)
   const filledStars = Math.round(ratingAvg)
-  const hasRatings = ratingCount > 0
+
+  const renderList = () => {
+    if (isInitialLoading) {
+      return <ActivityIndicator color={COLORS.primary} style={styles.spinner} />
+    }
+    if (error) {
+      return (
+        <View accessibilityRole="alert">
+          <Text style={[TYPE.bodySm, styles.errorText]}>{error}</Text>
+          <Text style={[TYPE.bodySm, styles.retry]} onPress={refresh}>
+            Try again
+          </Text>
+        </View>
+      )
+    }
+    if (reviews.length === 0) {
+      return (
+        <Text style={[TYPE.bodySm, styles.copy]}>
+          No reviews yet. Ratings from buyers and sellers you transact with will
+          show up here.
+        </Text>
+      )
+    }
+    return (
+      <View style={styles.list}>
+        {reviews.map((review) => (
+          <ReviewItem key={review.id} review={review} />
+        ))}
+      </View>
+    )
+  }
 
   return (
     <View style={styles.card}>
       <Text style={[TYPE.headingSm, styles.title]}>Ratings &amp; reviews</Text>
-      <View style={styles.stars} accessible={false}>
-        {Array.from({ length: MAX_RATING }, (_, index) => (
-          <Icon
-            key={index}
-            name="star"
-            size={20}
-            color={index < filledStars ? COLORS.primary : COLORS.stone}
-            filled={index < filledStars}
-          />
-        ))}
-      </View>
-      {hasRatings ? (
-        <Text style={[TYPE.bodySm, styles.summary]}>
-          {ratingCount} {ratingCount === 1 ? 'rating' : 'ratings'} ·{' '}
-          {ratingAvg.toFixed(1)} / 5
+      <View style={styles.summaryRow}>
+        <View style={styles.stars} accessible={false}>
+          {Array.from({ length: MAX_RATING }, (_, index) => (
+            <Icon
+              key={index}
+              name="star"
+              size={20}
+              color={index < filledStars ? COLORS.primary : COLORS.stone}
+              filled={index < filledStars}
+            />
+          ))}
+        </View>
+        <Text style={[TYPE.bodyStrong, styles.avg]}>
+          {ratingAvg.toFixed(1)}
+          <Text style={[TYPE.bodySm, styles.avgSuffix]}> / {MAX_RATING}</Text>
         </Text>
-      ) : null}
-      <Text style={[TYPE.bodySm, styles.copy]}>
-        {hasRatings
-          ? 'Written reviews from marketplace buyers will appear here.'
-          : 'No reviews yet. Ratings from buyers on your marketplace transactions will show up here.'}
+      </View>
+      <Text style={[TYPE.captionSm, styles.count]}>
+        {ratingCount} rating{ratingCount === 1 ? '' : 's'}
       </Text>
-      <Text style={[TYPE.captionSm, styles.note]}>
-        Reviews open with the next release.
-      </Text>
+      <View style={styles.divider}>{renderList()}</View>
     </View>
   )
 }
@@ -59,22 +89,47 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
   },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.lg,
+    marginTop: SPACING.sm,
+  },
   stars: {
     flexDirection: 'row',
     gap: SPACING.xxs,
-    marginTop: SPACING.sm,
   },
-  summary: {
+  avg: {
     color: COLORS.ink,
+  },
+  avgSuffix: {
+    color: COLORS.mute,
+  },
+  count: {
+    color: COLORS.mute,
+    marginTop: SPACING.xs,
+  },
+  divider: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.hairline,
+    paddingTop: SPACING.lg,
+    marginTop: SPACING.lg,
+  },
+  list: {
+    gap: SPACING.lg,
+  },
+  spinner: {
+    marginVertical: SPACING.md,
+  },
+  errorText: {
+    color: COLORS.error,
+  },
+  retry: {
+    color: COLORS.linkBlue,
     marginTop: SPACING.sm,
   },
   copy: {
     color: COLORS.body,
-    marginTop: SPACING.sm,
-  },
-  note: {
-    color: COLORS.mute,
-    marginTop: SPACING.sm,
   },
 })
 

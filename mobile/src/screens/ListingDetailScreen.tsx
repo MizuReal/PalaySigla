@@ -28,6 +28,9 @@ import useListingConversations from '../hooks/useListingConversations'
 import useListingDetail from '../hooks/useListingDetail'
 import usePulseOpacity from '../hooks/usePulseOpacity'
 import useStartConversation from '../hooks/useStartConversation'
+import useUserRating from '../hooks/useUserRating'
+import useUserReviews from '../hooks/useUserReviews'
+import ReviewItem, { ReviewStars } from '../components/profile/ReviewItem'
 import type { ListingBuyer } from '../services/listings'
 import {
   CATEGORY_LABELS,
@@ -103,6 +106,8 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
   const [transactionMode, setTransactionMode] = useState<TransactionMode | null>(null)
   const [selectedBuyerId, setSelectedBuyerId] = useState('')
   const buyers = useListingConversations(transactionMode ? listingId : null)
+  const sellerRating = useUserRating(listing?.user_id ?? null)
+  const sellerReviews = useUserReviews(listing?.user_id ?? null)
 
   const isOwner = user !== null && listing?.user_id === user.id
 
@@ -574,6 +579,21 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
               Posted {formatRelativeTime(listing.created_at)}
             </Text>
           </View>
+          <View style={styles.reviewsSection}>
+            <View style={styles.reviewsHeaderRow}>
+              <ReviewStars rating={Math.round(sellerRating.ratingAvg)} />
+              <Text style={[TYPE.captionSm, styles.reviewsSummary]}>
+                {sellerRating.ratingCount > 0
+                  ? `${sellerRating.ratingAvg.toFixed(1)} · ${sellerRating.ratingCount} review${
+                      sellerRating.ratingCount === 1 ? '' : 's'
+                    }`
+                  : 'No reviews yet'}
+              </Text>
+            </View>
+            {sellerReviews.reviews.slice(0, 3).map((review) => (
+              <ReviewItem key={review.id} review={review} />
+            ))}
+          </View>
           {!isOwner ? (
             <View style={styles.messageSellerBlock}>
               <Pressable
@@ -947,6 +967,21 @@ const styles = StyleSheet.create({
   posted: {
     color: COLORS.mute,
     marginTop: SPACING.xs,
+  },
+  reviewsSection: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.hairline,
+    marginTop: SPACING.xl,
+    paddingTop: SPACING.lg,
+    gap: SPACING.lg,
+  },
+  reviewsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  reviewsSummary: {
+    color: COLORS.mute,
   },
   messageSellerBlock: {
     marginTop: SPACING.lg,

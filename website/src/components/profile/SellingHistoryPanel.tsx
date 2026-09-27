@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import ListingDetailModal from '../marketplace/ListingDetailModal'
+import ReviewFormModal from './ReviewFormModal'
 import SellingHistoryRow from './SellingHistoryRow'
 import { useAuth } from '../../context/authContext'
 import useMyListings from '../../hooks/useMyListings'
+import useMySales from '../../hooks/useMySales'
+import useMyReviewedTransactionIds from '../../hooks/useMyReviewedTransactionIds'
 import { MY_LISTING_FILTERS } from '../../services/listings'
 import type { MyListingFilter } from '../../services/listings'
 import { pillTabClasses } from '../../utils/pillTab'
-import type { ListingWithImages } from '../../types/domain'
+import { getDisplayName } from '../../utils/userProfile'
+import type { ListingWithImages, TransactionRow } from '../../types/domain'
 
 interface HistoryFilter {
   id: MyListingFilter
@@ -61,9 +65,20 @@ interface HistoryListProps {
   filter: MyListingFilter
   onSelect: (listing: ListingWithImages) => void
   onRetry: () => void
+  salesByListing: Map<string, TransactionRow>
+  reviewed: Set<string>
+  onReview: (transaction: TransactionRow) => void
 }
 
-function HistoryList({ userId, filter, onSelect, onRetry }: HistoryListProps) {
+function HistoryList({
+  userId,
+  filter,
+  onSelect,
+  onRetry,
+  salesByListing,
+  reviewed,
+  onReview,
+}: HistoryListProps) {
   const {
     listings,
     isInitialLoading,
@@ -106,13 +121,19 @@ function HistoryList({ userId, filter, onSelect, onRetry }: HistoryListProps) {
   return (
     <>
       <div className="space-y-3">
-        {listings.map((listing) => (
-          <SellingHistoryRow
-            key={listing.id}
-            listing={listing}
-            onSelect={onSelect}
-          />
-        ))}
+        {listings.map((listing) => {
+          const transaction = salesByListing.get(listing.id) ?? null
+          return (
+            <SellingHistoryRow
+              key={listing.id}
+              listing={listing}
+              onSelect={onSelect}
+              transaction={transaction}
+              hasReviewed={transaction !== null && reviewed.has(transaction.id)}
+              onReview={onReview}
+            />
+          )
+        })}
       </div>
       {hasMore && (
         <div className="mt-6 text-center">
@@ -135,6 +156,18 @@ function SellingHistoryPanel() {
   const [filter, setFilter] = useState<MyListingFilter>(MY_LISTING_FILTERS.ALL)
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
   const [refreshNonce, setRefreshNonce] = useState(0)
+  const [reviewTarget, setReviewTarget] = useState<TransactionRow | null>(null)
+  const sales = useMySales(user?.id)
+  const reviewed = useMyReviewedTransactionIds(user?.id ?? null)
+  const salesByListing = useMemo(() => {
+    const map = new Map<string, TransactionRow>()
+    for (const sale of sales.sales) {
+      if (sale.listing_id) {
+        map.set(sale.listing_id, sale)
+      }
+    }
+    return map
+  }, [sales.sales])
 
   if (!user) {
     return null
@@ -175,6 +208,9 @@ function SellingHistoryPanel() {
           filter={filter}
           onSelect={(listing) => setSelectedListingId(listing.id)}
           onRetry={() => setRefreshNonce((current) => current + 1)}
+          salesByListing={salesByListing}
+          reviewed={reviewed}
+          onReview={setReviewTarget}
         />
       </div>
       {selectedListingId && (
@@ -183,6 +219,14 @@ function SellingHistoryPanel() {
           listingId={selectedListingId}
           onClose={() => setSelectedListingId(null)}
           onChanged={handleChanged}
+        />
+      )}
+      {reviewTarget && (
+        <ReviewFormModal
+          transaction={reviewTarget}
+          viewerId={user.id}
+          viewerName={getDisplayName(user)}
+          onClose={() => setReviewTarget(null)}
         />
       )}
     </section>

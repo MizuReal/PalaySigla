@@ -5,6 +5,7 @@ import type {
   ListingUnit,
 } from '../services/listings'
 import type { ForumCategory } from '../utils/forumCategories'
+import type { ReviewRole } from '../services/reviews'
 import type { TransactionStatus } from '../services/transactions'
 
 // The generated row types keep CHECK-constrained columns as `string`; the
@@ -63,4 +64,11 @@ type TransactionBaseRow = Tables<'transactions'>
 export type TransactionRow = Omit<TransactionBaseRow, 'status' | 'unit'> & {
   status: TransactionStatus
   unit: ListingUnit
+}
+
+// Public marketplace review, anchored to a sold transaction.
+type ReviewBaseRow = Tables<'reviews'>
+
+export type ReviewRow = Omit<ReviewBaseRow, 'reviewer_role'> & {
+  reviewer_role: ReviewRole
 }

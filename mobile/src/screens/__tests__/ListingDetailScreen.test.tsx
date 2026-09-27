@@ -57,6 +57,16 @@ jest.mock('../../hooks/useListingConversations', () => ({
   default: jest.fn(),
 }))
 
+jest.mock('../../hooks/useUserRating', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}))
+
+jest.mock('../../hooks/useUserReviews', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}))
+
 jest.mock('../../context/authContext', () => ({ useAuth: jest.fn() }))
 
 jest.mock('../../context/toastContext', () => ({
@@ -68,6 +78,8 @@ import { useAuth } from '../../context/authContext'
 import useListingActions from '../../hooks/useListingActions'
 import useListingConversations from '../../hooks/useListingConversations'
 import useListingDetail from '../../hooks/useListingDetail'
+import useUserRating from '../../hooks/useUserRating'
+import useUserReviews from '../../hooks/useUserReviews'
 import ListingDetailScreen from '../ListingDetailScreen'
 import type { ListingWithImages } from '../../types/domain'
 import type { RootStackParamList } from '../../types/navigation'
@@ -76,6 +88,8 @@ const mockedUseAuth = jest.mocked(useAuth)
 const mockedUseListingActions = jest.mocked(useListingActions)
 const mockedUseListingConversations = jest.mocked(useListingConversations)
 const mockedUseListingDetail = jest.mocked(useListingDetail)
+const mockedUseUserRating = jest.mocked(useUserRating)
+const mockedUseUserReviews = jest.mocked(useUserReviews)
 
 const LISTING = {
   id: 'L1',
@@ -131,6 +145,17 @@ beforeEach(() => {
     conversations: [],
     isLoading: false,
     error: '',
+  })
+  mockedUseUserRating.mockReturnValue({ ratingAvg: 0, ratingCount: 0 })
+  mockedUseUserReviews.mockReturnValue({
+    reviews: [],
+    total: 0,
+    isInitialLoading: false,
+    isLoadingMore: false,
+    error: '',
+    loadMore: jest.fn(),
+    refresh: jest.fn(),
+    hasMore: false,
   })
   mockedUseAuth.mockReturnValue({
     user: { id: 'u1' },

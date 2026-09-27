@@ -8,6 +8,10 @@ import Photo from '../Photo'
 import useListingDetail from '../../hooks/useListingDetail'
 import useListingConversations from '../../hooks/useListingConversations'
 import useStartConversation from '../../hooks/useStartConversation'
+import useUserRating from '../../hooks/useUserRating'
+import useUserReviews from '../../hooks/useUserReviews'
+import ReviewItem from '../profile/ReviewItem'
+import { ReviewStars } from '../profile/ReviewItem'
 import {
   clearListingReservation,
   markListingSold,
@@ -51,6 +55,8 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
   const [transactionMode, setTransactionMode] = useState<TransactionMode | null>(null)
   const [selectedBuyerId, setSelectedBuyerId] = useState('')
   const buyers = useListingConversations(transactionMode ? listingId : null)
+  const sellerRating = useUserRating(listing?.user_id ?? null)
+  const sellerReviews = useUserReviews(listing?.user_id ?? null)
 
   const isOwner = user !== null && listing?.user_id === user.id
 
@@ -441,6 +447,25 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
             <p className="caption-sm text-mute">
               Posted {formatRelativeTime(listing.created_at)}
             </p>
+          </div>
+          <div className="mt-3 border-t border-hairline pt-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <ReviewStars rating={Math.round(sellerRating.ratingAvg)} />
+              <p className="caption-sm text-mute">
+                {sellerRating.ratingCount > 0
+                  ? `${sellerRating.ratingAvg.toFixed(1)} · ${sellerRating.ratingCount} review${
+                      sellerRating.ratingCount === 1 ? '' : 's'
+                    }`
+                  : 'No reviews yet'}
+              </p>
+            </div>
+            {sellerReviews.reviews.length > 0 && (
+              <div className="mt-4 space-y-4">
+                {sellerReviews.reviews.slice(0, 3).map((review) => (
+                  <ReviewItem key={review.id} review={review} />
+                ))}
+              </div>
+            )}
           </div>
           {!isOwner && (
             <div className="mt-4">

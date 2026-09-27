@@ -1,6 +1,10 @@
+import { useState } from 'react'
+import ReviewFormModal from './ReviewFormModal'
 import { formatDate, formatPrice, UNIT_LABELS } from '../../utils/format'
 import useMyPurchases from '../../hooks/useMyPurchases'
+import useMyReviewedTransactionIds from '../../hooks/useMyReviewedTransactionIds'
 import { useAuth } from '../../context/authContext'
+import { getDisplayName } from '../../utils/userProfile'
 import type { TransactionRow } from '../../types/domain'
 
 const SKELETON_COUNT = 3
@@ -44,6 +48,8 @@ function PurchasesPanel() {
     refresh,
     hasMore,
   } = useMyPurchases(user?.id)
+  const reviewed = useMyReviewedTransactionIds(user?.id ?? null)
+  const [reviewTarget, setReviewTarget] = useState<TransactionRow | null>(null)
 
   if (!user) {
     return null
@@ -104,6 +110,21 @@ function PurchasesPanel() {
               <p className="caption-sm mt-1 text-mute">
                 Seller {transaction.seller_name} · {formatDate(purchaseDate(transaction))}
               </p>
+              {transaction.status === 'sold' && transaction.buyer_id !== null && (
+                <div className="mt-3">
+                  {reviewed.has(transaction.id) ? (
+                    <p className="caption-sm text-primary">Reviewed</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setReviewTarget(transaction)}
+                      className="h-10 border border-primary px-4 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary"
+                    >
+                      Leave a review
+                    </button>
+                  )}
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -130,6 +151,14 @@ function PurchasesPanel() {
         Listings a seller has reserved or sold to you.
       </p>
       <div className="mt-6">{renderList()}</div>
+      {reviewTarget && (
+        <ReviewFormModal
+          transaction={reviewTarget}
+          viewerId={user.id}
+          viewerName={getDisplayName(user)}
+          onClose={() => setReviewTarget(null)}
+        />
+      )}
     </section>
   )
 }

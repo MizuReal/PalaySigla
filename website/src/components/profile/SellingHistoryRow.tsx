@@ -6,7 +6,7 @@ import {
   formatPrice,
   UNIT_LABELS,
 } from '../../utils/format'
-import type { ListingWithImages } from '../../types/domain'
+import type { ListingWithImages, TransactionRow } from '../../types/domain'
 
 const ROW_STATUS = Object.freeze({
   ACTIVE: 'active',
@@ -117,12 +117,27 @@ function HistoryThumbnail({
 interface SellingHistoryRowProps {
   listing: ListingWithImages
   onSelect: (listing: ListingWithImages) => void
+  transaction?: TransactionRow | null
+  hasReviewed?: boolean
+  onReview?: (transaction: TransactionRow) => void
 }
 
-function SellingHistoryRow({ listing, onSelect }: SellingHistoryRowProps) {
+function SellingHistoryRow({
+  listing,
+  onSelect,
+  transaction = null,
+  hasReviewed = false,
+  onReview,
+}: SellingHistoryRowProps) {
   const status = resolveStatus(listing)
   const image = listing.listing_images?.[0]
   const transactionLine = buildTransactionLine(listing)
+
+  const showReview =
+    status === ROW_STATUS.SOLD &&
+    transaction !== null &&
+    transaction.buyer_id !== null &&
+    onReview !== undefined
 
   const rowContent = (
     <>
@@ -164,13 +179,30 @@ function SellingHistoryRow({ listing, onSelect }: SellingHistoryRowProps) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(listing)}
-      className="flex w-full items-start gap-4 border border-hairline bg-canvas p-4 text-left transition-colors hover:border-primary"
-    >
-      {rowContent}
-    </button>
+    <div className="border border-hairline bg-canvas">
+      <button
+        type="button"
+        onClick={() => onSelect(listing)}
+        className="flex w-full items-start gap-4 p-4 text-left transition-colors hover:bg-surface-soft"
+      >
+        {rowContent}
+      </button>
+      {showReview && transaction && onReview && (
+        <div className="border-t border-hairline px-4 py-3">
+          {hasReviewed ? (
+            <p className="caption-sm text-primary">Reviewed</p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onReview(transaction)}
+              className="h-10 border border-primary px-4 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary"
+            >
+              Leave a review
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 

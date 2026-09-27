@@ -62,6 +62,7 @@ Current migrations:
 | `schemas/007_messaging.sql` | `conversations` + `messages` (listing-scoped buyer/seller chat), indexes, last-message trigger, `unread_message_counts()` RPC, participant RLS, Realtime publication + `replica identity full` |
 | `schemas/008_listing_transactions.sql` | `listings` reserved/sold columns (`reserved_at`, `reserved_for(_name)`, `sold_to(_name)`), extended status CHECK (`active`/`reserved`/`sold`), transaction-state trigger with a terminal `sold` state, indexes |
 | `schemas/009_transactions.sql` | `transactions` durable record (listing/buyer/seller snapshots, `status`, dates), `sync_listing_transaction` definer trigger, participant RLS, backfill |
+| `schemas/010_reviews.sql` | `reviews` (public mutual reviews per sold transaction), party-only insert RLS, `sync_profile_rating` aggregate trigger, public-safe `user_rating(user_id)` RPC |
 | `schemas/seed_demo_listings.sql` | Demo rows for local testing (idempotent inserts; safe to run anytime) |
 
 ## Row-level security model
@@ -84,6 +85,7 @@ there is no implicit public access.
 | `conversations` | Participants only (`buyer_id = auth.uid()` or `seller_id = auth.uid()`) | Insert: the buyer, against an active listing they do not own (seller derived from `listings.user_id`). Update: participants (read watermark only). No hard-delete policy. |
 | `messages` | Participants of the parent conversation only | Insert: the sender, into a conversation they belong to (`sender_id = auth.uid()`). No update/delete policy — messages are an immutable, append-only log. |
 | `transactions` | Either participant (`buyer_id = auth.uid()` or `seller_id = auth.uid()`), independent of the listing's visibility | No client write policies: rows are written only by the `sync_listing_transaction` `SECURITY DEFINER` trigger on `listings`. |
+| `reviews` | Public (`using (true)`) — a marketplace reputation signal | Insert: only a party of a **sold** transaction, reviewing the counterparty (counterparty + role checked in the policy). No update/delete policies — reviews are append-only. `user_rating(user_id)` is a `SECURITY DEFINER` RPC exposing only `rating_avg`/`rating_count` for public surfaces. |
 
 Consequences:
 

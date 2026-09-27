@@ -83,3 +83,18 @@ export async function fetchListingTransaction(
   }
   return data as TransactionRow | null
 }
+
+// A single transaction by id; RLS returns null when the caller is not a party.
+export async function fetchTransaction(
+  transactionId: string
+): Promise<TransactionRow | null> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', transactionId)
+    .maybeSingle()
+  if (error) {
+    throw new Error('Could not load the transaction. Please try again.')
+  }
+  return data as TransactionRow | null
+}

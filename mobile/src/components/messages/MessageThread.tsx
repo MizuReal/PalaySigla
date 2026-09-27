@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import MessageBubble from './MessageBubble'
 import MessageComposer from './MessageComposer'
 import ListingInquiryCard from './ListingInquiryCard'
@@ -7,9 +9,11 @@ import MessageSuggestions from './MessageSuggestions'
 import useConversation from '../../hooks/useConversation'
 import useConversationListing from '../../hooks/useConversationListing'
 import useListingTransaction from '../../hooks/useListingTransaction'
+import useMyReviewedTransactionIds from '../../hooks/useMyReviewedTransactionIds'
 import { getConversationRole } from '../../services/messaging'
 import { COLORS, RADIUS, SPACING, TOUCH_TARGET, TYPE } from '../../theme/designTokens'
 import { formatDate } from '../../utils/format'
+import type { RootStackParamList } from '../../types/navigation'
 
 function isSameDay(a: string, b: string): boolean {
   return new Date(a).toDateString() === new Date(b).toDateString()
@@ -36,7 +40,15 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
   } = useConversation({ conversationId })
   const conversationListing = useConversationListing(conversation)
   const { transaction } = useListingTransaction(conversation?.listing_id ?? null)
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
+  const reviewed = useMyReviewedTransactionIds(viewerId)
   const scrollRef = useRef<ScrollView | null>(null)
+
+  const canReview =
+    transaction !== null &&
+    transaction.status === 'sold' &&
+    transaction.buyer_id !== null &&
+    !reviewed.has(transaction.id)
 
   const transactionLabel =
     transaction === null
@@ -176,6 +188,17 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
         ) : null}
         {renderMessages()}
       </ScrollView>
+      {canReview && transaction ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() =>
+            navigation.navigate('ReviewForm', { transactionId: transaction.id })
+          }
+          style={({ pressed }) => [styles.reviewButton, pressed && styles.pressed]}
+        >
+          <Text style={[TYPE.buttonSm, styles.reviewLabel]}>Leave a review</Text>
+        </Pressable>
+      ) : null}
       <MessageComposer onSend={send} isSending={isSending} error={sendError} />
     </View>
   )
@@ -200,6 +223,17 @@ const styles = StyleSheet.create({
   headerTransaction: {
     color: COLORS.ink,
     marginTop: SPACING.xxs,
+  },
+  reviewButton: {
+    minHeight: TOUCH_TARGET,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.hairline,
+    paddingTop: SPACING.md,
+  },
+  reviewLabel: {
+    color: COLORS.primary,
   },
   scroll: {
     flex: 1,

@@ -402,6 +402,56 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          listing_title: string
+          rating: number
+          reviewee_id: string
+          reviewee_name: string
+          reviewer_id: string
+          reviewer_name: string
+          reviewer_role: string
+          transaction_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          listing_title: string
+          rating: number
+          reviewee_id: string
+          reviewee_name: string
+          reviewer_id: string
+          reviewer_name: string
+          reviewer_role: string
+          transaction_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          listing_title?: string
+          rating?: number
+          reviewee_id?: string
+          reviewee_name?: string
+          reviewer_id?: string
+          reviewer_name?: string
+          reviewer_role?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           buyer_id: string | null
@@ -478,6 +528,13 @@ export type Database = {
         Returns: {
           conversation_id: string
           unread_count: number
+        }[]
+      }
+      user_rating: {
+        Args: { p_user: string }
+        Returns: {
+          rating_avg: number
+          rating_count: number
         }[]
       }
     }

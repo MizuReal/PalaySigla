@@ -277,10 +277,15 @@ history, backed by `services/transactions.ts` (`fetchMyPurchases`) and
 `transactions` — reserved/sold rows with listing title, price + unit, a status
 chip, the seller, and date. Because transactions are participant-readable
 under RLS and independent of the listing's visibility, a purchase stays
-reachable after the listing leaves the feed or is removed; this is where the
-Phase 2 "leave a review" action lands. The conversation thread also shows a
+reachable after the listing leaves the feed or is removed; a sold row offers
+**Leave a review**, which pushes the root-stack `ReviewForm` screen
+(`screens/ReviewFormScreen.tsx`, `services/reviews.ts`,
+`010_reviews.sql`). Reviews are mutual and public: the buyer rates the seller
+and the seller rates the buyer, once each per sold transaction. The profile
+`ReviewsCard` lists received reviews and a listing detail shows the seller's
+aggregate + recent reviews. The conversation thread also shows a
 transaction line (`useListingTransaction`) — "Reserved for you" / "You bought
-this" for the buyer, "Sold to …" for the seller.
+this" for the buyer, "Sold to …" for the seller — with its own review CTA.
 
 ### Profile management (current)
 

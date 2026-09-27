@@ -1,13 +1,17 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Icon from '../Icon'
 import MessageComposer from './MessageComposer'
 import ListingInquiryCard from './ListingInquiryCard'
 import MessageSuggestions from './MessageSuggestions'
+import ReviewFormModal from '../profile/ReviewFormModal'
 import useConversation from '../../hooks/useConversation'
 import useConversationListing from '../../hooks/useConversationListing'
 import useListingTransaction from '../../hooks/useListingTransaction'
+import useMyReviewedTransactionIds from '../../hooks/useMyReviewedTransactionIds'
+import { useAuth } from '../../context/authContext'
 import { getConversationRole } from '../../services/messaging'
 import { formatDate } from '../../utils/format'
+import { getDisplayName } from '../../utils/userProfile'
 import type { ThreadMessage } from '../../hooks/useConversation'
 
 const TIME_FORMAT: Intl.DateTimeFormatOptions = Object.freeze({
@@ -70,7 +74,16 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
   } = useConversation({ conversationId })
   const conversationListing = useConversationListing(conversation)
   const { transaction } = useListingTransaction(conversation?.listing_id ?? null)
+  const { user } = useAuth()
+  const reviewed = useMyReviewedTransactionIds(viewerId)
+  const [isReviewOpen, setIsReviewOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+
+  const canReview =
+    transaction !== null &&
+    transaction.status === 'sold' &&
+    transaction.buyer_id !== null &&
+    !reviewed.has(transaction.id)
 
   const transactionLabel =
     transaction === null
@@ -219,7 +232,26 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
         {renderMessages()}
         <div ref={bottomRef} />
       </div>
+      {canReview && (
+        <div className="border-t border-hairline pt-3">
+          <button
+            type="button"
+            onClick={() => setIsReviewOpen(true)}
+            className="h-10 border border-primary px-4 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary"
+          >
+            Leave a review
+          </button>
+        </div>
+      )}
       <MessageComposer onSend={send} isSending={isSending} error={sendError} />
+      {isReviewOpen && transaction && user && (
+        <ReviewFormModal
+          transaction={transaction}
+          viewerId={user.id}
+          viewerName={getDisplayName(user)}
+          onClose={() => setIsReviewOpen(false)}
+        />
+      )}
     </div>
   )
 }

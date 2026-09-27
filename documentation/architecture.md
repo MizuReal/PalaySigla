@@ -262,6 +262,14 @@ Notes:
   buyer keeps access to what they bought — and can later review it — even
   after the listing leaves the feed or is soft-deleted. The buyer's Purchases
   tab and the conversation's transaction line read this table.
+- **Mutual reviews.** Once a transaction is `sold`, either party may review the
+  other exactly once (`010_reviews.sql`); reviews reference `transaction_id`,
+  so they survive listing removal. Visibility is public (a reputation signal);
+  an insert policy restricts writes to a party reviewing the counterparty, and
+  a `SECURITY DEFINER` trigger maintains `profiles.rating_avg`/`rating_count`.
+  Entry points are the Purchases row (buyer), the sold Selling-history row
+  (seller), and the conversation thread; `user_rating(user_id)` exposes only
+  the public aggregate for listing details.
 
 ## Marketplace messaging
 

@@ -2,17 +2,22 @@
 // profile surface: status filter pills, a keyed history list (skeletons,
 // per-filter empty copy, error retry, load more), and an event subscription so
 // owner actions taken on the detail screen refresh the list on return.
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import SellingHistoryRow from './SellingHistoryRow'
 import useMyListings from '../../hooks/useMyListings'
+import useMySales from '../../hooks/useMySales'
+import useMyReviewedTransactionIds from '../../hooks/useMyReviewedTransactionIds'
 import usePulseOpacity from '../../hooks/usePulseOpacity'
 import { useAuth } from '../../context/authContext'
 import { MY_LISTING_FILTERS } from '../../services/listings'
 import type { MyListingFilter } from '../../services/listings'
 import { subscribeToListingsChanged } from '../../utils/listingEvents'
 import { COLORS, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
-import type { ListingWithImages } from '../../types/domain'
+import type { RootStackParamList } from '../../types/navigation'
+import type { ListingWithImages, TransactionRow } from '../../types/domain'
 
 const SKELETON_COUNT = 3
 
@@ -70,6 +75,9 @@ interface SellingHistoryListProps {
   filter: MyListingFilter
   onSelectListing: (listing: ListingWithImages) => void
   onRetry: () => void
+  salesByListing: Map<string, TransactionRow>
+  reviewed: Set<string>
+  onReview: (transaction: TransactionRow) => void
 }
 
 function SellingHistoryList({
@@ -77,6 +85,9 @@ function SellingHistoryList({
   filter,
   onSelectListing,
   onRetry,
+  salesByListing,
+  reviewed,
+  onReview,
 }: SellingHistoryListProps) {
   const {
     listings,
@@ -122,13 +133,19 @@ function SellingHistoryList({
   return (
     <View>
       <View style={styles.listStack}>
-        {listings.map((listing) => (
-          <SellingHistoryRow
-            key={listing.id}
-            listing={listing}
-            onSelect={onSelectListing}
-          />
-        ))}
+        {listings.map((listing) => {
+          const transaction = salesByListing.get(listing.id) ?? null
+          return (
+            <SellingHistoryRow
+              key={listing.id}
+              listing={listing}
+              onSelect={onSelectListing}
+              transaction={transaction}
+              hasReviewed={transaction !== null && reviewed.has(transaction.id)}
+              onReview={onReview}
+            />
+          )
+        })}
       </View>
       {hasMore ? (
         <Pressable
@@ -160,8 +177,20 @@ interface SellingHistoryPanelProps {
 
 function SellingHistoryPanel({ onSelectListing }: SellingHistoryPanelProps) {
   const { user } = useAuth()
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const [filter, setFilter] = useState<MyListingFilter>(MY_LISTING_FILTERS.ALL)
   const [refreshNonce, setRefreshNonce] = useState(0)
+  const sales = useMySales(user?.id)
+  const reviewed = useMyReviewedTransactionIds(user?.id ?? null)
+  const salesByListing = useMemo(() => {
+    const map = new Map<string, TransactionRow>()
+    for (const sale of sales.sales) {
+      if (sale.listing_id) {
+        map.set(sale.listing_id, sale)
+      }
+    }
+    return map
+  }, [sales.sales])
 
   useEffect(() => {
     // a post or owner action anywhere in the app refreshes this list when the
@@ -221,6 +250,11 @@ function SellingHistoryPanel({ onSelectListing }: SellingHistoryPanelProps) {
           filter={filter}
           onSelectListing={onSelectListing}
           onRetry={() => setRefreshNonce((current) => current + 1)}
+          salesByListing={salesByListing}
+          reviewed={reviewed}
+          onReview={(transaction) =>
+            navigation.navigate('ReviewForm', { transactionId: transaction.id })
+          }
         />
       </View>
     </View>

@@ -2,11 +2,15 @@
 // and sold records that stay reachable even after the listing leaves the feed
 // or is removed. Backed by services/transactions.ts under participant RLS.
 import { Animated, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import useMyPurchases from '../../hooks/useMyPurchases'
+import useMyReviewedTransactionIds from '../../hooks/useMyReviewedTransactionIds'
 import usePulseOpacity from '../../hooks/usePulseOpacity'
 import { useAuth } from '../../context/authContext'
 import { formatDate, formatPrice, UNIT_LABELS } from '../../utils/format'
 import { COLORS, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
+import type { RootStackParamList } from '../../types/navigation'
 import type { TransactionRow } from '../../types/domain'
 
 const SKELETON_COUNT = 3
@@ -42,6 +46,7 @@ function PurchasesSkeleton() {
 
 function PurchasesPanel() {
   const { user } = useAuth()
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const {
     purchases,
     isInitialLoading,
@@ -51,6 +56,7 @@ function PurchasesPanel() {
     refresh,
     hasMore,
   } = useMyPurchases(user?.id)
+  const reviewed = useMyReviewedTransactionIds(user?.id ?? null)
 
   if (!user) {
     return null
@@ -112,6 +118,26 @@ function PurchasesPanel() {
               <Text style={[TYPE.captionSm, styles.meta]}>
                 Seller {transaction.seller_name} · {formatDate(purchaseDate(transaction))}
               </Text>
+              {transaction.status === 'sold' && transaction.buyer_id !== null ? (
+                reviewed.has(transaction.id) ? (
+                  <Text style={[TYPE.captionSm, styles.reviewed]}>Reviewed</Text>
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      navigation.navigate('ReviewForm', { transactionId: transaction.id })
+                    }
+                    style={({ pressed }) => [
+                      styles.reviewButton,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={[TYPE.buttonSm, styles.reviewLabel]}>
+                      Leave a review
+                    </Text>
+                  </Pressable>
+                )
+              ) : null}
             </View>
           ))}
         </View>
@@ -200,6 +226,25 @@ const styles = StyleSheet.create({
   meta: {
     color: COLORS.mute,
     marginTop: SPACING.xs,
+  },
+  reviewed: {
+    color: COLORS.primary,
+    marginTop: SPACING.sm,
+  },
+  reviewButton: {
+    minHeight: 44,
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.canvas,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+  },
+  reviewLabel: {
+    color: COLORS.ink,
   },
   panel: {
     borderWidth: 1,

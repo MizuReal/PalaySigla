@@ -14,6 +14,7 @@ export type RootStackParamList = {
   PostListing: undefined
   Messages: undefined
   Conversation: { conversationId: string }
+  ReviewForm: { transactionId: string }
   ForumThread: { postId: string }
   ForumPostEditor: { postId?: string } | undefined
   NotFound: undefined

@@ -11,8 +11,8 @@ import {
   formatPrice,
   UNIT_LABELS,
 } from '../../utils/format'
-import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
-import type { ListingWithImages } from '../../types/domain'
+import { COLORS, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
+import type { ListingWithImages, TransactionRow } from '../../types/domain'
 
 const THUMB_WIDTH = 96
 const THUMB_ASPECT_RATIO = 4 / 3
@@ -77,13 +77,27 @@ function buildTransactionLine(listing: ListingWithImages): string {
 interface SellingHistoryRowProps {
   listing: ListingWithImages
   onSelect: (listing: ListingWithImages) => void
+  transaction?: TransactionRow | null
+  hasReviewed?: boolean
+  onReview?: (transaction: TransactionRow) => void
 }
 
-function SellingHistoryRow({ listing, onSelect }: SellingHistoryRowProps) {
+function SellingHistoryRow({
+  listing,
+  onSelect,
+  transaction = null,
+  hasReviewed = false,
+  onReview,
+}: SellingHistoryRowProps) {
   const status = resolveStatus(listing)
   const image = listing.listing_images?.[0]
   const { url: imageUrl } = useListingImageUrl(image?.storage_path ?? '')
   const transactionLine = buildTransactionLine(listing)
+  const showReview =
+    status === ROW_STATUS.SOLD &&
+    transaction !== null &&
+    transaction.buyer_id !== null &&
+    onReview !== undefined
 
   const content = (
     <>
@@ -128,14 +142,31 @@ function SellingHistoryRow({ listing, onSelect }: SellingHistoryRowProps) {
   }
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${listing.title}, ${STATUS_LABELS[status]}`}
-      onPress={() => onSelect(listing)}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-    >
-      {content}
-    </Pressable>
+    <View style={styles.wrap}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${listing.title}, ${STATUS_LABELS[status]}`}
+        onPress={() => onSelect(listing)}
+        style={({ pressed }) => [styles.rowInner, pressed && styles.rowPressed]}
+      >
+        {content}
+      </Pressable>
+      {showReview && transaction && onReview ? (
+        <View style={styles.reviewRow}>
+          {hasReviewed ? (
+            <Text style={[TYPE.captionSm, styles.reviewed]}>Reviewed</Text>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onReview(transaction)}
+              style={({ pressed }) => [styles.reviewButton, pressed && styles.rowPressed]}
+            >
+              <Text style={[TYPE.buttonSm, styles.reviewLabel]}>Leave a review</Text>
+            </Pressable>
+          )}
+        </View>
+      ) : null}
+    </View>
   )
 }
 
@@ -151,6 +182,40 @@ const styles = StyleSheet.create({
   },
   rowPressed: {
     borderColor: COLORS.primary,
+  },
+  rowInner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.lg,
+    padding: SPACING.lg,
+  },
+  wrap: {
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.canvas,
+  },
+  reviewRow: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.hairline,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+  },
+  reviewed: {
+    color: COLORS.primary,
+  },
+  reviewButton: {
+    minHeight: 44,
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.canvas,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.lg,
+  },
+  reviewLabel: {
+    color: COLORS.ink,
   },
   thumb: {
     width: THUMB_WIDTH,

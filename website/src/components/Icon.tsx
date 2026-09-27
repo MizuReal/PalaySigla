@@ -159,14 +159,15 @@ export type IconName = keyof typeof ICON_PATHS
 interface IconProps {
   name: IconName
   className?: string
+  filled?: boolean
 }
 
-function Icon({ name, className = 'h-6 w-6' }: IconProps) {
+function Icon({ name, className = 'h-6 w-6', filled = false }: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke={filled ? 'none' : 'currentColor'}
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"

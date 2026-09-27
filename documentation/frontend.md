@@ -226,8 +226,14 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   (`services/transactions.ts#fetchMyPurchases`, `hooks/useMyPurchases.ts`,
   `components/profile/PurchasesPanel.tsx`) — reserved/sold rows with title,
   price + unit, status chip, seller, and date. Participant RLS keeps them
-  reachable after the listing leaves the feed or is removed; this is where the
-  Phase 2 "leave a review" action will live.
+  reachable after the listing leaves the feed or is removed; a sold row offers
+  **Leave a review**.
+- **Reviews:** mutual, public ratings anchored to a sold transaction
+  (`services/reviews.ts`, `010_reviews.sql`). Web opens
+  `components/profile/ReviewFormModal.tsx` from a Purchases row, a sold
+  Selling-history row, or the conversation thread; the profile `ReviewsCard`
+  lists received reviews and a listing detail shows the seller's aggregate +
+  recent reviews. `user_rating(user_id)` supplies the public aggregate.
 - Avatar: JPEG/PNG ≤ 10 MB, compressed client-side to ≤ 512 px (EXIF
   stripped), staged until one Save commits photo + fields together; stored in
   the private `avatars` bucket at `{user_id}/avatar.jpg` and served via
