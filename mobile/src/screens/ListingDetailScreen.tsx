@@ -17,6 +17,7 @@ import {
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack'
+import Avatar from '../components/Avatar'
 import Icon from '../components/Icon'
 import ListingLocationMap from '../components/marketplace/ListingLocationMap'
 import { buildOpenStreetMapUrl } from '../components/marketplace/mapConfig'
@@ -110,6 +111,13 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
   const sellerReviews = useUserReviews(listing?.user_id ?? null)
 
   const isOwner = user !== null && listing?.user_id === user.id
+
+  const ratingSummary =
+    sellerRating.ratingCount > 0
+      ? `${sellerRating.ratingAvg.toFixed(1)} · ${sellerRating.ratingCount} review${
+          sellerRating.ratingCount === 1 ? '' : 's'
+        }`
+      : 'No reviews yet'
 
   const selectedConversation = buyers.conversations.find(
     (conversation) => conversation.buyer_id === selectedBuyerId
@@ -260,6 +268,7 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
             onPress={handleConfirmTransaction}
             style={({ pressed }) => [
               styles.markSoldButton,
+              styles.actionEqual,
               !canConfirm && styles.actionDisabled,
               pressed && canConfirm && styles.markSoldButtonPressed,
             ]}
@@ -281,6 +290,7 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
             onPress={closeTransaction}
             style={({ pressed }) => [
               styles.cancelButton,
+              styles.actionEqual,
               isActing && styles.actionDisabled,
               pressed && !isActing && styles.cancelButtonPressed,
             ]}
@@ -296,173 +306,182 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
     if (!isOwner || !listing) {
       return null
     }
-    if (transactionMode) {
-      return renderBuyerPicker()
-    }
-    if (isConfirmingRemove) {
-      return (
-        <View style={styles.confirmPanel}>
-          <Text style={[TYPE.bodySm, styles.confirmText]}>
-            Remove this listing permanently?
-          </Text>
-          <View style={styles.confirmActions}>
+    return (
+      <View style={styles.ownerPanel}>
+        <Text style={[TYPE.captionMd, styles.ownerPanelLabel]}>
+          Manage this listing
+        </Text>
+        {transactionMode ? (
+          renderBuyerPicker()
+        ) : isConfirmingRemove ? (
+          <View style={styles.confirmPanel}>
+            <Text style={[TYPE.bodySm, styles.confirmText]}>
+              Remove this listing permanently?
+            </Text>
+            <View style={styles.confirmActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isActing }}
+                disabled={isActing}
+                onPress={handleRemove}
+                style={({ pressed }) => [
+                  styles.dangerButton,
+                  styles.actionEqual,
+                  isActing && styles.actionDisabled,
+                  pressed && !isActing && styles.dangerButtonPressed,
+                ]}
+              >
+                <Text
+                  style={[
+                    TYPE.buttonSm,
+                    styles.dangerLabel,
+                    isActing && styles.actionLabelDisabled,
+                  ]}
+                >
+                  {isActing ? 'Removing…' : 'Yes, remove it'}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isActing }}
+                disabled={isActing}
+                onPress={handleCancelRemove}
+                style={({ pressed }) => [
+                  styles.cancelButton,
+                  styles.actionEqual,
+                  isActing && styles.actionDisabled,
+                  pressed && !isActing && styles.cancelButtonPressed,
+                ]}
+              >
+                <Text style={[TYPE.buttonSm, styles.cancelLabel]}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <>
+            {actionError ? (
+              <View accessibilityRole="alert" style={styles.actionError}>
+                <Icon name="info" size={20} color={COLORS.error} />
+                <Text style={[TYPE.bodySm, styles.actionErrorText]}>{actionError}</Text>
+              </View>
+            ) : null}
+            {listing.status === 'sold' && listing.sold_to_name ? (
+              <Text style={[TYPE.captionSm, styles.transactionLine]}>
+                Sold to {listing.sold_to_name}
+              </Text>
+            ) : null}
+            {listing.status === 'reserved' && listing.reserved_for_name ? (
+              <Text style={[TYPE.captionSm, styles.transactionLine]}>
+                Reserved for {listing.reserved_for_name}
+              </Text>
+            ) : null}
+            {listing.status === 'active' ? (
+              <View style={styles.ownerButtonRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: isActing }}
+                  disabled={isActing}
+                  onPress={() => openTransaction(TRANSACTION_MODES.RESERVE)}
+                  style={({ pressed }) => [
+                    styles.cancelButton,
+                    styles.actionEqual,
+                    isActing && styles.actionDisabled,
+                    pressed && !isActing && styles.cancelButtonPressed,
+                  ]}
+                >
+                  <Text style={[TYPE.buttonSm, styles.cancelLabel]}>
+                    Reserve for a buyer
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: isActing }}
+                  disabled={isActing}
+                  onPress={() => openTransaction(TRANSACTION_MODES.SOLD)}
+                  style={({ pressed }) => [
+                    styles.markSoldButton,
+                    styles.actionEqual,
+                    isActing && styles.actionDisabled,
+                    pressed && !isActing && styles.markSoldButtonPressed,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      TYPE.buttonSm,
+                      styles.markSoldLabel,
+                      isActing && styles.actionLabelDisabled,
+                    ]}
+                  >
+                    Mark as sold
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+            {listing.status === 'reserved' ? (
+              <View style={styles.ownerButtonRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: isActing }}
+                  disabled={isActing}
+                  onPress={() => openTransaction(TRANSACTION_MODES.SOLD)}
+                  style={({ pressed }) => [
+                    styles.markSoldButton,
+                    styles.actionEqual,
+                    isActing && styles.actionDisabled,
+                    pressed && !isActing && styles.markSoldButtonPressed,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      TYPE.buttonSm,
+                      styles.markSoldLabel,
+                      isActing && styles.actionLabelDisabled,
+                    ]}
+                  >
+                    Mark as sold
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: isActing }}
+                  disabled={isActing}
+                  onPress={handleRelease}
+                  style={({ pressed }) => [
+                    styles.cancelButton,
+                    styles.actionEqual,
+                    isActing && styles.actionDisabled,
+                    pressed && !isActing && styles.cancelButtonPressed,
+                  ]}
+                >
+                  <Text style={[TYPE.buttonSm, styles.cancelLabel]}>
+                    {isActing ? 'Releasing…' : 'Release reservation'}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ disabled: isActing }}
               disabled={isActing}
               onPress={handleRemove}
               style={({ pressed }) => [
-                styles.dangerButton,
+                styles.dangerOutlineButton,
                 isActing && styles.actionDisabled,
-                pressed && !isActing && styles.dangerButtonPressed,
+                pressed && !isActing && styles.dangerOutlineButtonPressed,
               ]}
             >
               <Text
                 style={[
                   TYPE.buttonSm,
-                  styles.dangerLabel,
+                  styles.dangerOutlineLabel,
                   isActing && styles.actionLabelDisabled,
                 ]}
               >
-                {isActing ? 'Removing…' : 'Yes, remove it'}
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ disabled: isActing }}
-              disabled={isActing}
-              onPress={handleCancelRemove}
-              style={({ pressed }) => [
-                styles.cancelButton,
-                isActing && styles.actionDisabled,
-                pressed && !isActing && styles.cancelButtonPressed,
-              ]}
-            >
-              <Text style={[TYPE.buttonSm, styles.cancelLabel]}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      )
-    }
-    return (
-      <View style={styles.ownerBlock}>
-        {actionError ? (
-          <View accessibilityRole="alert" style={styles.actionError}>
-            <Icon name="info" size={20} color={COLORS.error} />
-            <Text style={[TYPE.bodySm, styles.actionErrorText]}>{actionError}</Text>
-          </View>
-        ) : null}
-        {listing.status === 'sold' && listing.sold_to_name ? (
-          <Text style={[TYPE.captionSm, styles.transactionLine]}>
-            Sold to {listing.sold_to_name}
-          </Text>
-        ) : null}
-        {listing.status === 'reserved' && listing.reserved_for_name ? (
-          <Text style={[TYPE.captionSm, styles.transactionLine]}>
-            Reserved for {listing.reserved_for_name}
-          </Text>
-        ) : null}
-        {listing.status === 'active' ? (
-          <>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ disabled: isActing }}
-              disabled={isActing}
-              onPress={() => openTransaction(TRANSACTION_MODES.RESERVE)}
-              style={({ pressed }) => [
-                styles.cancelButton,
-                isActing && styles.actionDisabled,
-                pressed && !isActing && styles.cancelButtonPressed,
-              ]}
-            >
-              <Text style={[TYPE.buttonSm, styles.cancelLabel]}>
-                Reserve for a buyer
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ disabled: isActing }}
-              disabled={isActing}
-              onPress={() => openTransaction(TRANSACTION_MODES.SOLD)}
-              style={({ pressed }) => [
-                styles.markSoldButton,
-                isActing && styles.actionDisabled,
-                pressed && !isActing && styles.markSoldButtonPressed,
-              ]}
-            >
-              <Text
-                style={[
-                  TYPE.buttonSm,
-                  styles.markSoldLabel,
-                  isActing && styles.actionLabelDisabled,
-                ]}
-              >
-                Mark as sold
+                Remove listing
               </Text>
             </Pressable>
           </>
-        ) : null}
-        {listing.status === 'reserved' ? (
-          <>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ disabled: isActing }}
-              disabled={isActing}
-              onPress={() => openTransaction(TRANSACTION_MODES.SOLD)}
-              style={({ pressed }) => [
-                styles.markSoldButton,
-                isActing && styles.actionDisabled,
-                pressed && !isActing && styles.markSoldButtonPressed,
-              ]}
-            >
-              <Text
-                style={[
-                  TYPE.buttonSm,
-                  styles.markSoldLabel,
-                  isActing && styles.actionLabelDisabled,
-                ]}
-              >
-                Mark as sold
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ disabled: isActing }}
-              disabled={isActing}
-              onPress={handleRelease}
-              style={({ pressed }) => [
-                styles.cancelButton,
-                isActing && styles.actionDisabled,
-                pressed && !isActing && styles.cancelButtonPressed,
-              ]}
-            >
-              <Text style={[TYPE.buttonSm, styles.cancelLabel]}>
-                {isActing ? 'Releasing…' : 'Release reservation'}
-              </Text>
-            </Pressable>
-          </>
-        ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: isActing }}
-          disabled={isActing}
-          onPress={handleRemove}
-          style={({ pressed }) => [
-            styles.dangerOutlineButton,
-            isActing && styles.actionDisabled,
-            pressed && !isActing && styles.dangerOutlineButtonPressed,
-          ]}
-        >
-          <Text
-            style={[
-              TYPE.buttonSm,
-              styles.dangerOutlineLabel,
-              isActing && styles.actionLabelDisabled,
-            ]}
-          >
-            Remove listing
-          </Text>
-        </Pressable>
+        )}
       </View>
     )
   }
@@ -529,70 +548,22 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
               Quantity: {listing.quantity} {listing.unit}
             </Text>
           ) : null}
-          {listing.description ? (
-            <Text style={[TYPE.bodySm, styles.description]}>
-              {listing.description}
-            </Text>
-          ) : null}
-          {renderOwnerActions()}
-          {hasCoordinates ? (
-            <View style={styles.locationSection}>
-              <View style={styles.locationHeaderRow}>
-                <Text style={[TYPE.captionMd, styles.locationHeading]}>
-                  Location
-                </Text>
-                <Pressable
-                  accessibilityRole="link"
-                  onPress={() => handleOpenStreetMap(listing.lat, listing.lng)}
-                  hitSlop={SPACING.sm}
-                  style={({ pressed }) => [
-                    styles.osmLink,
-                    pressed && styles.osmLinkPressed,
-                  ]}
-                >
-                  <Text style={[TYPE.captionSm, styles.osmLinkLabel]}>
-                    Open in OpenStreetMap
-                  </Text>
-                </Pressable>
-              </View>
-              <ListingLocationMap
-                lat={listing.lat}
-                lng={listing.lng}
-                locationLabel={listing.location_label}
-              />
-              <View style={styles.locationRow}>
-                <Icon name="pin" size={16} color={COLORS.mute} />
-                <Text style={[TYPE.bodySm, styles.locationLabel]}>
-                  {listing.location_label}
+          <Text style={[TYPE.captionSm, styles.posted]}>
+            Posted {formatRelativeTime(listing.created_at)}
+          </Text>
+          <View style={styles.sellerCard}>
+            <Avatar name={listing.seller_name} />
+            <View style={styles.sellerInfo}>
+              <Text style={[TYPE.bodyStrong, styles.sellerName]} numberOfLines={1}>
+                {listing.seller_name}
+              </Text>
+              <View style={styles.sellerRatingRow}>
+                <ReviewStars rating={Math.round(sellerRating.ratingAvg)} />
+                <Text style={[TYPE.captionSm, styles.reviewsSummary]}>
+                  {ratingSummary}
                 </Text>
               </View>
-              <Text style={[TYPE.captionSm, styles.coordinates]}>
-                {formatCoordinates(listing.lat, listing.lng)}
-              </Text>
             </View>
-          ) : null}
-          <View style={styles.sellerBlock}>
-            <Text style={[TYPE.bodyStrong, styles.sellerName]}>
-              {listing.seller_name}
-            </Text>
-            <Text style={[TYPE.captionSm, styles.posted]}>
-              Posted {formatRelativeTime(listing.created_at)}
-            </Text>
-          </View>
-          <View style={styles.reviewsSection}>
-            <View style={styles.reviewsHeaderRow}>
-              <ReviewStars rating={Math.round(sellerRating.ratingAvg)} />
-              <Text style={[TYPE.captionSm, styles.reviewsSummary]}>
-                {sellerRating.ratingCount > 0
-                  ? `${sellerRating.ratingAvg.toFixed(1)} · ${sellerRating.ratingCount} review${
-                      sellerRating.ratingCount === 1 ? '' : 's'
-                    }`
-                  : 'No reviews yet'}
-              </Text>
-            </View>
-            {sellerReviews.reviews.slice(0, 3).map((review) => (
-              <ReviewItem key={review.id} review={review} />
-            ))}
           </View>
           {!isOwner ? (
             <View style={styles.messageSellerBlock}>
@@ -625,6 +596,59 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
                   {startError}
                 </Text>
               ) : null}
+            </View>
+          ) : null}
+          <View style={styles.section}>
+            <Text style={[TYPE.captionMd, styles.sectionLabel]}>
+              About this listing
+            </Text>
+            <Text style={[TYPE.bodySm, styles.description]}>
+              {listing.description || 'No description provided.'}
+            </Text>
+          </View>
+          {renderOwnerActions()}
+          {hasCoordinates ? (
+            <View style={styles.section}>
+              <View style={styles.locationHeaderRow}>
+                <Text style={[TYPE.captionMd, styles.sectionLabel]}>Location</Text>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => handleOpenStreetMap(listing.lat, listing.lng)}
+                  hitSlop={SPACING.sm}
+                  style={({ pressed }) => [
+                    styles.osmLink,
+                    pressed && styles.osmLinkPressed,
+                  ]}
+                >
+                  <Text style={[TYPE.captionSm, styles.osmLinkLabel]}>
+                    Open in OpenStreetMap
+                  </Text>
+                </Pressable>
+              </View>
+              <ListingLocationMap
+                lat={listing.lat}
+                lng={listing.lng}
+                locationLabel={listing.location_label}
+              />
+              <View style={styles.locationRow}>
+                <Icon name="pin" size={16} color={COLORS.mute} />
+                <Text style={[TYPE.bodySm, styles.locationLabel]}>
+                  {listing.location_label}
+                </Text>
+              </View>
+              <Text style={[TYPE.captionSm, styles.coordinates]}>
+                {formatCoordinates(listing.lat, listing.lng)}
+              </Text>
+            </View>
+          ) : null}
+          {sellerReviews.reviews.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={[TYPE.captionMd, styles.sectionLabel]}>Reviews</Text>
+              <View style={styles.reviewsList}>
+                {sellerReviews.reviews.slice(0, 3).map((review) => (
+                  <ReviewItem key={review.id} review={review} />
+                ))}
+              </View>
             </View>
           ) : null}
         </View>
@@ -762,22 +786,29 @@ const styles = StyleSheet.create({
     color: COLORS.body,
     marginTop: SPACING.lg,
   },
-  ownerBlock: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.hairline,
+  ownerPanel: {
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: RADIUS.sm,
     marginTop: SPACING.xl,
-    paddingTop: SPACING.lg,
+    padding: SPACING.lg,
     gap: SPACING.md,
+  },
+  ownerPanelLabel: {
+    color: COLORS.primary,
+  },
+  ownerButtonRow: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  actionEqual: {
+    flex: 1,
   },
   transactionLine: {
     color: COLORS.mute,
   },
   pickerPanel: {
-    borderWidth: 1,
-    borderColor: COLORS.hairline,
-    backgroundColor: COLORS.surfaceSoft,
-    marginTop: SPACING.xl,
-    padding: SPACING.lg,
     gap: SPACING.md,
   },
   pickerHeading: {
@@ -876,7 +907,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.error,
     backgroundColor: COLORS.surfaceSoft,
-    marginTop: SPACING.xl,
     padding: SPACING.lg,
   },
   confirmText: {
@@ -919,20 +949,20 @@ const styles = StyleSheet.create({
   cancelLabel: {
     color: COLORS.ink,
   },
-  locationSection: {
+  section: {
     borderTopWidth: 1,
     borderTopColor: COLORS.hairline,
-    marginTop: SPACING.xxl,
+    marginTop: SPACING.xl,
     paddingTop: SPACING.lg,
+  },
+  sectionLabel: {
+    color: COLORS.primary,
   },
   locationHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACING.md,
-  },
-  locationHeading: {
-    color: COLORS.primary,
   },
   osmLink: {
     minHeight: 44,
@@ -958,27 +988,37 @@ const styles = StyleSheet.create({
     color: COLORS.mute,
     marginTop: SPACING.xs,
   },
-  sellerBlock: {
-    marginTop: SPACING.md,
+  sellerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: RADIUS.sm,
+    padding: SPACING.md,
+    marginTop: SPACING.lg,
+  },
+  sellerInfo: {
+    flex: 1,
+    minWidth: 0,
   },
   sellerName: {
     color: COLORS.ink,
+  },
+  sellerRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.xxs,
   },
   posted: {
     color: COLORS.mute,
     marginTop: SPACING.xs,
   },
-  reviewsSection: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.hairline,
-    marginTop: SPACING.xl,
-    paddingTop: SPACING.lg,
+  reviewsList: {
     gap: SPACING.lg,
-  },
-  reviewsHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
+    marginTop: SPACING.md,
   },
   reviewsSummary: {
     color: COLORS.mute,

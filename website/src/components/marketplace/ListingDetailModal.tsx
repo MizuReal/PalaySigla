@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Avatar from '../Avatar'
 import Icon from '../Icon'
 import ListingLocationMap from './ListingLocationMap'
 import { buildOpenStreetMapUrl } from './mapConfig'
@@ -59,6 +60,13 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
   const sellerReviews = useUserReviews(listing?.user_id ?? null)
 
   const isOwner = user !== null && listing?.user_id === user.id
+
+  const ratingSummary =
+    sellerRating.ratingCount > 0
+      ? `${sellerRating.ratingAvg.toFixed(1)} · ${sellerRating.ratingCount} review${
+          sellerRating.ratingCount === 1 ? '' : 's'
+        }`
+      : 'No reviews yet'
 
   const selectedConversation = buyers.conversations.find(
     (conversation) => conversation.buyer_id === selectedBuyerId
@@ -176,7 +184,7 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
   const renderBuyerPicker = () => {
     const isSold = transactionMode === TRANSACTION_MODES.SOLD
     return (
-      <div className="mt-6 border border-hairline bg-surface-soft p-4">
+      <div className="mt-3">
         <p className="caption-md text-primary">
           {isSold ? 'Who is this sold to?' : 'Who is this reserved for?'}
         </p>
@@ -211,12 +219,12 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
             tagging a buyer — reviews will not be available for this transaction.
           </p>
         )}
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <button
             type="button"
             onClick={handleConfirmTransaction}
             disabled={!canConfirm}
-            className="h-11 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
+            className="h-11 w-full border border-primary px-4 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
           >
             {isActing ? 'Saving…' : isSold ? 'Mark as sold' : 'Reserve listing'}
           </button>
@@ -224,7 +232,7 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
             type="button"
             onClick={closeTransaction}
             disabled={isActing}
-            className="h-11 border border-hairline bg-canvas px-5 button-sm text-ink transition-colors hover:border-primary hover:text-primary disabled:text-ash"
+            className="h-11 w-full border border-hairline bg-canvas px-4 button-sm text-ink transition-colors hover:border-primary hover:text-primary disabled:text-ash"
           >
             Cancel
           </button>
@@ -237,95 +245,96 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
     if (!isOwner || !listing) {
       return null
     }
-    if (transactionMode) {
-      return renderBuyerPicker()
-    }
-    if (isConfirmingRemove) {
-      return (
-        <div className="mt-6 border border-error bg-surface-soft p-4">
-          <p className="body-sm text-ink">Remove this listing permanently?</p>
-          <div className="mt-3 flex gap-3">
+    return (
+      <section className="mt-6 rounded-sm border border-hairline bg-surface-soft p-4">
+        <p className="caption-md text-primary">Manage this listing</p>
+        {transactionMode ? (
+          renderBuyerPicker()
+        ) : isConfirmingRemove ? (
+          <div className="mt-3 border border-error bg-canvas p-4">
+            <p className="body-sm text-ink">Remove this listing permanently?</p>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={handleRemove}
+                disabled={isActing}
+                className="h-11 w-full border border-error px-4 button-sm text-error transition-colors hover:bg-error hover:text-on-dark disabled:text-ash"
+              >
+                {isActing ? 'Removing…' : 'Yes, remove it'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsConfirmingRemove(false)}
+                disabled={isActing}
+                className="h-11 w-full border border-hairline bg-canvas px-4 button-sm text-ink transition-colors hover:border-primary hover:text-primary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {listing.status === 'sold' && listing.sold_to_name && (
+              <p className="caption-sm mt-3 text-mute">Sold to {listing.sold_to_name}</p>
+            )}
+            {listing.status === 'reserved' && listing.reserved_for_name && (
+              <p className="caption-sm mt-3 text-mute">
+                Reserved for {listing.reserved_for_name}
+              </p>
+            )}
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {listing.status === 'active' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => openTransaction(TRANSACTION_MODES.RESERVE)}
+                    disabled={isActing}
+                    className="h-11 w-full border border-hairline bg-canvas px-4 button-sm text-ink transition-colors hover:border-primary hover:text-primary disabled:text-ash"
+                  >
+                    Reserve for a buyer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openTransaction(TRANSACTION_MODES.SOLD)}
+                    disabled={isActing}
+                    className="h-11 w-full border border-primary px-4 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
+                  >
+                    Mark as sold
+                  </button>
+                </>
+              )}
+              {listing.status === 'reserved' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => openTransaction(TRANSACTION_MODES.SOLD)}
+                    disabled={isActing}
+                    className="h-11 w-full border border-primary px-4 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
+                  >
+                    Mark as sold
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRelease}
+                    disabled={isActing}
+                    className="h-11 w-full border border-hairline bg-canvas px-4 button-sm text-ink transition-colors hover:border-primary hover:text-primary disabled:text-ash"
+                  >
+                    {isActing ? 'Releasing…' : 'Release reservation'}
+                  </button>
+                </>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleRemove}
               disabled={isActing}
-              className="h-11 border border-error px-5 button-sm text-error transition-colors hover:bg-error hover:text-on-dark disabled:text-ash"
+              className="mt-3 h-11 w-full border border-error px-4 button-sm text-error transition-colors hover:bg-error hover:text-on-dark disabled:text-ash"
             >
-              {isActing ? 'Removing…' : 'Yes, remove it'}
+              Remove listing
             </button>
-            <button
-              type="button"
-              onClick={() => setIsConfirmingRemove(false)}
-              disabled={isActing}
-              className="h-11 border border-hairline bg-canvas px-5 button-sm text-ink transition-colors hover:border-primary hover:text-primary"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )
-    }
-    return (
-      <div className="mt-6 border-t border-hairline pt-4">
-        {listing.status === 'sold' && listing.sold_to_name && (
-          <p className="caption-sm mb-3 text-mute">Sold to {listing.sold_to_name}</p>
+          </>
         )}
-        {listing.status === 'reserved' && listing.reserved_for_name && (
-          <p className="caption-sm mb-3 text-mute">
-            Reserved for {listing.reserved_for_name}
-          </p>
-        )}
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {listing.status === 'active' && (
-            <>
-              <button
-                type="button"
-                onClick={() => openTransaction(TRANSACTION_MODES.RESERVE)}
-                disabled={isActing}
-                className="h-11 border border-hairline bg-canvas px-5 button-sm text-ink transition-colors hover:border-primary hover:text-primary disabled:text-ash"
-              >
-                Reserve for a buyer
-              </button>
-              <button
-                type="button"
-                onClick={() => openTransaction(TRANSACTION_MODES.SOLD)}
-                disabled={isActing}
-                className="h-11 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
-              >
-                Mark as sold
-              </button>
-            </>
-          )}
-          {listing.status === 'reserved' && (
-            <>
-              <button
-                type="button"
-                onClick={() => openTransaction(TRANSACTION_MODES.SOLD)}
-                disabled={isActing}
-                className="h-11 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
-              >
-                Mark as sold
-              </button>
-              <button
-                type="button"
-                onClick={handleRelease}
-                disabled={isActing}
-                className="h-11 border border-hairline bg-canvas px-5 button-sm text-ink transition-colors hover:border-primary hover:text-primary disabled:text-ash"
-              >
-                {isActing ? 'Releasing…' : 'Release reservation'}
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={handleRemove}
-            disabled={isActing}
-            className="h-11 border border-error px-5 button-sm text-error transition-colors hover:bg-error hover:text-on-dark disabled:text-ash"
-          >
-            Remove listing
-          </button>
-        </div>
-      </div>
+      </section>
     )
   }
 
@@ -403,88 +412,87 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
                 Quantity: {listing.quantity} {listing.unit}
               </p>
             )}
-            {listing.description && (
-              <p className="body-sm mt-4 whitespace-pre-line text-body">
-                {listing.description}
-              </p>
-            )}
-            {renderOwnerActions()}
-          </div>
-        </div>
-        <div className="mt-6 border-t border-hairline pt-4">
-          {hasCoordinates && (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="caption-md text-primary">Location</p>
-                <a
-                  href={buildOpenStreetMapUrl(listing.lat, listing.lng)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="caption-sm text-link-blue transition-colors hover:text-primary"
-                >
-                  Open in OpenStreetMap
-                </a>
-              </div>
-              <ListingLocationMap
-                lat={listing.lat}
-                lng={listing.lng}
-                locationLabel={listing.location_label}
-                heightClass="mt-3 h-[280px] sm:h-[360px]"
-              />
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                <p className="flex items-center gap-1.5 text-ink">
-                  <Icon name="pin" className="h-4 w-4 shrink-0" />
-                  <span className="body-sm">{listing.location_label}</span>
-                </p>
-                <p className="caption-sm text-mute">
-                  {formatCoordinates(listing.lat, listing.lng)}
-                </p>
-              </div>
-            </>
-          )}
-          <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
-            <p className="body-strong text-ink">{listing.seller_name}</p>
-            <p className="caption-sm text-mute">
+            <p className="caption-sm mt-1 text-mute">
               Posted {formatRelativeTime(listing.created_at)}
             </p>
-          </div>
-          <div className="mt-3 border-t border-hairline pt-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <ReviewStars rating={Math.round(sellerRating.ratingAvg)} />
-              <p className="caption-sm text-mute">
-                {sellerRating.ratingCount > 0
-                  ? `${sellerRating.ratingAvg.toFixed(1)} · ${sellerRating.ratingCount} review${
-                      sellerRating.ratingCount === 1 ? '' : 's'
-                    }`
-                  : 'No reviews yet'}
-              </p>
-            </div>
-            {sellerReviews.reviews.length > 0 && (
-              <div className="mt-4 space-y-4">
-                {sellerReviews.reviews.slice(0, 3).map((review) => (
-                  <ReviewItem key={review.id} review={review} />
-                ))}
+
+            <div className="mt-4 flex flex-col gap-3 rounded-sm border border-hairline bg-surface-soft p-3 sm:flex-row sm:items-center">
+              <Avatar name={listing.seller_name} />
+              <div className="min-w-0 flex-1">
+                <p className="body-strong truncate text-ink">{listing.seller_name}</p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                  <ReviewStars rating={Math.round(sellerRating.ratingAvg)} />
+                  <span className="caption-sm text-mute">{ratingSummary}</span>
+                </div>
               </div>
-            )}
-          </div>
-          {!isOwner && (
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={handleMessageSeller}
-                disabled={isStarting}
-                className="h-11 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
-              >
-                {isStarting ? 'Opening…' : 'Message seller'}
-              </button>
-              {startError && (
-                <p className="caption-sm mt-2 text-error" role="alert">
-                  {startError}
-                </p>
+              {!isOwner && (
+                <button
+                  type="button"
+                  onClick={handleMessageSeller}
+                  disabled={isStarting}
+                  className="h-11 w-full shrink-0 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash sm:w-auto"
+                >
+                  {isStarting ? 'Opening…' : 'Message seller'}
+                </button>
               )}
             </div>
-          )}
+            {startError && (
+              <p className="caption-sm mt-2 text-error" role="alert">
+                {startError}
+              </p>
+            )}
+          </div>
         </div>
+        <section className="mt-6 border-t border-hairline pt-6">
+          <p className="caption-md text-primary">About this listing</p>
+          <p className="body-sm mt-3 whitespace-pre-line text-body">
+            {listing.description || 'No description provided.'}
+          </p>
+        </section>
+
+        {renderOwnerActions()}
+
+        {hasCoordinates && (
+          <section className="mt-6 border-t border-hairline pt-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="caption-md text-primary">Location</p>
+              <a
+                href={buildOpenStreetMapUrl(listing.lat, listing.lng)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="caption-sm text-link-blue transition-colors hover:text-primary"
+              >
+                Open in OpenStreetMap
+              </a>
+            </div>
+            <ListingLocationMap
+              lat={listing.lat}
+              lng={listing.lng}
+              locationLabel={listing.location_label}
+              heightClass="mt-3 h-[280px] sm:h-[360px]"
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <p className="flex items-center gap-1.5 text-ink">
+                <Icon name="pin" className="h-4 w-4 shrink-0" />
+                <span className="body-sm">{listing.location_label}</span>
+              </p>
+              <p className="caption-sm text-mute">
+                {formatCoordinates(listing.lat, listing.lng)}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {sellerReviews.reviews.length > 0 && (
+          <section className="mt-6 border-t border-hairline pt-6">
+            <p className="caption-md text-primary">Reviews</p>
+            <div className="mt-4 space-y-4">
+              {sellerReviews.reviews.slice(0, 3).map((review) => (
+                <ReviewItem key={review.id} review={review} />
+              ))}
+            </div>
+          </section>
+        )}
       </>
     )
   }
