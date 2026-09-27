@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import ListingInquiryCard from '../ListingInquiryCard'
+import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import ListingContextBar from '../ListingContextBar'
 import type { ListingWithImages } from '../../../types/domain'
 
 const LISTING = {
@@ -12,10 +12,10 @@ const LISTING = {
   listing_images: [],
 } as unknown as ListingWithImages
 
-describe('ListingInquiryCard', () => {
-  it('shows the inquiry line, product, price, and category', () => {
+describe('ListingContextBar', () => {
+  it('shows the product, price, and category without the old eyebrow', () => {
     render(
-      <ListingInquiryCard
+      <ListingContextBar
         title="Palay harvest"
         listing={LISTING}
         imageUrl=""
@@ -24,15 +24,32 @@ describe('ListingInquiryCard', () => {
       />
     )
 
-    expect(screen.getByText('User inquired about this product')).toBeTruthy()
     expect(screen.getByText('Palay harvest')).toBeTruthy()
     expect(screen.getByText('Palay')).toBeTruthy()
     expect(screen.getByText(/50/)).toBeTruthy()
+    expect(screen.queryByText('User inquired about this product')).toBeNull()
+  })
+
+  it('opens the listing when it is available and onOpen is provided', () => {
+    const onOpen = vi.fn()
+    render(
+      <ListingContextBar
+        title="Palay harvest"
+        listing={LISTING}
+        imageUrl=""
+        isLoading={false}
+        isUnavailable={false}
+        onOpen={onOpen}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open listing: Palay harvest' }))
+    expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
   it('shows only the title while the listing loads', () => {
     render(
-      <ListingInquiryCard
+      <ListingContextBar
         title="Palay harvest"
         listing={null}
         imageUrl=""
@@ -46,18 +63,20 @@ describe('ListingInquiryCard', () => {
     expect(screen.queryByText('Palay')).toBeNull()
   })
 
-  it('degrades gracefully when the listing is gone', () => {
+  it('degrades gracefully and stays non-interactive when the listing is gone', () => {
+    const onOpen = vi.fn()
     render(
-      <ListingInquiryCard
+      <ListingContextBar
         title="Palay harvest"
         listing={null}
         imageUrl=""
         isLoading={false}
         isUnavailable
+        onOpen={onOpen}
       />
     )
 
-    expect(screen.getByText('Palay harvest')).toBeTruthy()
     expect(screen.getByText('This listing is no longer available.')).toBeTruthy()
+    expect(screen.queryByRole('button')).toBeNull()
   })
 })

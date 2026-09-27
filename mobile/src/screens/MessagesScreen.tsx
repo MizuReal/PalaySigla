@@ -81,6 +81,7 @@ function MessagesScreen({ navigation }: MessagesScreenProps) {
             }
             onLoadMore={loadMore}
             onRetry={refresh}
+            onBrowseMarketplace={() => navigation.navigate('Main', { screen: 'Marketplace' })}
           />
         </ScrollView>
       )}

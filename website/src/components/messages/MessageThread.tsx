@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import Avatar from '../Avatar'
 import Icon from '../Icon'
 import MessageComposer from './MessageComposer'
-import ListingInquiryCard from './ListingInquiryCard'
+import ListingContextBar from './ListingContextBar'
 import MessageSuggestions from './MessageSuggestions'
 import ReviewFormModal from '../profile/ReviewFormModal'
 import useConversation from '../../hooks/useConversation'
@@ -56,9 +57,15 @@ interface MessageThreadProps {
   conversationId: string
   viewerId: string
   onBack?: () => void
+  onOpenListing?: (listingId: string) => void
 }
 
-function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps) {
+function MessageThread({
+  conversationId,
+  viewerId,
+  onBack,
+  onOpenListing,
+}: MessageThreadProps) {
   const {
     conversation,
     messages,
@@ -107,6 +114,12 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
       : conversation.buyer_name
     : ''
 
+  const openListing = () => {
+    if (conversation?.listing_id && onOpenListing) {
+      onOpenListing(conversation.listing_id)
+    }
+  }
+
   const renderMessages = () => {
     if (isInitialLoading) {
       return (
@@ -139,8 +152,9 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
     if (messages.length === 0) {
       if (role === 'buyer') {
         return (
-          <div className="border border-hairline bg-surface-soft p-8 text-center">
-            <p className="heading-sm text-ink">Ask about this listing.</p>
+          <div className="flex flex-col items-center border border-hairline bg-surface-soft p-8 text-center">
+            <Icon name="chat" className="h-8 w-8 text-mute" />
+            <p className="heading-sm mt-3 text-ink">Ask about this listing.</p>
             <p className="body-sm mt-2 text-mute">Tap a question to send it.</p>
             <MessageSuggestions
               onSelect={(text) => {
@@ -152,8 +166,9 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
         )
       }
       return (
-        <div className="border border-hairline bg-surface-soft p-8 text-center">
-          <p className="heading-sm text-ink">Say hello.</p>
+        <div className="flex flex-col items-center border border-hairline bg-surface-soft p-8 text-center">
+          <Icon name="chat" className="h-8 w-8 text-mute" />
+          <p className="heading-sm mt-3 text-ink">Say hello.</p>
           <p className="body-sm mt-2 text-mute">
             Send the first message to start the conversation.
           </p>
@@ -209,26 +224,41 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
             <Icon name="chevron-left" className="h-5 w-5" />
           </button>
         )}
+        <Avatar name={counterpartName} />
         <div className="min-w-0">
-          <p className="card-title truncate text-ink">{counterpartName}</p>
-          {conversation && (
-            <p className="caption-sm truncate text-primary">{conversation.listing_title}</p>
-          )}
+          <div className="flex items-center gap-2">
+            <p className="card-title truncate text-ink">{counterpartName}</p>
+            {role && (
+              <span className="caption-xs shrink-0 rounded-sm border border-hairline bg-surface-soft px-1.5 py-0.5 text-mute">
+                {role === 'buyer' ? 'Seller' : 'Buyer'}
+              </span>
+            )}
+          </div>
           {transactionLabel && (
-            <p className="caption-sm truncate text-ink">{transactionLabel}</p>
+            <span
+              className={`mt-1 inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 caption-xs ${
+                transaction?.status === 'reserved'
+                  ? 'border-warning-bright bg-accent-yellow-pale text-ink'
+                  : 'border-hairline bg-surface-soft text-ink'
+              }`}
+            >
+              {transaction?.status === 'sold' && <Icon name="check" className="h-3 w-3" />}
+              {transactionLabel}
+            </span>
           )}
         </div>
       </div>
+      {conversation && (
+        <ListingContextBar
+          title={conversation.listing_title}
+          listing={conversationListing.listing}
+          imageUrl={conversationListing.imageUrl}
+          isLoading={conversationListing.isLoading}
+          isUnavailable={conversationListing.isUnavailable}
+          onOpen={conversation.listing_id && onOpenListing ? openListing : undefined}
+        />
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto py-4">
-        {conversation && (
-          <ListingInquiryCard
-            title={conversation.listing_title}
-            listing={conversationListing.listing}
-            imageUrl={conversationListing.imageUrl}
-            isLoading={conversationListing.isLoading}
-            isUnavailable={conversationListing.isUnavailable}
-          />
-        )}
         {renderMessages()}
         <div ref={bottomRef} />
       </div>

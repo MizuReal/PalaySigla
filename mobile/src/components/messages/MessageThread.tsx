@@ -2,9 +2,11 @@ import { useEffect, useRef } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import Avatar from '../Avatar'
+import Icon from '../Icon'
 import MessageBubble from './MessageBubble'
 import MessageComposer from './MessageComposer'
-import ListingInquiryCard from './ListingInquiryCard'
+import ListingContextBar from './ListingContextBar'
 import MessageSuggestions from './MessageSuggestions'
 import useConversation from '../../hooks/useConversation'
 import useConversationListing from '../../hooks/useConversationListing'
@@ -14,6 +16,9 @@ import { getConversationRole } from '../../services/messaging'
 import { COLORS, RADIUS, SPACING, TOUCH_TARGET, TYPE } from '../../theme/designTokens'
 import { formatDate } from '../../utils/format'
 import type { RootStackParamList } from '../../types/navigation'
+
+const EMPTY_ICON_SIZE = 32
+const STATUS_ICON_SIZE = 14
 
 function isSameDay(a: string, b: string): boolean {
   return new Date(a).toDateString() === new Date(b).toDateString()
@@ -68,6 +73,12 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
       : conversation.buyer_name
     : ''
 
+  const openListing = () => {
+    if (conversation?.listing_id) {
+      navigation.navigate('ListingDetail', { listingId: conversation.listing_id })
+    }
+  }
+
   useEffect(() => {
     // jump to the newest turn whenever the transcript grows
     scrollRef.current?.scrollToEnd({ animated: true })
@@ -101,6 +112,7 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
       if (role === 'buyer') {
         return (
           <View style={styles.emptyBlock}>
+            <Icon name="chat" size={EMPTY_ICON_SIZE} color={COLORS.mute} />
             <Text style={[TYPE.headingSm, styles.emptyTitle]}>Ask about this listing.</Text>
             <Text style={[TYPE.bodySm, styles.emptyHint]}>Tap a question to send it.</Text>
             <MessageSuggestions
@@ -114,6 +126,7 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
       }
       return (
         <View style={styles.emptyBlock}>
+          <Icon name="chat" size={EMPTY_ICON_SIZE} color={COLORS.mute} />
           <Text style={[TYPE.headingSm, styles.emptyTitle]}>Say hello.</Text>
           <Text style={[TYPE.bodySm, styles.emptyHint]}>
             Send the first message to start the conversation.
@@ -158,18 +171,49 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
     <View style={styles.container}>
       {conversation ? (
         <View style={styles.header}>
-          <Text style={[TYPE.cardTitle, styles.headerName]} numberOfLines={1}>
-            {counterpartName}
-          </Text>
-          <Text style={[TYPE.captionSm, styles.headerListing]} numberOfLines={1}>
-            {conversation.listing_title}
-          </Text>
+          <View style={styles.headerRow}>
+            <Avatar name={counterpartName} />
+            <View style={styles.headerText}>
+              <View style={styles.nameRow}>
+                <Text style={[TYPE.cardTitle, styles.headerName]} numberOfLines={1}>
+                  {counterpartName}
+                </Text>
+                {role ? (
+                  <View style={styles.roleTag}>
+                    <Text style={[TYPE.captionXs, styles.roleText]}>
+                      {role === 'buyer' ? 'Seller' : 'Buyer'}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          </View>
           {transactionLabel ? (
-            <Text style={[TYPE.captionSm, styles.headerTransaction]} numberOfLines={1}>
-              {transactionLabel}
-            </Text>
+            <View
+              style={[
+                styles.statusChip,
+                transaction?.status === 'reserved'
+                  ? styles.statusReserved
+                  : styles.statusSold,
+              ]}
+            >
+              {transaction?.status === 'sold' ? (
+                <Icon name="check" size={STATUS_ICON_SIZE} color={COLORS.ink} />
+              ) : null}
+              <Text style={[TYPE.captionXs, styles.statusText]}>{transactionLabel}</Text>
+            </View>
           ) : null}
         </View>
+      ) : null}
+      {conversation ? (
+        <ListingContextBar
+          title={conversation.listing_title}
+          listing={conversationListing.listing}
+          imageUrl={conversationListing.imageUrl}
+          isLoading={conversationListing.isLoading}
+          isUnavailable={conversationListing.isUnavailable}
+          onOpen={conversation.listing_id ? openListing : undefined}
+        />
       ) : null}
       <ScrollView
         ref={scrollRef}
@@ -177,15 +221,6 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {conversation ? (
-          <ListingInquiryCard
-            title={conversation.listing_title}
-            listing={conversationListing.listing}
-            imageUrl={conversationListing.imageUrl}
-            isLoading={conversationListing.isLoading}
-            isUnavailable={conversationListing.isUnavailable}
-          />
-        ) : null}
         {renderMessages()}
       </ScrollView>
       {canReview && transaction ? (
@@ -212,17 +247,57 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.hairline,
     paddingBottom: SPACING.md,
+    gap: SPACING.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  headerText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   headerName: {
+    flexShrink: 1,
     color: COLORS.ink,
   },
-  headerListing: {
-    color: COLORS.primary,
-    marginTop: SPACING.xxs,
+  roleTag: {
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 1,
   },
-  headerTransaction: {
+  roleText: {
+    color: COLORS.mute,
+  },
+  statusChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    borderWidth: 1,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xxs,
+  },
+  statusReserved: {
+    borderColor: COLORS.warningBright,
+    backgroundColor: COLORS.accentYellowPale,
+  },
+  statusSold: {
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.surfaceSoft,
+  },
+  statusText: {
     color: COLORS.ink,
-    marginTop: SPACING.xxs,
   },
   reviewButton: {
     minHeight: TOUCH_TARGET,
@@ -279,6 +354,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: COLORS.ink,
+    marginTop: SPACING.md,
   },
   emptyHint: {
     color: COLORS.mute,

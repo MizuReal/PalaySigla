@@ -1,17 +1,23 @@
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Container from '../components/Container'
 import Footer from '../components/site/Footer'
+import Icon from '../components/Icon'
 import PrimaryNav from '../components/site/PrimaryNav'
 import ConversationList from '../components/messages/ConversationList'
+import ListingDetailModal from '../components/marketplace/ListingDetailModal'
 import MessageThread from '../components/messages/MessageThread'
 import useConversations from '../hooks/useConversations'
+import useUnreadMessageCount from '../hooks/useUnreadMessageCount'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 
 function MessagesPage() {
   const { conversationId } = useParams<{ conversationId: string }>()
   const navigate = useNavigate()
   const { user, isInitializing, openAuthModal } = useAuth()
+  const unreadTotal = useUnreadMessageCount()
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
   const {
     conversations,
     isInitialLoading,
@@ -24,8 +30,16 @@ function MessagesPage() {
 
   const renderHeader = () => (
     <div className="border-b border-hairline bg-canvas">
-      <Container className="py-4 md:py-5">
-        <p className="caption-md text-primary">Messages</p>
+      <Container className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between md:py-5">
+        <div>
+          <p className="caption-md text-primary">Messages</p>
+          <h1 className="heading-md mt-1 text-ink">Your conversations</h1>
+        </div>
+        {unreadTotal > 0 && (
+          <span className="caption-xs self-start rounded-sm bg-primary px-2 py-1 text-on-primary sm:self-auto">
+            {unreadTotal} unread
+          </span>
+        )}
       </Container>
     </div>
   )
@@ -85,6 +99,7 @@ function MessagesPage() {
                 onSelect={handleSelect}
                 onLoadMore={loadMore}
                 onRetry={refresh}
+                onBrowseMarketplace={() => navigate('/marketplace')}
               />
             </div>
             <div
@@ -98,10 +113,20 @@ function MessagesPage() {
                   conversationId={conversationId}
                   viewerId={user.id}
                   onBack={handleBack}
+                  onOpenListing={setSelectedListingId}
                 />
               ) : (
-                <div className="flex h-full items-center justify-center border border-hairline bg-surface-soft p-10 text-center">
-                  <p className="body-sm text-mute">Select a conversation to read and reply.</p>
+                <div className="flex h-full flex-col items-center justify-center gap-3 border border-hairline bg-surface-soft p-10 text-center">
+                  <Icon name="chat" className="h-8 w-8 text-mute" />
+                  <p className="heading-sm text-ink">Your messages live here.</p>
+                  <p className="body-sm max-w-sm text-mute">
+                    Pick a conversation from the inbox, or message a seller from any listing.
+                  </p>
+                  <div className="mt-2">
+                    <Button variant="outline" to="/marketplace">
+                      Browse the marketplace
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -109,6 +134,14 @@ function MessagesPage() {
         </Container>
       </main>
       <Footer />
+      {selectedListingId && (
+        <ListingDetailModal
+          key={selectedListingId}
+          listingId={selectedListingId}
+          onClose={() => setSelectedListingId(null)}
+          onChanged={refresh}
+        />
+      )}
     </>
   )
 }

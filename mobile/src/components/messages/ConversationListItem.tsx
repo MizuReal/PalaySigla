@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import Avatar from '../Avatar'
 import { formatRelativeTime } from '../../utils/format'
 import { COLORS, RADIUS, SPACING, TOUCH_TARGET, TYPE } from '../../theme/designTokens'
 import type { ConversationSummary } from '../../types/domain'
@@ -21,6 +22,7 @@ function ConversationListItem({
 }: ConversationListItemProps) {
   const isBuyer = conversation.buyer_id === viewerId
   const counterpartName = isBuyer ? conversation.seller_name : conversation.buyer_name
+  const counterpartRole = isBuyer ? 'Seller' : 'Buyer'
   const preview = conversation.last_message_preview ?? PREVIEW_FALLBACK
   const badgeLabel =
     conversation.unreadCount > MAX_BADGE_COUNT ? '9+' : String(conversation.unreadCount)
@@ -36,28 +38,36 @@ function ConversationListItem({
         pressed && styles.rowPressed,
       ]}
     >
-      <View style={styles.topRow}>
-        <Text style={[TYPE.cardTitle, styles.name]} numberOfLines={1}>
-          {counterpartName}
-        </Text>
-        {conversation.last_message_at ? (
-          <Text style={[TYPE.captionSm, styles.time]}>
-            {formatRelativeTime(conversation.last_message_at)}
-          </Text>
-        ) : null}
-      </View>
-      <Text style={[TYPE.captionSm, styles.listing]} numberOfLines={1}>
-        {conversation.listing_title}
-      </Text>
-      <View style={styles.bottomRow}>
-        <Text style={[TYPE.bodySm, styles.preview]} numberOfLines={1}>
-          {preview}
-        </Text>
-        {conversation.unreadCount > 0 ? (
-          <View style={styles.badge}>
-            <Text style={[TYPE.captionXs, styles.badgeText]}>{badgeLabel}</Text>
+      <Avatar name={counterpartName} />
+      <View style={styles.content}>
+        <View style={styles.topRow}>
+          <View style={styles.nameRow}>
+            <Text style={[TYPE.cardTitle, styles.name]} numberOfLines={1}>
+              {counterpartName}
+            </Text>
+            <View style={styles.roleTag}>
+              <Text style={[TYPE.captionXs, styles.roleText]}>{counterpartRole}</Text>
+            </View>
           </View>
-        ) : null}
+          {conversation.last_message_at ? (
+            <Text style={[TYPE.captionSm, styles.time]}>
+              {formatRelativeTime(conversation.last_message_at)}
+            </Text>
+          ) : null}
+        </View>
+        <Text style={[TYPE.captionSm, styles.listing]} numberOfLines={1}>
+          {conversation.listing_title}
+        </Text>
+        <View style={styles.bottomRow}>
+          <Text style={[TYPE.bodySm, styles.preview]} numberOfLines={1}>
+            {preview}
+          </Text>
+          {conversation.unreadCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={[TYPE.captionXs, styles.badgeText]}>{badgeLabel}</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
     </Pressable>
   )
@@ -66,6 +76,9 @@ function ConversationListItem({
 const styles = StyleSheet.create({
   row: {
     minHeight: TOUCH_TARGET,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.hairline,
     backgroundColor: COLORS.canvas,
@@ -79,15 +92,37 @@ const styles = StyleSheet.create({
   rowPressed: {
     opacity: 0.7,
   },
+  content: {
+    flex: 1,
+    minWidth: 0,
+  },
   topRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: SPACING.md,
   },
-  name: {
+  nameRow: {
     flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  name: {
+    flexShrink: 1,
     color: COLORS.ink,
+  },
+  roleTag: {
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 1,
+  },
+  roleText: {
+    color: COLORS.mute,
   },
   time: {
     color: COLORS.mute,

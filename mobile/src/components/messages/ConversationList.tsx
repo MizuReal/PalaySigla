@@ -1,7 +1,11 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
+import Button from '../Button'
+import Icon from '../Icon'
 import ConversationListItem from './ConversationListItem'
 import { COLORS, RADIUS, SPACING, TOUCH_TARGET, TYPE } from '../../theme/designTokens'
 import type { ConversationSummary } from '../../types/domain'
+
+const EMPTY_ICON_SIZE = 32
 
 interface ConversationListProps {
   conversations: ConversationSummary[]
@@ -14,6 +18,7 @@ interface ConversationListProps {
   onSelect: (conversationId: string) => void
   onLoadMore: () => void
   onRetry: () => void
+  onBrowseMarketplace?: () => void
 }
 
 function ConversationList({
@@ -27,6 +32,7 @@ function ConversationList({
   onSelect,
   onLoadMore,
   onRetry,
+  onBrowseMarketplace,
 }: ConversationListProps) {
   if (isInitialLoading) {
     return (
@@ -56,10 +62,16 @@ function ConversationList({
   if (conversations.length === 0) {
     return (
       <View style={styles.emptyBlock}>
+        <Icon name="chat" size={EMPTY_ICON_SIZE} color={COLORS.mute} />
         <Text style={[TYPE.headingSm, styles.emptyTitle]}>No conversations yet.</Text>
         <Text style={[TYPE.bodySm, styles.emptyHint]}>
-          Open a listing and use Message seller to start a conversation.
+          Message a seller from any listing to start a conversation.
         </Text>
+        {onBrowseMarketplace ? (
+          <View style={styles.emptyAction}>
+            <Button label="Browse the marketplace" onPress={onBrowseMarketplace} />
+          </View>
+        ) : null}
       </View>
     )
   }
@@ -138,11 +150,15 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: COLORS.ink,
+    marginTop: SPACING.md,
   },
   emptyHint: {
     color: COLORS.mute,
     marginTop: SPACING.sm,
     textAlign: 'center',
+  },
+  emptyAction: {
+    marginTop: SPACING.xl,
   },
   loadMore: {
     minHeight: TOUCH_TARGET,

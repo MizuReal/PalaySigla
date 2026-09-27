@@ -1,3 +1,5 @@
+import Button from '../Button'
+import Icon from '../Icon'
 import ConversationListItem from './ConversationListItem'
 import type { ConversationSummary } from '../../types/domain'
 
@@ -14,6 +16,7 @@ interface ConversationListProps {
   onSelect: (conversationId: string) => void
   onLoadMore: () => void
   onRetry: () => void
+  onBrowseMarketplace?: () => void
 }
 
 function ConversationList({
@@ -27,6 +30,7 @@ function ConversationList({
   onSelect,
   onLoadMore,
   onRetry,
+  onBrowseMarketplace,
 }: ConversationListProps) {
   if (isInitialLoading) {
     return (
@@ -55,11 +59,19 @@ function ConversationList({
 
   if (conversations.length === 0) {
     return (
-      <div className="border border-hairline bg-surface-soft p-8 text-center">
-        <p className="heading-sm text-ink">No conversations yet.</p>
-        <p className="body-sm mt-2 text-mute">
-          Open a listing and use Message seller to start a conversation.
+      <div className="flex flex-col items-center border border-hairline bg-surface-soft p-8 text-center">
+        <Icon name="chat" className="h-8 w-8 text-mute" />
+        <p className="heading-sm mt-3 text-ink">No conversations yet.</p>
+        <p className="body-sm mt-2 max-w-xs text-mute">
+          Message a seller from any listing to start a conversation.
         </p>
+        {onBrowseMarketplace && (
+          <div className="mt-6">
+            <Button variant="outline" onClick={onBrowseMarketplace}>
+              Browse the marketplace
+            </Button>
+          </div>
+        )}
       </div>
     )
   }
