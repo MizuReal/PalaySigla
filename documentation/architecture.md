@@ -7,6 +7,7 @@
 | Website | React 19, react-router v7, Tailwind CSS v4, Leaflet (react-leaflet v5), TypeScript (strict) |
 | Backend | FastAPI (async), httpx, pydantic-settings |
 | Database + Auth + Storage | Supabase (PostgreSQL, email/password auth, private buckets) |
+| Realtime | Supabase Realtime (Postgres Changes over WebSocket) for marketplace messaging |
 | Geocoding | Nominatim / OpenStreetMap, proxied through the backend |
 | Palay Assistant | Groq-hosted `openai/gpt-oss-20b` (chat-completions), proxied through the backend |
 | Mobile | Expo SDK 57 (React Native), React Navigation v7, TypeScript (strict), Inter typeface — intro landing + bottom-tab shell + marketplace browse + full email/password auth + Palay Assistant shipped |
@@ -251,6 +252,64 @@ Notes:
   policy enforces the `auth.uid()` prefix.
 - Owner actions (mark sold / remove) run through the same service layer; removals
   are soft deletes (`deleted_at`), never hard deletes.
+
+## Marketplace messaging
+
+Buyers and sellers talk in **listing-scoped** threads. One conversation per
+`(listing, buyer)` — the seller is the listing owner — and every message is an
+immutable, append-only row. Names are snapshotted onto the conversation at
+creation because `profiles` is owner-read-only under RLS (the same reason
+listings carry `seller_name`).
+
+Delivery is **Supabase Realtime (Postgres Changes over WebSocket)** rather than
+a bespoke FastAPI socket server: the data path stays in Postgres with RLS on
+the socket, the frontends already ship `@supabase/realtime-js`, and the
+backend keeps its role as the *external-API* gateway only. `007_messaging.sql`
+adds both tables to the `supabase_realtime` publication with `replica identity
+full`.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant DT as ListingDetail (web/mobile)
+    participant S as services/messaging.ts
+    participant SB as Supabase (RLS)
+    participant RT as Supabase Realtime
+
+    U->>DT: taps "Message seller"
+    DT->>S: getOrCreateConversation(listing, buyer, seller)
+    S->>SB: select by (listing_id, buyer_id); insert if absent
+    SB-->>S: conversation row
+    DT->>U: push /messages/:id (web) · Conversation screen (mobile)
+    U->>S: send(body)
+    S->>SB: insert message (sender_id = auth.uid())
+    SB-->>S: stored row
+    S->>SB: update buyer/seller_last_read_at
+    SB-->>RT: WAL change (replica identity full)
+    RT-->>S: postgres_changes INSERT (conversation_id=eq.<id>)
+    S-->>U: append (deduped against the optimistic echo)
+```
+
+Notes:
+
+- **Inbox vs thread subscriptions.** The thread listens for `messages` INSERTs
+  filtered by `conversation_id`. The inbox listens for `conversations`
+  INSERT/UPDATE on both `buyer_id` and `seller_id` — the last-message trigger
+  bumps that row on every message, so the inbox re-reads its summary and unread
+  count without a fan-out message subscription.
+- **Unread state.** `conversations` carries a per-party read watermark
+  (`buyer_last_read_at` / `seller_last_read_at`); `unread_message_counts()`
+  (a `SECURITY INVOKER` RPC, like `forum_category_counts()`) returns the count
+  of the other party's newer messages per thread for the badge and rows.
+- **Optimistic sends.** The client appends a pending bubble, then reconciles
+  the server row by id so the Realtime echo cannot double-render.
+- **Lifecycle.** `MessagingProvider` owns the single inbox subscription and the
+  badge total, tearing it down on sign-out and reconciling on window focus
+  (web) / AppState `active` (mobile). Realtime is not guaranteed delivery, so
+  subscriptions refetch on (re)connect.
+- **Rejection rules.** RLS prevents messaging yourself, messaging about an
+  inactive/deleted listing, reading a thread you are not in, and editing or
+  deleting a message.
 
 ## Geocoding proxy
 

@@ -46,3 +46,10 @@ export type ListingImageRef = Pick<ListingImageRow, 'id' | 'storage_path' | 'pos
 export type ListingWithImages = ListingRow & {
   listing_images: ListingImageRef[]
 }
+
+// Marketplace messaging: conversations are listing-scoped threads; the inbox
+// summary carries the viewer's unread count attached by the service.
+export type ConversationRow = Tables<'conversations'>
+export type MessageRow = Tables<'messages'>
+
+export type ConversationSummary = ConversationRow & { unreadCount: number }

@@ -94,6 +94,8 @@ generated.
 |---|---|---|
 | `/` | `Home` | Marketing page |
 | `/marketplace` | `MarketplacePage` | Browse + post |
+| `/forum` | `ForumPage` | Community feed + thread |
+| `/messages` · `/messages/:conversationId` | `MessagesPage` | Auth-gated marketplace inbox + thread |
 | `/profile` | `ProfilePage` | Auth-gated; sign-in pitch when signed out |
 | `*` | `NotFoundPage` | Full-page 404 with navigation actions |
 | root `errorElement` | `RouteErrorPage` | Full-page route-error fallback with reload |
@@ -102,7 +104,9 @@ There is no shared layout route: each page renders its own `PrimaryNav` +
 `<main>` + `Footer`. `NotFoundPage` / `RouteErrorPage` render bare
 `FullPageMessage`s. Mounted globally in `App.tsx` outside the router (so they
 survive route errors and appear on every page): `AuthModal`, `AuthToasts`,
-and `ChatWidget`.
+and `ChatWidget`. `AuthProvider` and `MessagingProvider` wrap the router;
+`MessagingProvider` owns the inbox Realtime subscription and the unread
+badge total.
 
 > **Known stub.** The navbar's "Rice Husk Analysis" link points to
 > `/rice-husk-analysis`, which has no registered route yet — navigating there
@@ -169,7 +173,27 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   decimal-coordinates strip, and the seller / posted line; tall dialogs
   scroll internally.
 - **Owner actions:** mark as sold, remove (soft delete, inline confirm).
+- **Messaging:** the signed-in-owner check hides a "Message seller" action on
+  someone else's listing; it opens (or reuses) the listing-scoped thread and
+  routes to `/messages/:conversationId`. The Inbox nav link carries a live
+  unread badge.
 - Everything goes through `services/listings.ts` and `services/geocode.ts`.
+
+### Messaging
+
+- **`/messages`** — inbox of the signed-in user's listing conversations
+  (unread badges, last-message preview, load-more); `/messages/:conversationId`
+  opens a thread. Desktop is a two-pane inbox + thread; mobile is single-pane
+  with a back affordance. Signed-out visitors get a sign-in pitch.
+- **`services/messaging.ts`** — `fetchConversations`, `getOrCreateConversation`,
+  `fetchMessages`, `sendMessage`, `markConversationRead`, `fetchUnreadCounts`,
+  plus `subscribeToInbox` / `subscribeToConversation` Realtime helpers.
+- **Hooks** — `useConversations`, `useConversation` (pagination, optimistic
+  send with server-echo dedupe, read watermark), `useStartConversation`, and
+  `useUnreadMessageCount`.
+- **Provider** — `MessagingProvider` owns the single inbox subscription and
+  exposes the unread total + an inbox refresh nonce; it reconciles on window
+  focus and tears down on sign-out.
 
 ### Profile
 

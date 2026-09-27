@@ -12,6 +12,8 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList> | undefined
   ListingDetail: { listingId: string }
   PostListing: undefined
+  Messages: undefined
+  Conversation: { conversationId: string }
   ForumThread: { postId: string }
   ForumPostEditor: { postId?: string } | undefined
   NotFound: undefined

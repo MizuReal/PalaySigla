@@ -59,6 +59,7 @@ Current migrations:
 | `schemas/004_forum.sql` | `forum_posts`, `forum_comments`, `forum_reactions`, indexes, edited-at/counter triggers, RLS policies |
 | `schemas/005_forum_categories.sql` | `forum_posts.category` (CHECK-constrained, defaults to `general`), `(category, created_at desc)` index, category-aware edited-at trigger, `forum_category_counts()` RPC |
 | `schemas/006_forum_images.sql` | `forum_images` (optional post photos, up to 4), private `forum` bucket, indexes, RLS policies (rows scoped to visible posts) |
+| `schemas/007_messaging.sql` | `conversations` + `messages` (listing-scoped buyer/seller chat), indexes, last-message trigger, `unread_message_counts()` RPC, participant RLS, Realtime publication + `replica identity full` |
 | `schemas/seed_demo_listings.sql` | Demo rows for local testing (idempotent inserts; safe to run anytime) |
 
 ## Row-level security model
@@ -78,6 +79,8 @@ there is no implicit public access.
 | `forum_reactions` | Everyone (reaction rows/counts) | Insert/delete: owner. `forum_category_counts()` is `SECURITY INVOKER`, so the caller's row policy still applies. |
 | `forum_images` | Photos of visible (`deleted_at IS NULL`) posts | Insert/update/delete: owner of the parent post. No hard-delete policy on posts — photo rows are deleted by the owner when a photo is removed, and cascade with a hard post delete. |
 | `storage.objects` (`forum` bucket) | Signed URLs only while the parent post is visible | Insert/update/delete: path must start with `auth.uid()::text/` |
+| `conversations` | Participants only (`buyer_id = auth.uid()` or `seller_id = auth.uid()`) | Insert: the buyer, against an active listing they do not own (seller derived from `listings.user_id`). Update: participants (read watermark only). No hard-delete policy. |
+| `messages` | Participants of the parent conversation only | Insert: the sender, into a conversation they belong to (`sender_id = auth.uid()`). No update/delete policy — messages are an immutable, append-only log. |
 
 Consequences:
 
@@ -103,6 +106,16 @@ Consequences:
 - Images are served to clients through short-lived signed URLs
   (`createSignedUrl`, 60 s expiry; the frontend caches them ~45 s).
 - There is no public bucket.
+
+## Realtime (marketplace messaging)
+
+`schemas/007_messaging.sql` adds `conversations` and `messages` to the
+`supabase_realtime` publication and sets `replica identity full` on both, so
+the frontends can subscribe with `postgres_changes` filters
+(`conversation_id=eq.<id>` for a thread; `buyer_id` / `seller_id` for the
+inbox). Realtime honours RLS: a subscriber only receives rows matching the
+same participant policies as a normal `SELECT`. No dashboard toggle is
+required — the publication change is applied by the migration.
 
 ## Verifying a fresh setup
 

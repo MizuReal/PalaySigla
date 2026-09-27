@@ -1,12 +1,14 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Icon from '../Icon'
 import ListingLocationMap from './ListingLocationMap'
 import { buildOpenStreetMapUrl } from './mapConfig'
 import Modal from '../Modal'
 import Photo from '../Photo'
 import useListingDetail from '../../hooks/useListingDetail'
+import useStartConversation from '../../hooks/useStartConversation'
 import { softDeleteListing, updateListingStatus } from '../../services/listings'
-import { useAuth } from '../../context/authContext'
+import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext'
 import { TOAST_VARIANTS, useToast } from '../../context/toastContext'
 import {
   CATEGORY_LABELS,
@@ -26,12 +28,29 @@ interface ListingDetailModalProps {
 
 function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModalProps) {
   const { listing, imageUrl, isLoading, error } = useListingDetail(listingId)
-  const { user } = useAuth()
+  const { user, openAuthModal } = useAuth()
   const { showToast } = useToast()
+  const navigate = useNavigate()
+  const { start, isStarting, error: startError } = useStartConversation()
   const [isConfirmingRemove, setIsConfirmingRemove] = useState(false)
   const [isActing, setIsActing] = useState(false)
 
   const isOwner = user !== null && listing?.user_id === user.id
+
+  const handleMessageSeller = async () => {
+    if (!listing) {
+      return
+    }
+    if (!user) {
+      openAuthModal(AUTH_MODAL_MODES.LOGIN)
+      return
+    }
+    const conversation = await start(listing)
+    if (conversation) {
+      onClose()
+      navigate(`/messages/${conversation.id}`)
+    }
+  }
 
   const handleMarkSold = async () => {
     if (!listing) {
@@ -247,6 +266,23 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
               Posted {formatRelativeTime(listing.created_at)}
             </p>
           </div>
+          {!isOwner && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={handleMessageSeller}
+                disabled={isStarting}
+                className="h-11 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
+              >
+                {isStarting ? 'Opening…' : 'Message seller'}
+              </button>
+              {startError && (
+                <p className="caption-sm mt-2 text-error" role="alert">
+                  {startError}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </>
     )

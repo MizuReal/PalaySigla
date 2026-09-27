@@ -47,3 +47,10 @@ export type ForumPostWithImages = ForumPostRow & {
 
 export type ForumPostSummary = ForumPostWithImages & { hasHearted: boolean }
 export type ForumCommentItem = ForumCommentRow & { hasHearted: boolean }
+
+// Marketplace messaging: conversations are listing-scoped threads; the inbox
+// summary carries the viewer's unread count attached by the service.
+export type ConversationRow = Tables<'conversations'>
+export type MessageRow = Tables<'messages'>
+
+export type ConversationSummary = ConversationRow & { unreadCount: number }

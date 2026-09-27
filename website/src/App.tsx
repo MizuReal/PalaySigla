@@ -3,11 +3,13 @@ import AuthModal from './components/AuthModal'
 import AuthToasts from './components/AuthToasts'
 import ChatWidget from './components/chat/ChatWidget'
 import AuthProvider from './context/AuthProvider'
+import MessagingProvider from './context/MessagingProvider'
 import ToastProvider from './context/ToastProvider'
 import { useAuth } from './context/authContext'
 import ForumPage from './pages/ForumPage'
 import Home from './pages/Home'
 import MarketplacePage from './pages/MarketplacePage'
+import MessagesPage from './pages/MessagesPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ProfilePage from './pages/ProfilePage'
 import RouteErrorPage from './pages/RouteErrorPage'
@@ -27,6 +29,14 @@ const router = createBrowserRouter([
       {
         path: '/forum',
         element: <ForumPage />,
+      },
+      {
+        path: '/messages',
+        element: <MessagesPage />,
+      },
+      {
+        path: '/messages/:conversationId',
+        element: <MessagesPage />,
       },
       {
         path: '/profile',
@@ -50,7 +60,9 @@ export function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <MessagingProvider>
+          <RouterProvider router={router} />
+        </MessagingProvider>
         <AppModals />
         <AuthToasts />
         <ChatWidget />

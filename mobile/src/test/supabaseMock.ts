@@ -63,6 +63,33 @@ export interface StorageBucketMock {
   createSignedUrl: jest.Mock
 }
 
+export interface RealtimeHandler {
+  type: string
+  config: unknown
+  callback: (...args: unknown[]) => void
+}
+
+export interface ChannelMock {
+  handlers: RealtimeHandler[]
+  on: jest.Mock
+  subscribe: jest.Mock
+}
+
+// Realtime channel double: `.on()` records its callback so tests can emit
+// `postgres_changes` payloads, and `.subscribe()` chains like the real client.
+export function createChannelMock(): ChannelMock {
+  const handlers: RealtimeHandler[] = []
+  const channel = { handlers } as unknown as ChannelMock
+  channel.on = jest.fn(
+    (type: string, config: unknown, callback: (...args: unknown[]) => void) => {
+      handlers.push({ type, config, callback })
+      return channel
+    }
+  )
+  channel.subscribe = jest.fn(() => channel)
+  return channel
+}
+
 export function createStorageBucketMock(): StorageBucketMock {
   const upload = jest.fn()
   upload.mockResolvedValue({ data: null, error: null })
@@ -77,6 +104,8 @@ export interface SupabaseMock {
   from: jest.Mock
   storage: { from: jest.Mock }
   rpc: jest.Mock
+  channel: jest.Mock
+  removeChannel: jest.Mock
   auth: {
     signInWithPassword: jest.Mock
     signUp: jest.Mock
@@ -96,6 +125,10 @@ export function createSupabaseMock(): SupabaseMock {
   storageFrom.mockImplementation(() => createStorageBucketMock())
   const rpc = jest.fn()
   rpc.mockResolvedValue({ data: [], error: null })
+  const channel = jest.fn()
+  channel.mockImplementation(() => createChannelMock())
+  const removeChannel = jest.fn()
+  removeChannel.mockResolvedValue('ok')
   const auth = {
     signInWithPassword: jest.fn(),
     signUp: jest.fn(),
@@ -106,7 +139,14 @@ export function createSupabaseMock(): SupabaseMock {
     exchangeCodeForSession: jest.fn(),
     setSession: jest.fn(),
   }
-  const supabase: SupabaseMock = { from, storage: { from: storageFrom }, rpc, auth }
+  const supabase: SupabaseMock = {
+    from,
+    storage: { from: storageFrom },
+    rpc,
+    channel,
+    removeChannel,
+    auth,
+  }
   resetSupabaseMock(supabase)
   return supabase
 }
@@ -116,6 +156,8 @@ export function resetSupabaseMock(supabase: SupabaseMock): void {
     supabase.from,
     supabase.storage.from,
     supabase.rpc,
+    supabase.channel,
+    supabase.removeChannel,
     ...Object.values(supabase.auth),
   ]
   for (const mock of supabaseMocks) {
@@ -124,6 +166,8 @@ export function resetSupabaseMock(supabase: SupabaseMock): void {
   supabase.from.mockImplementation(() => createQueryBuilder())
   supabase.storage.from.mockImplementation(() => createStorageBucketMock())
   supabase.rpc.mockResolvedValue({ data: [], error: null })
+  supabase.channel.mockImplementation(() => createChannelMock())
+  supabase.removeChannel.mockResolvedValue('ok')
   supabase.auth.signInWithPassword.mockResolvedValue({ data: null, error: null })
   supabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: null })
   supabase.auth.resetPasswordForEmail.mockResolvedValue({ data: null, error: null })

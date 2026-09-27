@@ -20,11 +20,12 @@ import Icon from '../components/Icon'
 import ListingLocationMap from '../components/marketplace/ListingLocationMap'
 import { buildOpenStreetMapUrl } from '../components/marketplace/mapConfig'
 import Photo from '../components/Photo'
-import { useAuth } from '../context/authContext'
+import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import { TOAST_VARIANTS, useToast } from '../context/toastContext'
 import useListingActions from '../hooks/useListingActions'
 import useListingDetail from '../hooks/useListingDetail'
 import usePulseOpacity from '../hooks/usePulseOpacity'
+import useStartConversation from '../hooks/useStartConversation'
 import {
   CATEGORY_LABELS,
   formatCoordinates,
@@ -75,14 +76,29 @@ interface ListingDetailContentProps {
 
 function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps) {
   const { listing, imageUrl, isLoading, error } = useListingDetail(listingId)
-  const { user } = useAuth()
+  const { user, openAuthModal } = useAuth()
   const { showToast } = useToast()
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const { isActing, error: actionError, markSold, remove, clearError } =
     useListingActions()
+  const { start, isStarting, error: startError } = useStartConversation()
   const [isConfirmingRemove, setIsConfirmingRemove] = useState(false)
 
   const isOwner = user !== null && listing?.user_id === user.id
+
+  const handleMessageSeller = async () => {
+    if (!listing) {
+      return
+    }
+    if (!user) {
+      openAuthModal(AUTH_MODAL_MODES.LOGIN)
+      return
+    }
+    const conversation = await start(listing)
+    if (conversation) {
+      navigation.navigate('Conversation', { conversationId: conversation.id })
+    }
+  }
 
   const handleOpenStreetMap = async (lat: number, lng: number) => {
     try {
@@ -340,6 +356,39 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
               Posted {formatRelativeTime(listing.created_at)}
             </Text>
           </View>
+          {!isOwner ? (
+            <View style={styles.messageSellerBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isStarting }}
+                disabled={isStarting}
+                onPress={handleMessageSeller}
+                style={({ pressed }) => [
+                  styles.markSoldButton,
+                  isStarting && styles.actionDisabled,
+                  pressed && !isStarting && styles.markSoldButtonPressed,
+                ]}
+              >
+                <Text
+                  style={[
+                    TYPE.buttonSm,
+                    styles.markSoldLabel,
+                    isStarting && styles.actionLabelDisabled,
+                  ]}
+                >
+                  {isStarting ? 'Opening…' : 'Message seller'}
+                </Text>
+              </Pressable>
+              {startError ? (
+                <Text
+                  accessibilityRole="alert"
+                  style={[TYPE.captionSm, styles.messageSellerError]}
+                >
+                  {startError}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       </View>
     )
@@ -628,6 +677,13 @@ const styles = StyleSheet.create({
   posted: {
     color: COLORS.mute,
     marginTop: SPACING.xs,
+  },
+  messageSellerBlock: {
+    marginTop: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  messageSellerError: {
+    color: COLORS.error,
   },
   skeleton: {
     flex: 1,

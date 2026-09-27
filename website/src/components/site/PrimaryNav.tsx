@@ -5,6 +5,7 @@ import Container from '../Container'
 import Icon from '../Icon'
 import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext'
 import useAvatar from '../../hooks/useAvatar'
+import useUnreadMessageCount from '../../hooks/useUnreadMessageCount'
 import { getDisplayName, getInitials } from '../../utils/userProfile'
 
 interface PageLink {
@@ -20,6 +21,7 @@ interface MoreLink {
 const PAGE_LINKS: PageLink[] = [
   { label: 'Marketplace', to: '/marketplace' },
   { label: 'Forum', to: '/forum' },
+  { label: 'Messages', to: '/messages' },
   { label: 'Rice Husk Analysis', to: '/rice-husk-analysis' },
   { label: 'Profile', to: '/profile' },
 ]
@@ -43,6 +45,8 @@ interface RouteLinkProps {
 }
 
 function RouteLink({ link, onNavigate, getClassName }: RouteLinkProps) {
+  const unreadTotal = useUnreadMessageCount()
+  const showBadge = link.to === '/messages' && unreadTotal > 0
   return (
     <NavLink
       to={link.to}
@@ -50,7 +54,14 @@ function RouteLink({ link, onNavigate, getClassName }: RouteLinkProps) {
       onClick={onNavigate}
       className={({ isActive }) => getClassName(isActive)}
     >
-      {link.label}
+      <span className="inline-flex items-center gap-2">
+        {link.label}
+        {showBadge && (
+          <span className="caption-xs rounded-sm bg-primary px-1.5 py-0.5 text-on-primary">
+            {unreadTotal > 9 ? '9+' : unreadTotal}
+          </span>
+        )}
+      </span>
     </NavLink>
   )
 }

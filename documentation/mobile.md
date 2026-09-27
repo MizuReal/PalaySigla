@@ -5,11 +5,12 @@ migrating from JavaScript phase by phase. Ships the **light-only landing screen*
 **marketplace** — browse feed, 3-step posting wizard (photo + map pin),
 listing detail with owner actions (mark sold / remove), and the
 **location picker** — the live **Community forum** (feed, categories,
-threads, comments, hearts, photos), **full email/password auth** (login /
-register / forgot password with in-app email-link returns), toast
-notifications, the **Selling history** profile tab, and the **Palay
-Assistant chat** (root-level bottom sheet over the tabs); the scanning flow
-arrives in a later phase.
+threads, comments, hearts, photos), **marketplace messaging** (listing-scoped
+buyer/seller chat with live delivery and unread badges), **full
+email/password auth** (login / register / forgot password with in-app
+email-link returns), toast notifications, the **Selling history** profile tab,
+and the **Palay Assistant chat** (root-level bottom sheet over the tabs); the
+scanning flow arrives in a later phase.
 
 ## Requirements
 
@@ -85,23 +86,29 @@ src/
 │   ├── forum/              ForumPostCard(+Skeleton), ForumPostImage, AuthorBadge, HeartButton,
 │   │                       ReplyButton, ForumToolbar (search + create + category chips),
 │   │                       ForumImageUploader, CommentComposer, CommentItem, DeleteInlineConfirm (community UI)
+│   ├── messages/           ConversationList + ConversationListItem (inbox), MessageThread + MessageBubble +
+│   │                       MessageComposer (listing-scoped buyer/seller chat)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
 ├── context/                authContext + AuthProvider (session + overlays), toastContext + ToastProvider
-│   │                       (root toast layer, under the modal overlays)
+│   │                       (root toast layer, under the modal overlays), messagingContext + MessagingProvider
+│   │                       (inbox Realtime subscription + unread badge)
 ├── screens/                LandingScreen (intro), MainTabs, Marketplace (feed), ListingDetail (root-stack push),
-│   │                       PostListing (3-step wizard), ForumThread + ForumPostEditor (root-stack pushes),
+│   │                       PostListing (3-step wizard), Messages + Conversation (root-stack pushes),
+│   │                       ForumThread + ForumPostEditor (root-stack pushes),
 │   │                       Community (forum feed), NotFound (unknown-address fallback), Scan/Settings tab screens
 ├── services/               supabaseClient (AsyncStorage session persistence), auth
 │   │                       (sign-in/up/out, reset, deep-link hand-off), chatbot (sendChatMessage), listings
 │   │                       (browse + create/upload/soft-delete/status/my-listings), geocode (place search +
 │   │                       reverse geocoding through the backend), signedUrlCache (shared 60s/45s cache),
 │   │                       forum (posts/comments/reactions/images + category counts),
+│   │                       messaging (conversations/messages + Realtime subscriptions),
 │   │                       profile (fetch/upsert/name sync + avatar upload/remove/URLs)
 ├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
 │   │                       useImagePicker (camera/library + permissions + compression), usePostListing,
 │   │                       useListingActions (mark sold / remove), useMyListings,
 │   │                       useForumPosts, useForumPost, useForumComments, useForumPostEditor,
 │   │                       useForumCategoryCounts, useForumImagePicker, useForumImageUrl,
+│   │                       useConversations, useConversation, useStartConversation, useUnreadMessageCount,
 │   │                       useProfile (account details + staged avatar),
 │   │                       usePalayAssistant (chat state + history), usePulseOpacity
 ├── types/                  database.ts (generated Supabase types; copy of the website file) + api.ts (backend contracts)
@@ -319,6 +326,31 @@ The **Community** tab is the live forum (website `/forum` parity), backed by
 - Feedback is inline (mobile has no toast requirement here); the section is
   fully tested (`forum.test.ts`, `forumValidation.test.ts`, `HeartButton`,
   plus the feed/thread coverage).
+
+### Marketplace messaging (current)
+
+Listing-scoped buyer/seller chat, the mobile twin of the website's
+`/messages`. Backed by `services/messaging.ts` and the `conversations` /
+`messages` tables in `src/types/database.ts`:
+
+- **Entry.** A "Message seller" button on `ListingDetailScreen` for listings the
+  viewer does not own (signed-out taps open the auth dialog); it creates or
+  reuses the `(listing, buyer)` thread and pushes `Conversation`. Signed-in
+  users also get an inbox glyph with an unread badge on `BrandBar`, and the
+  `Messages` screen itself.
+- **Inbox** (`Messages` root-stack push) — `ConversationList` rows with
+  counterpart name, listing title, last-message preview, relative time, and an
+  unread badge; paginated with load-more and inline empty/error states.
+- **Thread** (`Conversation` root-stack push) — `MessageThread` renders
+  counterpart/listing header, day-separated bubbles (viewer turns primary
+  right, counterpart turns surface-soft left), load-earlier, and
+  `MessageComposer`; it is keyboard-aware via `KeyboardAvoidingView`.
+- **Live delivery.** `useConversation` subscribes to `messages` INSERTs for the
+  thread, appends optimistically and dedupes the Realtime echo by id, and marks
+  the thread read once an incoming turn is newest. `MessagingProvider` owns the
+  single inbox subscription and unread total, reconciling on AppState `active`.
+- **Testing.** `services/__tests__/messaging.test.ts` covers the query chains,
+  the read watermark, and both Realtime subscriptions.
 
 ### Error &amp; not-found surfaces (current)
 

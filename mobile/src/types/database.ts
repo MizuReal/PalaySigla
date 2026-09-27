@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      conversations: {
+        Row: {
+          buyer_id: string
+          buyer_last_read_at: string | null
+          buyer_name: string
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          listing_id: string | null
+          listing_title: string
+          seller_id: string
+          seller_last_read_at: string | null
+          seller_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          buyer_id: string
+          buyer_last_read_at?: string | null
+          buyer_name: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          listing_id?: string | null
+          listing_title: string
+          seller_id: string
+          seller_last_read_at?: string | null
+          seller_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          buyer_last_read_at?: string | null
+          buyer_name?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          listing_id?: string | null
+          listing_title?: string
+          seller_id?: string
+          seller_last_read_at?: string | null
+          seller_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forum_comments: {
         Row: {
           author_name: string
@@ -263,6 +319,38 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_path: string | null
@@ -309,6 +397,13 @@ export type Database = {
         Returns: {
           category: string
           post_count: number
+        }[]
+      }
+      unread_message_counts: {
+        Args: never
+        Returns: {
+          conversation_id: string
+          unread_count: number
         }[]
       }
     }

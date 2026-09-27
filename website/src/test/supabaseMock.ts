@@ -64,6 +64,33 @@ export interface StorageBucketMock {
   createSignedUrl: Mock
 }
 
+export interface RealtimeHandler {
+  type: string
+  config: unknown
+  callback: (...args: unknown[]) => void
+}
+
+export interface ChannelMock {
+  handlers: RealtimeHandler[]
+  on: Mock
+  subscribe: Mock
+}
+
+// Realtime channel double: `.on()` records its callback so tests can emit
+// `postgres_changes` payloads, and `.subscribe()` chains like the real client.
+export function createChannelMock(): ChannelMock {
+  const handlers: RealtimeHandler[] = []
+  const channel = { handlers } as unknown as ChannelMock
+  channel.on = vi.fn(
+    (type: string, config: unknown, callback: (...args: unknown[]) => void) => {
+      handlers.push({ type, config, callback })
+      return channel
+    }
+  )
+  channel.subscribe = vi.fn(() => channel)
+  return channel
+}
+
 export function createStorageBucketMock(): StorageBucketMock {
   const upload = vi.fn()
   upload.mockResolvedValue({ data: null, error: null })
@@ -77,6 +104,8 @@ export function createStorageBucketMock(): StorageBucketMock {
 export interface SupabaseMock {
   from: Mock
   rpc: Mock
+  channel: Mock
+  removeChannel: Mock
   storage: { from: Mock }
   auth: {
     signInWithPassword: Mock
@@ -92,6 +121,10 @@ export function createSupabaseMock(): SupabaseMock {
   const from = vi.fn()
   from.mockImplementation(() => createQueryBuilder())
   const rpc = vi.fn()
+  const channel = vi.fn()
+  channel.mockImplementation(() => createChannelMock())
+  const removeChannel = vi.fn()
+  removeChannel.mockResolvedValue('ok')
   const storageFrom = vi.fn()
   storageFrom.mockImplementation(() => createStorageBucketMock())
   const auth = {
@@ -102,7 +135,14 @@ export function createSupabaseMock(): SupabaseMock {
     getSession: vi.fn(),
     updateUser: vi.fn(),
   }
-  const supabase: SupabaseMock = { from, rpc, storage: { from: storageFrom }, auth }
+  const supabase: SupabaseMock = {
+    from,
+    rpc,
+    channel,
+    removeChannel,
+    storage: { from: storageFrom },
+    auth,
+  }
   resetSupabaseMock(supabase)
   return supabase
 }
@@ -111,6 +151,8 @@ export function resetSupabaseMock(supabase: SupabaseMock): void {
   vi.resetAllMocks()
   supabase.from.mockImplementation(() => createQueryBuilder())
   supabase.rpc.mockResolvedValue({ data: [], error: null })
+  supabase.channel.mockImplementation(() => createChannelMock())
+  supabase.removeChannel.mockResolvedValue('ok')
   supabase.storage.from.mockImplementation(() => createStorageBucketMock())
   supabase.auth.signInWithPassword.mockResolvedValue({ data: null, error: null })
   supabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: null })
