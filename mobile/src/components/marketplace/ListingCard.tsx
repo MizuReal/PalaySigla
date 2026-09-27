@@ -12,9 +12,11 @@ import {
   formatRelativeTime,
   UNIT_LABELS,
 } from '../../utils/format'
+import { CATEGORY_ICONS, CATEGORY_TAG_COLORS } from '../../utils/listingIcons'
 import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
 
 const PIN_ICON_SIZE = 16
+const CHIP_ICON_SIZE = 14
 
 interface ListingCardProps {
   listing: ListingWithImages
@@ -28,6 +30,7 @@ function ListingCard({ listing, onPress }: ListingCardProps) {
   )
   const categoryLabel = CATEGORY_LABELS[listing.category]
   const unitLabel = UNIT_LABELS[listing.unit]
+  const tag = CATEGORY_TAG_COLORS[listing.category]
 
   return (
     <Pressable
@@ -44,7 +47,18 @@ function ListingCard({ listing, onPress }: ListingCardProps) {
           loading={isImageLoading}
           style={styles.photo}
         />
-        <View pointerEvents="none" style={styles.chip}>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.chip,
+            { borderColor: tag.accent, backgroundColor: tag.fill },
+          ]}
+        >
+          <Icon
+            name={CATEGORY_ICONS[listing.category]}
+            size={CHIP_ICON_SIZE}
+            color={tag.accent}
+          />
           <Text style={[TYPE.captionMd, styles.chipText]}>{categoryLabel}</Text>
         </View>
         {listing.status === 'reserved' ? (
@@ -94,22 +108,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: SPACING.md,
     left: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
     borderWidth: 1,
-    borderColor: COLORS.hairline,
-    backgroundColor: COLORS.canvas,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
   },
   chipText: {
-    color: COLORS.primary,
+    color: COLORS.ink,
   },
   reservedChip: {
     position: 'absolute',
     top: SPACING.md,
     right: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.hairline,
-    backgroundColor: COLORS.canvas,
+    borderColor: COLORS.warning,
+    backgroundColor: COLORS.accentYellowPale,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
   },

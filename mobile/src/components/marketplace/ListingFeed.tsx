@@ -19,6 +19,7 @@ import ListingCardSkeleton from './ListingCardSkeleton'
 import useListings from '../../hooks/useListings'
 import { LISTING_SORTS } from '../../services/listings'
 import type { ListingCategory, ListingSort } from '../../services/listings'
+import { MARKETPLACE_TAGLINE } from '../../utils/listingIcons'
 import type { ListingWithImages } from '../../types/domain'
 import {
   COLORS,
@@ -90,16 +91,19 @@ function ListingFeed({
 
   const renderHeader = () => (
     <View style={styles.hero}>
-      <Text style={[TYPE.captionMd, styles.eyebrow]}>Marketplace</Text>
-      <Text style={[TYPE.headingXl, styles.title]}>
-        Buy and sell straight from the sakahan.
-      </Text>
-      <Text style={[TYPE.bodyMd, styles.sub]}>
-        Farmers and buyers list palay, rice, seeds, and machinery — with a
-        photo and a pin on the map so you know exactly where it is.
-      </Text>
-      <View style={styles.postButton}>
-        <Button label="Post a listing" fullWidth onPress={onPostPress} />
+      <View style={styles.heroTop}>
+        <View style={styles.heroText}>
+          <Text style={[TYPE.captionMd, styles.eyebrow]}>Marketplace</Text>
+          <Text style={[TYPE.headingMd, styles.title]}>
+            Buy and sell from the sakahan.
+          </Text>
+          <Text style={[TYPE.captionSm, styles.sub]}>{MARKETPLACE_TAGLINE}</Text>
+        </View>
+        <Button
+          label="Post"
+          accessibilityLabel="Post a listing"
+          onPress={onPostPress}
+        />
       </View>
       {!isInitialLoading && !error && listings.length > 0 ? (
         <Text style={[TYPE.captionSm, styles.count]}>
@@ -197,26 +201,32 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   hero: {
-    paddingTop: SPACING.xl,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.xs,
+  },
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
+  heroText: {
+    flex: 1,
   },
   eyebrow: {
     color: COLORS.primary,
   },
   title: {
     color: COLORS.ink,
-    marginTop: SPACING.sm,
+    marginTop: SPACING.xs,
   },
   sub: {
-    color: COLORS.body,
-    marginTop: SPACING.sm,
-  },
-  postButton: {
-    alignSelf: 'stretch',
-    marginTop: SPACING.lg,
+    color: COLORS.mute,
+    marginTop: SPACING.xxs,
   },
   count: {
     color: COLORS.mute,
-    marginTop: SPACING.lg,
+    marginTop: SPACING.sm,
   },
   feedEmpty: {
     gap: CARD_GAP,

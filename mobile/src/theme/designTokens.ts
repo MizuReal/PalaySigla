@@ -44,6 +44,13 @@ export const COLORS = Object.freeze({
   accentPurpleDeep: '#4d1368',
   accentPurplePale: '#f9d4ff',
   accentGreenPale: '#bff230',
+  accentTeal: '#0f766e',
+  accentTealPale: '#cce7e1',
+  accentBlue: '#1e4fa3',
+  accentBluePale: '#d7e3f4',
+  accentLeafPale: '#e6f1cd',
+  accentRust: '#a63d2f',
+  accentRustPale: '#f3d8d3',
 })
 
 export const SPACING = Object.freeze({

@@ -7,11 +7,17 @@ import AuthorBadge from './AuthorBadge'
 import ForumPostImage from './ForumPostImage'
 import HeartButton from './HeartButton'
 import ReplyButton from './ReplyButton'
+import Icon from '../Icon'
 import { FORUM_CATEGORY_LABELS } from '../../utils/forumCategories'
+import {
+  FORUM_CATEGORY_ICONS,
+  FORUM_CATEGORY_TAG_COLORS,
+} from '../../utils/forumIcons'
 import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
 import type { ForumPostSummary } from '../../types/domain'
 
 const PHOTO_ASPECT_RATIO = 4 / 3
+const CHIP_ICON_SIZE = 14
 
 interface ForumPostCardProps {
   post: ForumPostSummary
@@ -30,6 +36,7 @@ function ForumPostCard({
 }: ForumPostCardProps) {
   const firstImage = post.forum_images?.[0]
   const isEdited = post.updated_at !== null
+  const tag = FORUM_CATEGORY_TAG_COLORS[post.category]
 
   return (
     <Pressable
@@ -47,7 +54,17 @@ function ForumPostCard({
         <Text style={[TYPE.cardTitle, styles.title]} numberOfLines={2}>
           {post.title}
         </Text>
-        <View style={styles.chip}>
+        <View
+          style={[
+            styles.chip,
+            { borderColor: tag.accent, backgroundColor: tag.fill },
+          ]}
+        >
+          <Icon
+            name={FORUM_CATEGORY_ICONS[post.category]}
+            size={CHIP_ICON_SIZE}
+            color={tag.accent}
+          />
           <Text style={[TYPE.captionSm, styles.chipText]}>
             {FORUM_CATEGORY_LABELS[post.category]}
           </Text>
@@ -101,14 +118,15 @@ const styles = StyleSheet.create({
   },
   chip: {
     flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
     borderWidth: 1,
-    borderColor: COLORS.hairline,
-    backgroundColor: COLORS.surfaceSoft,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
   },
   chipText: {
-    color: COLORS.primary,
+    color: COLORS.ink,
   },
   description: {
     color: COLORS.body,

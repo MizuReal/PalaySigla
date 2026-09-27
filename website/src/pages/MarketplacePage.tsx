@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Button from '../components/Button'
 import Container from '../components/Container'
 import Footer from '../components/site/Footer'
+import Icon from '../components/Icon'
 import ListingCard from '../components/marketplace/ListingCard'
 import ListingCardSkeleton from '../components/marketplace/ListingCardSkeleton'
 import ListingDetailModal from '../components/marketplace/ListingDetailModal'
@@ -11,11 +12,12 @@ import PrimaryNav from '../components/site/PrimaryNav'
 import useListings from '../hooks/useListings'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import { LISTING_SORTS } from '../services/listings'
+import { MARKETPLACE_TAGLINE } from '../utils/listingIcons'
 import type { ListingCategory, ListingSort } from '../services/listings'
 import type { ListingWithImages } from '../types/domain'
 
 const SEARCH_DEBOUNCE_MS = 350
-const SKELETON_COUNT = 6
+const SKELETON_COUNT = 8
 
 interface ListingFeedProps {
   category: ListingCategory | null
@@ -38,7 +40,7 @@ function ListingFeed({ category, search, sort, onSelect, onRetry }: ListingFeedP
 
   if (isInitialLoading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: SKELETON_COUNT }, (_, index) => (
           <ListingCardSkeleton key={index} />
         ))}
@@ -78,7 +80,7 @@ function ListingFeed({ category, search, sort, onSelect, onRetry }: ListingFeedP
       <p className="caption-sm text-mute">
         {total} listing{total === 1 ? '' : 's'}
       </p>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {listings.map((listing) => (
           <ListingCard key={listing.id} listing={listing} onSelect={onSelect} />
         ))}
@@ -131,18 +133,18 @@ function MarketplacePage() {
       <PrimaryNav />
       <main>
         <div className="border-b border-hairline bg-canvas">
-          <Container className="py-10 md:py-[64px]">
-            <p className="caption-md text-primary">Marketplace</p>
-            <h1 className="heading-xl mt-3 text-ink">
-              Buy and sell straight from the sakahan.
-            </h1>
-            <p className="body-md mt-4 max-w-2xl text-body">
-              Farmers and buyers list palay, rice, seeds, and machinery — with a
-              photo and a pin on the map so you know exactly where it is.
-            </p>
-            <div className="mt-6">
-              <Button onClick={handlePostClick}>Post a listing</Button>
+          <Container className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="caption-md text-primary">Marketplace</p>
+              <h1 className="heading-md mt-1 text-ink">
+                Buy and sell from the sakahan.
+              </h1>
+              <p className="caption-sm mt-1 text-mute">{MARKETPLACE_TAGLINE}</p>
             </div>
+            <Button onClick={handlePostClick} className="shrink-0">
+              <Icon name="plus" className="h-4 w-4" />
+              Post a listing
+            </Button>
           </Container>
         </div>
         <MarketplaceFilters
@@ -153,7 +155,7 @@ function MarketplacePage() {
           onSearchChange={setSearchInput}
           onSortChange={setSort}
         />
-        <Container className="py-10 md:py-[64px]">
+        <Container className="py-6 md:py-8">
           <ListingFeed
             key={feedKey}
             category={category}

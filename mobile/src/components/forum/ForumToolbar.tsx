@@ -1,15 +1,22 @@
 // Community toolbar — the pinned chrome above the feed: a search field with a
-// 44px primary "start a discussion" square (the `plus` glyph), and the All +
-// seven category chips with their counts. It replaces the former hero band and
-// category grid so the feed owns the viewport; a failed count offers an inline
-// retry rather than a silent zero.
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+// leading `search` glyph and clear affordance beside a 44px primary "start a
+// discussion" square (the `plus` glyph), then a category dropdown showing
+// every option with its glyph and count. A caption beneath names the active
+// category; a failed count offers an inline retry rather than a silent zero.
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import CategoryMenu from '../CategoryMenu'
+import type { CategoryMenuOption } from '../CategoryMenu'
 import Icon from '../Icon'
 import {
   FORUM_CATEGORIES,
+  FORUM_CATEGORY_DESCRIPTIONS,
   FORUM_CATEGORY_LABELS,
 } from '../../utils/forumCategories'
 import type { ForumCategory } from '../../utils/forumCategories'
+import {
+  FORUM_CATEGORY_ICONS,
+  FORUM_CATEGORY_TAG_COLORS,
+} from '../../utils/forumIcons'
 import type { ForumCategoryCounts } from '../../services/forum'
 import {
   COLORS,
@@ -20,8 +27,15 @@ import {
   TYPE,
 } from '../../theme/designTokens'
 
+const ALL_CATEGORY_ID = 'all'
 const SEARCH_INPUT_HEIGHT = 40
 const CREATE_ICON_SIZE = 22
+const CHIP_ICON_SIZE = 16
+const CLEAR_ICON_SIZE = 16
+const CLEAR_BUTTON_SIZE = 32
+
+const ALL_CATEGORY_DESCRIPTION =
+  'Browse every topic, or pick one to narrow the feed.'
 
 interface ForumToolbarProps {
   category: ForumCategory | null
@@ -44,46 +58,55 @@ function ForumToolbar({
   onRetryCounts,
   onStartDiscussion,
 }: ForumToolbarProps) {
-  const renderPill = (key: 'all' | ForumCategory, label: string, count?: number) => {
-    const isActive = key === 'all' ? category === null : category === key
-    return (
-      <Pressable
-        key={key}
-        accessibilityRole="button"
-        accessibilityState={{ selected: isActive }}
-        accessibilityLabel={
-          count === undefined ? label : `${label}, ${count} discussions`
-        }
-        onPress={() => onCategoryChange(key === 'all' ? null : key)}
-        style={({ pressed }) => [
-          styles.pill,
-          isActive ? styles.pillActive : styles.pillInactive,
-          pressed && !isActive && styles.pillPressed,
-        ]}
-      >
-        <Text
-          style={[TYPE.buttonSm, isActive ? styles.pillTextActive : styles.pillText]}
-        >
-          {label}
-          {count !== undefined ? ` · ${count}` : ''}
-        </Text>
-      </Pressable>
-    )
+  const description = category
+    ? FORUM_CATEGORY_DESCRIPTIONS[category]
+    : ALL_CATEGORY_DESCRIPTION
+
+  const categoryOptions: CategoryMenuOption[] = [
+    { id: ALL_CATEGORY_ID, label: 'All categories' },
+    ...FORUM_CATEGORIES.map((forumCategory) => ({
+      id: forumCategory,
+      label: FORUM_CATEGORY_LABELS[forumCategory],
+      icon: FORUM_CATEGORY_ICONS[forumCategory],
+      accent: FORUM_CATEGORY_TAG_COLORS[forumCategory].accent,
+      count: counts ? counts[forumCategory] : undefined,
+    })),
+  ]
+
+  const handleCategoryChange = (id: string) => {
+    onCategoryChange(id === ALL_CATEGORY_ID ? null : (id as ForumCategory))
   }
 
   return (
     <View style={styles.toolbar}>
       <View style={styles.searchRow}>
-        <TextInput
-          style={styles.searchInput}
-          value={search}
-          onChangeText={onSearchChange}
-          placeholder="Search discussions…"
-          placeholderTextColor={COLORS.stone}
-          accessibilityLabel="Search discussions"
-          autoCorrect={false}
-          returnKeyType="search"
-        />
+        <View style={styles.searchField}>
+          <Icon name="search" size={CHIP_ICON_SIZE} color={COLORS.mute} />
+          <TextInput
+            style={styles.searchInput}
+            value={search}
+            onChangeText={onSearchChange}
+            placeholder="Search discussions…"
+            placeholderTextColor={COLORS.stone}
+            accessibilityLabel="Search discussions"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+          {search ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={SPACING.sm}
+              onPress={() => onSearchChange('')}
+              style={({ pressed }) => [
+                styles.clearButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Icon name="close" size={CLEAR_ICON_SIZE} color={COLORS.mute} />
+            </Pressable>
+          ) : null}
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Start a discussion"
@@ -97,22 +120,13 @@ function ForumToolbar({
         </Pressable>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        style={styles.pillScroller}
-        contentContainerStyle={styles.pillRow}
-      >
-        {renderPill('all', 'All')}
-        {FORUM_CATEGORIES.map((forumCategory) =>
-          renderPill(
-            forumCategory,
-            FORUM_CATEGORY_LABELS[forumCategory],
-            counts ? counts[forumCategory] : undefined
-          )
-        )}
-      </ScrollView>
+      <CategoryMenu
+        ariaLabel="Filter by category"
+        value={category ?? ALL_CATEGORY_ID}
+        options={categoryOptions}
+        onChange={handleCategoryChange}
+        style={styles.categoryMenu}
+      />
 
       {countsError ? (
         <View style={styles.countsErrorRow}>
@@ -128,7 +142,9 @@ function ForumToolbar({
             <Text style={[TYPE.captionSm, styles.retryText]}>Retry</Text>
           </Pressable>
         </View>
-      ) : null}
+      ) : (
+        <Text style={[TYPE.captionSm, styles.description]}>{description}</Text>
+      )}
     </View>
   )
 }
@@ -147,16 +163,30 @@ const styles = StyleSheet.create({
     marginHorizontal: GUTTER,
     gap: SPACING.sm,
   },
-  searchInput: {
+  searchField: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     height: SEARCH_INPUT_HEIGHT,
     borderWidth: 1,
     borderColor: COLORS.hairline,
     backgroundColor: COLORS.canvas,
     borderRadius: RADIUS.sm,
-    paddingHorizontal: SPACING.lg,
+    paddingLeft: SPACING.md,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    paddingHorizontal: SPACING.sm,
     color: COLORS.ink,
     ...TYPE.bodyMd,
+  },
+  clearButton: {
+    width: CLEAR_BUTTON_SIZE,
+    height: CLEAR_BUTTON_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.xs,
   },
   createButton: {
     width: TOUCH_TARGET,
@@ -169,38 +199,14 @@ const styles = StyleSheet.create({
   createButtonPressed: {
     backgroundColor: COLORS.primaryDark,
   },
-  pillScroller: {
+  categoryMenu: {
+    marginHorizontal: GUTTER,
     marginTop: SPACING.sm,
-    flexGrow: 0,
   },
-  pillRow: {
-    paddingHorizontal: GUTTER,
-    gap: SPACING.sm,
-  },
-  pill: {
-    minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: RADIUS.sm,
-    paddingHorizontal: SPACING.lg,
-  },
-  pillInactive: {
-    borderColor: COLORS.hairline,
-    backgroundColor: COLORS.canvas,
-  },
-  pillActive: {
-    borderColor: COLORS.ink,
-    backgroundColor: COLORS.ink,
-  },
-  pillPressed: {
-    borderColor: COLORS.primary,
-  },
-  pillText: {
-    color: COLORS.ink,
-  },
-  pillTextActive: {
-    color: COLORS.onDark,
+  description: {
+    color: COLORS.mute,
+    marginHorizontal: GUTTER,
+    marginTop: SPACING.sm,
   },
   countsErrorRow: {
     flexDirection: 'row',

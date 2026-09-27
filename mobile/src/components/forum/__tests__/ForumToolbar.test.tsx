@@ -27,7 +27,7 @@ function buildProps() {
 }
 
 describe('ForumToolbar', () => {
-  it('renders search, create action, and counted category chips', async () => {
+  it('renders search, the create action, and the counted category menu', async () => {
     const props = buildProps()
     const screen = await render(<ForumToolbar {...props} />)
 
@@ -36,19 +36,17 @@ describe('ForumToolbar', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Start a discussion' }))
     expect(props.onStartDiscussion).toHaveBeenCalledTimes(1)
 
-    expect(screen.getByRole('button', { name: 'All' })).toBeTruthy()
-    expect(
-      screen.getByRole('button', { name: 'Planting & Growing, 3 discussions' })
-    ).toBeTruthy()
+    await fireEvent.press(screen.getByLabelText('Filter by category: All categories'))
+    expect(screen.getByText('Planting & Growing')).toBeTruthy()
+    expect(screen.getByText('3')).toBeTruthy()
   })
 
   it('reports a category selection', async () => {
     const props = buildProps()
     const screen = await render(<ForumToolbar {...props} />)
 
-    await fireEvent.press(
-      screen.getByRole('button', { name: 'Pests & Diseases, 0 discussions' })
-    )
+    await fireEvent.press(screen.getByLabelText('Filter by category: All categories'))
+    await fireEvent.press(screen.getByText('Pests & Diseases'))
 
     expect(props.onCategoryChange).toHaveBeenCalledWith('pests')
   })

@@ -8,6 +8,7 @@ import {
   formatRelativeTime,
   UNIT_LABELS,
 } from '../../utils/format'
+import { CATEGORY_ICONS, CATEGORY_TAG_CLASSES } from '../../utils/listingIcons'
 import type { ListingWithImages } from '../../types/domain'
 
 interface ListingCardProps {
@@ -17,6 +18,7 @@ interface ListingCardProps {
 
 function ListingCard({ listing, onSelect }: ListingCardProps) {
   const [imageUrl, setImageUrl] = useState('')
+  const tag = CATEGORY_TAG_CLASSES[listing.category]
 
   useEffect(() => {
     let isCurrent = true
@@ -53,19 +55,25 @@ function ListingCard({ listing, onSelect }: ListingCardProps) {
           aspectClass="aspect-[4/3]"
           loading="lazy"
         />
-        <span className="absolute left-3 top-3 rounded-sm border border-hairline bg-canvas px-3 py-1.5">
-          <span className="caption-md text-primary">
+        <span
+          className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 ${tag.accentBorder} ${tag.fill}`}
+        >
+          <Icon
+            name={CATEGORY_ICONS[listing.category]}
+            className={`h-3.5 w-3.5 shrink-0 ${tag.accentText}`}
+          />
+          <span className="caption-md text-ink">
             {CATEGORY_LABELS[listing.category]}
           </span>
         </span>
         {listing.status === 'reserved' && (
-          <span className="absolute right-3 top-3 rounded-sm border border-hairline bg-canvas px-3 py-1.5">
-            <span className="caption-md text-ink">Reserved</span>
+          <span className="absolute right-3 top-3 rounded-sm border border-ink bg-ink px-2.5 py-1">
+            <span className="caption-md text-on-dark">Reserved</span>
           </span>
         )}
       </div>
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="card-title text-ink">{listing.title}</h3>
+        <h3 className="card-title line-clamp-2 text-ink">{listing.title}</h3>
         <p className="mt-1 text-ink">
           <span className="heading-sm text-primary">
             {formatPrice(listing.price ?? 0)}

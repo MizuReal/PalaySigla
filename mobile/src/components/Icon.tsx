@@ -156,6 +156,56 @@ function PinGlyph({ color }: GlyphProps): ReactElement {
   )
 }
 
+function SearchGlyph({ color }: GlyphProps): ReactElement {
+  return (
+    <>
+      <Circle cx="11" cy="11" r="7" {...strokeProps(color)} />
+      <Path d="M16.5 16.5 21 21" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function GrainGlyph({ color }: GlyphProps): ReactElement {
+  return (
+    <>
+      <Path d="M12 3v18" {...strokeProps(color)} />
+      <Path d="M12 8c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4z" {...strokeProps(color)} />
+      <Path d="M12 8c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4z" {...strokeProps(color)} />
+      <Path d="M12 13c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4z" {...strokeProps(color)} />
+      <Path d="M12 13c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4z" {...strokeProps(color)} />
+      <Path d="M12 18c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4z" {...strokeProps(color)} />
+      <Path d="M12 18c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4z" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function SeedGlyph({ color }: GlyphProps): ReactElement {
+  return (
+    <>
+      <Path
+        d="M12 20.5c-2.8 0-5-2.4-5-5.8s2.2-7.2 5-7.2 5 3.8 5 7.2-2.2 5.8-5 5.8z"
+        {...strokeProps(color)}
+      />
+      <Path d="M12 7.5V3.5" {...strokeProps(color)} />
+      <Path d="M12 6.5c1.3 0 2.2-.9 2.2-2.2" {...strokeProps(color)} />
+    </>
+  )
+}
+
+function TractorGlyph({ color }: GlyphProps): ReactElement {
+  return (
+    <>
+      <Circle cx="7" cy="17" r="3.5" {...strokeProps(color)} />
+      <Circle cx="18" cy="18" r="2.5" {...strokeProps(color)} />
+      <Path d="M3.5 15V9h4l2.5 6" {...strokeProps(color)} />
+      <Path d="M10 9h3.5l2.5 9" {...strokeProps(color)} />
+      <Path d="M13 15h4" {...strokeProps(color)} />
+      <Path d="M5 7V4" {...strokeProps(color)} />
+      <Path d="M3.5 7h3" {...strokeProps(color)} />
+    </>
+  )
+}
+
 function MarketplaceGlyph({ color }: GlyphProps): ReactElement {
   return (
     <>
@@ -336,6 +386,10 @@ const ICON_GLYPHS = {
   'chevron-down': ChevronDownGlyph,
   'chevron-up': ChevronUpGlyph,
   pin: PinGlyph,
+  search: SearchGlyph,
+  grain: GrainGlyph,
+  seed: SeedGlyph,
+  tractor: TractorGlyph,
   marketplace: MarketplaceGlyph,
   community: CommunityGlyph,
   settings: SettingsGlyph,

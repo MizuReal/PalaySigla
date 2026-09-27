@@ -20,7 +20,18 @@
   --color-link-blue: #0046a4;
   --color-error: #e52020;
   --color-warning: #df6500;
+  --color-warning-bright: #ef9100;
   --color-success-deep: #3f8500;
+  --color-accent-yellow-pale: #feeeb2;
+  --color-accent-purple: #952fc6;
+  --color-accent-purple-pale: #f9d4ff;
+  --color-accent-teal: #0f766e;
+  --color-accent-teal-pale: #cce7e1;
+  --color-accent-blue: #1e4fa3;
+  --color-accent-blue-pale: #d7e3f4;
+  --color-accent-leaf-pale: #e6f1cd;
+  --color-accent-rust: #a63d2f;
+  --color-accent-rust-pale: #f3d8d3;
 
   --font-sans: "Inter", Arial, Helvetica, sans-serif;
 

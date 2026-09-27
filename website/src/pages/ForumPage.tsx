@@ -3,8 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Container from '../components/Container'
 import Footer from '../components/site/Footer'
+import Icon from '../components/Icon'
 import PrimaryNav from '../components/site/PrimaryNav'
-import ForumCategorySection from '../components/forum/ForumCategorySection'
 import ForumFilters from '../components/forum/ForumFilters'
 import ForumPostCard from '../components/forum/ForumPostCard'
 import ForumPostCardSkeleton from '../components/forum/ForumPostCardSkeleton'
@@ -19,7 +19,6 @@ import { FORUM_CATEGORY_LABELS } from '../utils/forumCategories'
 
 const SEARCH_DEBOUNCE_MS = 350
 const SKELETON_COUNT = 4
-const FEED_ANCHOR_ID = 'forum-feed'
 
 interface ForumFeedProps {
   category: ForumCategory | null
@@ -140,7 +139,6 @@ function ForumPage() {
 
   const {
     counts,
-    isLoading: isCountsLoading,
     error: countsError,
     retry: retryCounts,
   } = useForumCategoryCounts(refreshNonce)
@@ -161,15 +159,6 @@ function ForumPage() {
     setSearchParams(nextParams)
   }
 
-  const handleCategorySelect = (category: ForumCategory) => {
-    handleCategoryChange(category)
-    // choosing a card collapses the grid and hides the clicked button, so move
-    // focus with the scroll to keep keyboard users in view of the feed
-    const feedContainer = document.getElementById(FEED_ANCHOR_ID)
-    feedContainer?.scrollIntoView()
-    feedContainer?.focus()
-  }
-
   const handleStartDiscussion = () => {
     if (user) {
       setIsComposerOpen(true)
@@ -186,45 +175,39 @@ function ForumPage() {
       <PrimaryNav />
       <main>
         <div className="border-b border-hairline bg-canvas">
-          <Container className="py-10 md:py-[64px]">
-            <p className="caption-md text-primary">Community</p>
-            <h1 className="heading-xl mt-3 text-ink">
-              Ask, share, and learn with fellow farmers.
-            </h1>
-            <p className="body-md mt-4 max-w-2xl text-body">
-              Talk about planting, pests, drying, and market prices. Post a
-              question or pass on what has worked for you.
-            </p>
-            <div className="mt-6">
-              <Button onClick={handleStartDiscussion}>Start a discussion</Button>
+          <Container className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="caption-md text-primary">Community</p>
+              <h1 className="heading-md mt-1 text-ink">
+                Ask, share, and learn with fellow farmers.
+              </h1>
+              <p className="caption-sm mt-1 text-mute">
+                Planting, pests, drying, and market prices.
+              </p>
             </div>
+            <Button onClick={handleStartDiscussion} className="shrink-0">
+              <Icon name="plus" className="h-4 w-4" />
+              Start a discussion
+            </Button>
           </Container>
         </div>
-        <ForumCategorySection
-          activeCategory={activeCategory}
-          counts={counts}
-          isLoading={isCountsLoading}
-          error={countsError}
-          onSelect={handleCategorySelect}
-          onRetry={retryCounts}
-        />
         <ForumFilters
           category={activeCategory}
           counts={counts}
+          countsError={countsError}
           search={searchInput}
           onCategoryChange={handleCategoryChange}
           onSearchChange={setSearchInput}
+          onRetryCounts={retryCounts}
         />
-        <Container className="py-10 md:py-[64px]">
-          <div id={FEED_ANCHOR_ID} className="scroll-mt-16" tabIndex={-1}>
-            <ForumFeed
-              key={feedKey}
-              category={activeCategory}
-              search={search}
-              refreshNonce={refreshNonce}
-              onSelect={setSelectedPostId}
-            />
-          </div>
+        <Container className="py-6 md:py-8">
+          <ForumFeed
+            key={feedKey}
+            category={activeCategory}
+            search={search}
+            refreshNonce={refreshNonce}
+            onSelect={setSelectedPostId}
+          />
         </Container>
       </main>
       <Footer />

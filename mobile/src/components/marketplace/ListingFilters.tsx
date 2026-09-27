@@ -1,22 +1,27 @@
-// Marketplace filter toolbar — the DESIGN.md marketplace-filters treatment
-// on a surface-soft band: a search field (search-input height) always
-// visible, beside an inline Filters chip that expands/collapses the rest of
-// the toolbar (category pill-tabs in a horizontal scroll row + the three-way
-// sort segmented control). Collapsed by default; a primary dot on the chip
-// signals a non-default category or sort is applied while the region is
-// closed. Fully controlled — the screen owns the debounced search state, and
-// the open/closed state is purely presentational.
+// Marketplace filter toolbar — the DESIGN.md marketplace-filters treatment on
+// a surface-soft band: a search field (search-input height) always visible,
+// beside an inline Filters chip that expands/collapses the rest of the toolbar
+// (a category dropdown + the three-way sort segmented control). Collapsed by
+// default; a primary dot on the chip signals a non-default category or sort is
+// applied while the region is closed. Fully controlled — the screen owns the
+// debounced search state, and the open/closed state is purely presentational.
 import { useState } from 'react'
 import type { StyleProp, ViewStyle } from 'react-native'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import CategoryMenu from '../CategoryMenu'
+import type { CategoryMenuOption } from '../CategoryMenu'
 import Icon from '../Icon'
 import { LISTING_CATEGORIES, LISTING_SORTS } from '../../services/listings'
 import type { ListingCategory, ListingSort } from '../../services/listings'
 import { CATEGORY_LABELS } from '../../utils/format'
+import { CATEGORY_ICONS, CATEGORY_TAG_COLORS } from '../../utils/listingIcons'
 import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
 
+const ALL_CATEGORY_ID = 'all'
 const SEARCH_INPUT_HEIGHT = 40
 const TOGGLE_ICON_SIZE = 16
+const CLEAR_ICON_SIZE = 16
+const CLEAR_BUTTON_SIZE = 32
 const ACTIVE_FILTER_DOT_SIZE = 6
 // 40px visual height matches the search field; the 2px vertical hit slop
 // restores the >= 44px WCAG AA tap target (DESIGN.md touch rule)
@@ -36,30 +41,6 @@ function pillStyle(
   const active = { borderColor: COLORS.ink, backgroundColor: COLORS.ink }
   const inactive = { borderColor: COLORS.hairline, backgroundColor: COLORS.canvas }
   return [styles.pill, isActive ? active : inactive, extra]
-}
-
-interface FilterPillProps {
-  label: string
-  isActive: boolean
-  onPress: () => void
-}
-
-function FilterPill({ label, isActive, onPress }: FilterPillProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: isActive }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        pillStyle(isActive),
-        pressed && !isActive && { borderColor: COLORS.primary },
-      ]}
-    >
-      <Text style={[TYPE.buttonSm, isActive ? styles.pillTextActive : styles.pillText]}>
-        {label}
-      </Text>
-    </Pressable>
-  )
 }
 
 interface FilterToggleProps {
@@ -115,6 +96,20 @@ function ListingFilters({
 
   const hasActiveFilter = category !== null || sort !== LISTING_SORTS.NEWEST
 
+  const categoryOptions: CategoryMenuOption[] = [
+    { id: ALL_CATEGORY_ID, label: 'All categories' },
+    ...LISTING_CATEGORIES.map((categoryKey) => ({
+      id: categoryKey,
+      label: CATEGORY_LABELS[categoryKey],
+      icon: CATEGORY_ICONS[categoryKey],
+      accent: CATEGORY_TAG_COLORS[categoryKey].accent,
+    })),
+  ]
+
+  const handleCategoryChange = (id: string) => {
+    onCategoryChange(id === ALL_CATEGORY_ID ? null : (id as ListingCategory))
+  }
+
   return (
     <View
       style={[
@@ -123,16 +118,33 @@ function ListingFilters({
       ]}
     >
       <View style={styles.searchRow}>
-        <TextInput
-          style={styles.searchInput}
-          value={search}
-          onChangeText={onSearchChange}
-          placeholder="Search by title or location…"
-          placeholderTextColor={COLORS.stone}
-          accessibilityLabel="Search listings"
-          autoCorrect={false}
-          returnKeyType="search"
-        />
+        <View style={styles.searchField}>
+          <Icon name="search" size={TOGGLE_ICON_SIZE} color={COLORS.mute} />
+          <TextInput
+            style={styles.searchInput}
+            value={search}
+            onChangeText={onSearchChange}
+            placeholder="Search title or location…"
+            placeholderTextColor={COLORS.stone}
+            accessibilityLabel="Search listings"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+          {search ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={SPACING.sm}
+              onPress={() => onSearchChange('')}
+              style={({ pressed }) => [
+                styles.clearButton,
+                pressed && styles.clearButtonPressed,
+              ]}
+            >
+              <Icon name="close" size={CLEAR_ICON_SIZE} color={COLORS.mute} />
+            </Pressable>
+          ) : null}
+        </View>
         <FilterToggle
           isExpanded={isExpanded}
           hasActiveFilter={hasActiveFilter}
@@ -141,27 +153,13 @@ function ListingFilters({
       </View>
       {isExpanded ? (
         <>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            style={styles.pillScroller}
-            contentContainerStyle={styles.pillRow}
-          >
-            <FilterPill
-              label="All"
-              isActive={category === null}
-              onPress={() => onCategoryChange(null)}
-            />
-            {LISTING_CATEGORIES.map((categoryKey) => (
-              <FilterPill
-                key={categoryKey}
-                label={CATEGORY_LABELS[categoryKey]}
-                isActive={category === categoryKey}
-                onPress={() => onCategoryChange(categoryKey)}
-              />
-            ))}
-          </ScrollView>
+          <CategoryMenu
+            ariaLabel="Filter by category"
+            value={category ?? ALL_CATEGORY_ID}
+            options={categoryOptions}
+            onChange={handleCategoryChange}
+            style={styles.categoryMenu}
+          />
           <View style={styles.sortRow}>
             {SORT_OPTIONS.map((option) => (
               <Pressable
@@ -171,14 +169,17 @@ function ListingFilters({
                 onPress={() => onSortChange(option.value)}
                 style={({ pressed }) => [
                   pillStyle(sort === option.value, styles.sortPill),
-                  pressed && sort !== option.value && { borderColor: COLORS.primary },
+                  pressed && sort !== option.value && { borderColor: COLORS.ink },
                 ]}
               >
                 <Text
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   minimumFontScale={0.85}
-                  style={[TYPE.buttonSm, sort === option.value ? styles.pillTextActive : styles.pillText]}
+                  style={[
+                    TYPE.buttonSm,
+                    sort === option.value ? styles.pillTextActive : styles.pillText,
+                  ]}
                 >
                   {option.label}
                 </Text>
@@ -210,16 +211,33 @@ const styles = StyleSheet.create({
     marginHorizontal: GUTTER,
     gap: SPACING.sm,
   },
-  searchInput: {
+  searchField: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     height: SEARCH_INPUT_HEIGHT,
     borderWidth: 1,
     borderColor: COLORS.hairline,
     backgroundColor: COLORS.canvas,
     borderRadius: RADIUS.sm,
-    paddingHorizontal: SPACING.lg,
+    paddingLeft: SPACING.md,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    paddingHorizontal: SPACING.sm,
     color: COLORS.ink,
     ...TYPE.bodyMd,
+  },
+  clearButton: {
+    width: CLEAR_BUTTON_SIZE,
+    height: CLEAR_BUTTON_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.xs,
+  },
+  clearButtonPressed: {
+    opacity: 0.6,
   },
   filterToggle: {
     height: SEARCH_INPUT_HEIGHT,
@@ -245,13 +263,9 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.primary,
   },
-  pillScroller: {
+  categoryMenu: {
+    marginHorizontal: GUTTER,
     marginTop: SPACING.sm,
-    flexGrow: 0,
-  },
-  pillRow: {
-    paddingHorizontal: GUTTER,
-    gap: SPACING.sm,
   },
   sortRow: {
     flexDirection: 'row',
@@ -261,11 +275,13 @@ const styles = StyleSheet.create({
   },
   pill: {
     minHeight: 44,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderRadius: RADIUS.sm,
     paddingHorizontal: SPACING.lg,
+    gap: SPACING.xs,
   },
   sortPill: {
     flex: 1,

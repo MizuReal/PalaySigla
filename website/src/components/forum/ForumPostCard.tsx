@@ -3,6 +3,7 @@ import ForumPostImage from './ForumPostImage'
 import HeartButton from './HeartButton'
 import Icon from '../Icon'
 import { FORUM_CATEGORY_LABELS } from '../../utils/forumCategories'
+import { FORUM_CATEGORY_ICONS, FORUM_CATEGORY_TAG_CLASSES } from '../../utils/forumIcons'
 import type { ForumPostSummary } from '../../types/domain'
 
 interface ForumPostCardProps {
@@ -17,6 +18,7 @@ function ForumPostCard({ post, onSelect }: ForumPostCardProps) {
   const commentLabel = `${post.comment_count} comment${
     post.comment_count === 1 ? '' : 's'
   }`
+  const tag = FORUM_CATEGORY_TAG_CLASSES[post.category]
 
   return (
     <article
@@ -29,7 +31,13 @@ function ForumPostCard({ post, onSelect }: ForumPostCardProps) {
           timestamp={post.created_at}
           isEdited={post.updated_at !== null}
         />
-        <span className="shrink-0 rounded-sm bg-surface-soft px-2.5 py-1 caption-md text-body">
+        <span
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-sm border px-2.5 py-1 caption-md text-ink ${tag.accentBorder} ${tag.fill}`}
+        >
+          <Icon
+            name={FORUM_CATEGORY_ICONS[post.category]}
+            className={`h-3.5 w-3.5 shrink-0 ${tag.accentText}`}
+          />
           {FORUM_CATEGORY_LABELS[post.category]}
         </span>
       </div>
