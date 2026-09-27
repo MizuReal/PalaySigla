@@ -34,9 +34,12 @@ function ConversationList({
 }: ConversationListProps) {
   if (isInitialLoading) {
     return (
-      <div className="flex flex-col gap-3">
+      <div>
         {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-          <div key={index} className="h-24 animate-pulse rounded-sm bg-surface-soft" />
+          <div
+            key={index}
+            className="h-24 animate-pulse border-b border-hairline bg-surface-soft last:border-b-0"
+          />
         ))}
       </div>
     )
@@ -44,7 +47,7 @@ function ConversationList({
 
   if (error) {
     return (
-      <div className="border border-error bg-surface-soft p-6 text-center" role="alert">
+      <div className="p-6 text-center" role="alert">
         <p className="body-strong text-ink">{error}</p>
         <button
           type="button"
@@ -59,7 +62,7 @@ function ConversationList({
 
   if (conversations.length === 0) {
     return (
-      <div className="flex flex-col items-center border border-hairline bg-surface-soft p-8 text-center">
+      <div className="flex flex-col items-center p-8 text-center">
         <Icon name="chat" className="h-8 w-8 text-mute" />
         <p className="heading-sm mt-3 text-ink">No conversations yet.</p>
         <p className="body-sm mt-2 max-w-xs text-mute">
@@ -78,7 +81,7 @@ function ConversationList({
 
   return (
     <>
-      <ul className="flex flex-col gap-3">
+      <ul className="divide-y divide-hairline">
         {conversations.map((conversation) => (
           <ConversationListItem
             key={conversation.id}
@@ -90,7 +93,7 @@ function ConversationList({
         ))}
       </ul>
       {hasMore && (
-        <div className="mt-4 text-center">
+        <div className="border-t border-hairline p-4 text-center">
           <button
             type="button"
             onClick={onLoadMore}

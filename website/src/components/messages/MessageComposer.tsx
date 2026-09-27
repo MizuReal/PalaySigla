@@ -24,7 +24,7 @@ function MessageComposer({ onSend, isSending, error }: MessageComposerProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-hairline pt-4">
+    <form onSubmit={handleSubmit} className="border-t border-hairline px-4 pb-4 pt-4 md:px-5">
       {error && (
         <p
           role="alert"

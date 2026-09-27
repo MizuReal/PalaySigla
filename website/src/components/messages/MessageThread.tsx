@@ -213,7 +213,7 @@ function MessageThread({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-3 border-b border-hairline pb-4">
+      <div className="flex items-center gap-3 border-b border-hairline px-4 py-4 md:px-5">
         {onBack && (
           <button
             type="button"
@@ -258,12 +258,12 @@ function MessageThread({
           onOpen={conversation.listing_id && onOpenListing ? openListing : undefined}
         />
       )}
-      <div className="min-h-0 flex-1 overflow-y-auto py-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">
         {renderMessages()}
         <div ref={bottomRef} />
       </div>
       {canReview && (
-        <div className="border-t border-hairline pt-3">
+        <div className="border-t border-hairline px-4 pb-3 pt-3 md:px-5">
           <button
             type="button"
             onClick={() => setIsReviewOpen(true)}

@@ -79,7 +79,7 @@ function ListingContextBar({
         type="button"
         onClick={onOpen}
         aria-label={`Open listing: ${title}`}
-        className="flex w-full items-center gap-3 border-b border-hairline bg-surface-soft py-2.5 text-left transition-colors hover:bg-canvas"
+        className="flex w-full items-center gap-3 border-b border-hairline bg-surface-soft px-4 py-2.5 text-left transition-colors hover:bg-canvas md:px-5"
       >
         {content}
       </button>
@@ -89,7 +89,7 @@ function ListingContextBar({
   return (
     <div
       aria-label={`Product this conversation is about: ${title}`}
-      className="flex w-full items-center gap-3 border-b border-hairline bg-surface-soft py-2.5"
+      className="flex w-full items-center gap-3 border-b border-hairline bg-surface-soft px-4 py-2.5 md:px-5"
     >
       {content}
     </div>

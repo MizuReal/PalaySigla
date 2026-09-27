@@ -49,4 +49,26 @@ describe('ConversationListItem', () => {
     fireEvent.click(screen.getByRole('button'))
     expect(onSelect).toHaveBeenCalledWith('c1')
   })
+
+  it('marks only the active row with aria-current', () => {
+    const { rerender } = render(
+      <ConversationListItem
+        conversation={CONVERSATION}
+        viewerId="u-viewer"
+        isActive={false}
+        onSelect={vi.fn()}
+      />
+    )
+    expect(screen.getByRole('button').getAttribute('aria-current')).toBeNull()
+
+    rerender(
+      <ConversationListItem
+        conversation={CONVERSATION}
+        viewerId="u-viewer"
+        isActive
+        onSelect={vi.fn()}
+      />
+    )
+    expect(screen.getByRole('button').getAttribute('aria-current')).toBe('true')
+  })
 })

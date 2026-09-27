@@ -186,8 +186,11 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
 
 - **`/messages`** — inbox of the signed-in user's listing conversations
   (unread badges, last-message preview, load-more); `/messages/:conversationId`
-  opens a thread. Desktop is a two-pane inbox + thread; mobile is single-pane
-  with a back affordance. Signed-out visitors get a sign-in pitch.
+  opens a thread. Desktop is a two-pane inbox + thread, each pane a hairline
+  `canvas` panel with the scoped `shadow-panel` lift; the inbox is a divided
+  list (borderless rows, active row = `surface-soft` + 2px `primary` left bar)
+  rather than stacked cards. Mobile is single-pane with a back affordance.
+  Signed-out visitors get a sign-in pitch.
 - **`services/messaging.ts`** — `fetchConversations`, `getOrCreateConversation`,
   `fetchMessages`, `sendMessage`, `markConversationRead`, `fetchUnreadCounts`,
   plus `subscribeToInbox` / `subscribeToConversation` Realtime helpers.
@@ -195,10 +198,11 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   send with server-echo dedupe, read watermark), `useStartConversation`,
   `useConversationListing` (per-thread listing snapshot + live enrich), and
   `useUnreadMessageCount`.
-- **Product context** — each thread opens with the read-only
-  `components/messages/ListingInquiryCard.tsx` ("User inquired about this
-  product": photo, title, price/unit, category), derived from the conversation
-  and degrading to the snapshotted title when the listing is gone.
+- **Product context** — each thread pins the slim
+  `components/messages/ListingContextBar.tsx` under the header (40px thumbnail,
+  title, price/unit, category pill, chevron), derived from the conversation
+  and degrading to the snapshotted title plus a "no longer available" line when
+  the listing is gone.
 - **Starter questions** — an empty buyer-side thread shows
   `components/messages/MessageSuggestions.tsx` ("Is this still available?",
   "Is this negotiable?", "What's your best price?", "Can I pick it up?"); tapping

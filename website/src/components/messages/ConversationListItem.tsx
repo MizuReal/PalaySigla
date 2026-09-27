@@ -23,6 +23,7 @@ function ConversationListItem({
   const counterpartRole = isBuyer ? 'Seller' : 'Buyer'
   const preview = conversation.last_message_preview ?? PREVIEW_FALLBACK
   const badgeLabel = conversation.unreadCount > MAX_BADGE_COUNT ? '9+' : conversation.unreadCount
+  const isUnread = conversation.unreadCount > 0
 
   return (
     <li>
@@ -30,10 +31,10 @@ function ConversationListItem({
         type="button"
         onClick={() => onSelect(conversation.id)}
         aria-current={isActive ? 'true' : undefined}
-        className={`flex w-full items-start gap-3 rounded-sm border p-4 text-left transition-colors ${
+        className={`flex w-full items-start gap-3 border-l-2 p-4 text-left transition-colors ${
           isActive
             ? 'border-primary bg-surface-soft'
-            : 'border-hairline bg-canvas hover:border-primary'
+            : 'border-transparent hover:bg-surface-soft'
         }`}
       >
         <Avatar name={counterpartName} />
@@ -55,7 +56,9 @@ function ConversationListItem({
             {conversation.listing_title}
           </p>
           <div className="mt-1 flex items-center justify-between gap-3">
-            <p className="body-sm truncate text-mute">{preview}</p>
+            <p className={`body-sm truncate ${isUnread ? 'text-ink' : 'text-mute'}`}>
+              {preview}
+            </p>
             {conversation.unreadCount > 0 && (
               <span className="caption-xs shrink-0 rounded-sm bg-primary px-2 py-0.5 text-on-primary">
                 {badgeLabel}

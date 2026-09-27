@@ -87,23 +87,29 @@ function MessagesPage() {
         {renderHeader()}
         <Container className="py-6 md:py-8">
           <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-            <div className={conversationId ? 'hidden lg:block' : ''}>
-              <ConversationList
-                conversations={conversations}
-                viewerId={user.id}
-                activeConversationId={conversationId ?? null}
-                isInitialLoading={isInitialLoading}
-                isLoadingMore={isLoadingMore}
-                error={error}
-                hasMore={hasMore}
-                onSelect={handleSelect}
-                onLoadMore={loadMore}
-                onRetry={refresh}
-                onBrowseMarketplace={() => navigate('/marketplace')}
-              />
+            <div
+              className={`border border-hairline bg-canvas shadow-panel lg:flex lg:h-[calc(100dvh-12rem)] lg:flex-col lg:overflow-hidden ${
+                conversationId ? 'hidden lg:flex' : ''
+              }`}
+            >
+              <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+                <ConversationList
+                  conversations={conversations}
+                  viewerId={user.id}
+                  activeConversationId={conversationId ?? null}
+                  isInitialLoading={isInitialLoading}
+                  isLoadingMore={isLoadingMore}
+                  error={error}
+                  hasMore={hasMore}
+                  onSelect={handleSelect}
+                  onLoadMore={loadMore}
+                  onRetry={refresh}
+                  onBrowseMarketplace={() => navigate('/marketplace')}
+                />
+              </div>
             </div>
             <div
-              className={`min-h-0 h-[calc(100dvh-11rem)] lg:h-[calc(100dvh-12rem)] ${
+              className={`min-h-0 h-[calc(100dvh-11rem)] overflow-hidden border border-hairline bg-canvas shadow-panel lg:h-[calc(100dvh-12rem)] ${
                 conversationId ? '' : 'hidden lg:block'
               }`}
             >
@@ -116,7 +122,7 @@ function MessagesPage() {
                   onOpenListing={setSelectedListingId}
                 />
               ) : (
-                <div className="flex h-full flex-col items-center justify-center gap-3 border border-hairline bg-surface-soft p-10 text-center">
+                <div className="flex h-full flex-col items-center justify-center gap-3 bg-surface-soft p-10 text-center">
                   <Icon name="chat" className="h-8 w-8 text-mute" />
                   <p className="heading-sm text-ink">Your messages live here.</p>
                   <p className="body-sm max-w-sm text-mute">
