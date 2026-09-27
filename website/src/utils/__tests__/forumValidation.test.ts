@@ -4,6 +4,7 @@ import {
   POST_BODY_MAX_LENGTH,
   POST_TITLE_MAX_LENGTH,
   POST_TITLE_MIN_LENGTH,
+  PROFANITY_MESSAGE,
   validateForumComment,
   validateForumPost,
 } from '../forumValidation'
@@ -55,6 +56,25 @@ describe('validateForumPost', () => {
       }).category
     ).toBe('Choose a category.')
   })
+
+  it('rejects banned words in the title and body', () => {
+    expect(
+      validateForumPost({ ...VALID_POST, title: 'This harvest is fucking wet' }).title
+    ).toBe(PROFANITY_MESSAGE)
+    expect(
+      validateForumPost({ ...VALID_POST, body: 'Tangina, the rain ruined it.' }).body
+    ).toBe(PROFANITY_MESSAGE)
+  })
+
+  it('does not reject clean lookalike words', () => {
+    expect(
+      validateForumPost({
+        ...VALID_POST,
+        title: 'How to classify and assess harvest quality',
+        body: 'The grass grew tall and the pest count rose.',
+      })
+    ).toEqual({})
+  })
 })
 
 describe('validateForumComment', () => {
@@ -70,5 +90,13 @@ describe('validateForumComment', () => {
       `Comment must be 1-${COMMENT_BODY_MAX_LENGTH} characters.`
     )
     expect(validateForumComment('a'.repeat(COMMENT_BODY_MAX_LENGTH)).body).toBeUndefined()
+  })
+
+  it('rejects comments containing banned words', () => {
+    expect(validateForumComment('gago, dry it first').body).toBe(PROFANITY_MESSAGE)
+  })
+
+  it('accepts clean comments with lookalike words', () => {
+    expect(validateForumComment('Classify the grain and assess the grass.')).toEqual({})
   })
 })
