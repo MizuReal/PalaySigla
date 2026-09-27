@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Icon from '../Icon'
 import Photo from '../Photo'
 import { CATEGORY_LABELS, formatPrice, UNIT_LABELS } from '../../utils/format'
-import { CATEGORY_ICONS, CATEGORY_TAG_COLORS } from '../../utils/listingIcons'
+import { CATEGORY_ICONS } from '../../utils/listingIcons'
 import { COLORS, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
 import type { ListingWithImages } from '../../types/domain'
 
@@ -68,19 +68,11 @@ function ListingContextBar({
         )}
       </View>
       {listing && hasListing ? (
-        <View
-          style={[
-            styles.chip,
-            {
-              borderColor: CATEGORY_TAG_COLORS[listing.category].accent,
-              backgroundColor: CATEGORY_TAG_COLORS[listing.category].fill,
-            },
-          ]}
-        >
+        <View style={styles.chip}>
           <Icon
             name={CATEGORY_ICONS[listing.category]}
             size={CHIP_ICON_SIZE}
-            color={CATEGORY_TAG_COLORS[listing.category].accent}
+            color={COLORS.onPrimary}
           />
           <Text style={[TYPE.captionXs, styles.chipText]}>
             {CATEGORY_LABELS[listing.category]}
@@ -178,12 +170,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.xs,
     borderWidth: 1,
-    borderRadius: RADIUS.sm,
-    paddingHorizontal: SPACING.sm,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
     paddingVertical: 2,
   },
   chipText: {
-    color: COLORS.ink,
+    color: COLORS.onPrimary,
   },
 })
 

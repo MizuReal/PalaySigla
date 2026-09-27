@@ -3,7 +3,7 @@
 // "content is coming" rather than as an empty screen.
 import { Animated, StyleSheet, View } from 'react-native'
 import usePulseOpacity from '../../hooks/usePulseOpacity'
-import { COLORS, SPACING } from '../../theme/designTokens'
+import { COLORS, SHADOW, SPACING } from '../../theme/designTokens'
 
 function ListingCardSkeleton() {
   const opacity = usePulseOpacity()
@@ -29,6 +29,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.hairline,
     backgroundColor: COLORS.canvas,
     alignSelf: 'stretch',
+    ...SHADOW.card,
   },
   photo: {
     aspectRatio: 4 / 3,

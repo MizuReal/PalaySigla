@@ -42,6 +42,8 @@
   --container-page: 1280px;
 
   --shadow-chrome: 0 0 5px 0 rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  --shadow-card-hover: 0 3px 8px 0 rgba(0, 0, 0, 0.12);
 }
 
 @utility display-xl {

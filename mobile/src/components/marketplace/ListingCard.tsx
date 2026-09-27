@@ -12,8 +12,8 @@ import {
   formatRelativeTime,
   UNIT_LABELS,
 } from '../../utils/format'
-import { CATEGORY_ICONS, CATEGORY_TAG_COLORS } from '../../utils/listingIcons'
-import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
+import { CATEGORY_ICONS } from '../../utils/listingIcons'
+import { COLORS, RADIUS, SHADOW, SPACING, TYPE } from '../../theme/designTokens'
 
 const PIN_ICON_SIZE = 16
 const CHIP_ICON_SIZE = 14
@@ -30,7 +30,6 @@ function ListingCard({ listing, onPress }: ListingCardProps) {
   )
   const categoryLabel = CATEGORY_LABELS[listing.category]
   const unitLabel = UNIT_LABELS[listing.unit]
-  const tag = CATEGORY_TAG_COLORS[listing.category]
 
   return (
     <Pressable
@@ -47,17 +46,11 @@ function ListingCard({ listing, onPress }: ListingCardProps) {
           loading={isImageLoading}
           style={styles.photo}
         />
-        <View
-          pointerEvents="none"
-          style={[
-            styles.chip,
-            { borderColor: tag.accent, backgroundColor: tag.fill },
-          ]}
-        >
+        <View pointerEvents="none" style={styles.chip}>
           <Icon
             name={CATEGORY_ICONS[listing.category]}
             size={CHIP_ICON_SIZE}
-            color={tag.accent}
+            color={COLORS.onPrimary}
           />
           <Text style={[TYPE.captionMd, styles.chipText]}>{categoryLabel}</Text>
         </View>
@@ -94,6 +87,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.hairline,
     backgroundColor: COLORS.canvas,
     alignSelf: 'stretch',
+    ...SHADOW.card,
   },
   cardPressed: {
     borderColor: COLORS.primary,
@@ -112,11 +106,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.xs,
     borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingVertical: SPACING.xxs,
   },
   chipText: {
-    color: COLORS.ink,
+    color: COLORS.onPrimary,
   },
   reservedChip: {
     position: 'absolute',
@@ -125,8 +122,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.warning,
     backgroundColor: COLORS.accentYellowPale,
+    borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingVertical: SPACING.xxs,
   },
   reservedChipText: {
     color: COLORS.ink,

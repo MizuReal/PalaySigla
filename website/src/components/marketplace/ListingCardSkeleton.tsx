@@ -1,6 +1,6 @@
 function ListingCardSkeleton() {
   return (
-    <div className="border border-hairline bg-canvas">
+    <div className="border border-hairline bg-canvas shadow-card">
       <div className="relative">
         <div className="aspect-[4/3] animate-pulse bg-surface-soft" />
         <div className="absolute left-3 top-3 h-6 w-20 animate-pulse bg-surface-soft" />

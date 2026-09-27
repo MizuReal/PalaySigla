@@ -8,7 +8,7 @@ import {
   formatRelativeTime,
   UNIT_LABELS,
 } from '../../utils/format'
-import { CATEGORY_ICONS, CATEGORY_TAG_CLASSES } from '../../utils/listingIcons'
+import { CATEGORY_ICONS } from '../../utils/listingIcons'
 import type { ListingWithImages } from '../../types/domain'
 
 interface ListingCardProps {
@@ -18,7 +18,6 @@ interface ListingCardProps {
 
 function ListingCard({ listing, onSelect }: ListingCardProps) {
   const [imageUrl, setImageUrl] = useState('')
-  const tag = CATEGORY_TAG_CLASSES[listing.category]
 
   useEffect(() => {
     let isCurrent = true
@@ -45,7 +44,7 @@ function ListingCard({ listing, onSelect }: ListingCardProps) {
   return (
     <article
       onClick={() => onSelect(listing)}
-      className="flex cursor-pointer flex-col border border-hairline bg-canvas transition-colors hover:border-primary"
+      className="flex cursor-pointer flex-col border border-hairline bg-canvas shadow-card transition-[border-color,box-shadow] hover:border-primary hover:shadow-card-hover"
     >
       <div className="relative">
         <Photo
@@ -55,19 +54,17 @@ function ListingCard({ listing, onSelect }: ListingCardProps) {
           aspectClass="aspect-[4/3]"
           loading="lazy"
         />
-        <span
-          className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 ${tag.accentBorder} ${tag.fill}`}
-        >
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1">
           <Icon
             name={CATEGORY_ICONS[listing.category]}
-            className={`h-3.5 w-3.5 shrink-0 ${tag.accentText}`}
+            className="h-3.5 w-3.5 shrink-0 text-on-primary"
           />
-          <span className="caption-md text-ink">
+          <span className="caption-md text-on-primary">
             {CATEGORY_LABELS[listing.category]}
           </span>
         </span>
         {listing.status === 'reserved' && (
-          <span className="absolute right-3 top-3 rounded-sm border border-ink bg-ink px-2.5 py-1">
+          <span className="absolute right-3 top-3 rounded-full border border-ink bg-ink px-3 py-1">
             <span className="caption-md text-on-dark">Reserved</span>
           </span>
         )}

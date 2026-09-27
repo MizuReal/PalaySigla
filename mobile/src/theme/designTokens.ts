@@ -77,6 +77,18 @@ export const BORDER_WIDTH = Object.freeze({
   focus: 2,
 })
 
+// Subtle resting lift for marketplace product cards (a documented deviation
+// from the flat-card rule; see DESIGN.md Implementation Deviations).
+export const SHADOW = Object.freeze({
+  card: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+})
+
 // Minimum WCAG AA touch target, per DESIGN.md responsive rules.
 export const TOUCH_TARGET = 44
 

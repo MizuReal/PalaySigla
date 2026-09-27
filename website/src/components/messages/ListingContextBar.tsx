@@ -1,7 +1,7 @@
 import Icon from '../Icon'
 import Photo from '../Photo'
 import { CATEGORY_LABELS, formatPrice, UNIT_LABELS } from '../../utils/format'
-import { CATEGORY_ICONS, CATEGORY_TAG_CLASSES } from '../../utils/listingIcons'
+import { CATEGORY_ICONS } from '../../utils/listingIcons'
 import type { ListingWithImages } from '../../types/domain'
 
 interface ListingContextBarProps {
@@ -27,7 +27,6 @@ function ListingContextBar({
 }: ListingContextBarProps) {
   const hasListing = Boolean(listing) && !isLoading && !isUnavailable
   const isInteractive = Boolean(onOpen) && hasListing
-  const tag = listing ? CATEGORY_TAG_CLASSES[listing.category] : null
 
   const content = (
     <>
@@ -57,15 +56,15 @@ function ListingContextBar({
           </p>
         )}
       </div>
-      {hasListing && listing && tag && (
-        <span
-          className={`inline-flex shrink-0 items-center gap-1 rounded-sm border px-2 py-0.5 ${tag.accentBorder} ${tag.fill}`}
-        >
+      {hasListing && listing && (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-0.5">
           <Icon
             name={CATEGORY_ICONS[listing.category]}
-            className={`h-3.5 w-3.5 shrink-0 ${tag.accentText}`}
+            className="h-3.5 w-3.5 shrink-0 text-on-primary"
           />
-          <span className="caption-xs text-ink">{CATEGORY_LABELS[listing.category]}</span>
+          <span className="caption-xs text-on-primary">
+            {CATEGORY_LABELS[listing.category]}
+          </span>
         </span>
       )}
       {isInteractive && (
