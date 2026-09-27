@@ -1,11 +1,11 @@
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Container from '../components/Container'
 import Footer from '../components/site/Footer'
 import PrimaryNav from '../components/site/PrimaryNav'
-import AvatarEditor from '../components/profile/AvatarEditor'
 import ProfileDetailsForm from '../components/profile/ProfileDetailsForm'
+import ProfileIdentityCard from '../components/profile/ProfileIdentityCard'
 import ProfileTabs from '../components/profile/ProfileTabs'
 import PurchasesPanel from '../components/profile/PurchasesPanel'
 import ReviewsCard from '../components/profile/ReviewsCard'
@@ -23,18 +23,19 @@ const MEMBER_SINCE_DATE_OPTIONS: Intl.DateTimeFormatOptions = Object.freeze({
 })
 
 interface PageHeaderProps {
-  eyebrow: string
   title: string
-  lead: string
+  children?: ReactNode
 }
 
-function PageHeader({ eyebrow, title, lead }: PageHeaderProps) {
+function PageHeader({ title, children }: PageHeaderProps) {
   return (
     <div className="border-b border-hairline bg-canvas">
-      <Container className="py-10 md:py-16">
-        <p className="caption-md text-primary">{eyebrow}</p>
-        <h1 className="heading-xl mt-3 text-ink">{title}</h1>
-        <p className="body-md mt-4 max-w-2xl text-body">{lead}</p>
+      <Container className="flex flex-col gap-4 py-6 md:flex-row md:items-center md:justify-between md:py-8">
+        <div>
+          <p className="caption-md text-primary">Profile</p>
+          <h1 className="heading-xl mt-1 text-ink">{title}</h1>
+        </div>
+        {children}
       </Container>
     </div>
   )
@@ -47,14 +48,14 @@ interface SignedOutProfileProps {
 
 function SignedOutProfile({ onSignIn, onCreateAccount }: SignedOutProfileProps) {
   return (
-    <div className="border border-hairline bg-surface-soft p-8 md:p-12">
+    <div className="border border-hairline bg-surface-soft p-8 md:p-10">
       <p className="body-md max-w-xl text-body">
         Sign in to set your photo, your name, and the contact number buyers
         use to reach you about a listing — and to keep a record of everything
         you post, sell, or remove. Your profile follows your account across
         the website and the mobile app.
       </p>
-      <div className="mt-8 max-w-md">
+      <div className="mt-6 max-w-md">
         <Button onClick={onSignIn} className="w-full justify-center">
           Sign in
         </Button>
@@ -82,25 +83,29 @@ function SignedOutPanel() {
 
 function LoadingState() {
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-      <div className="flex flex-col gap-4 lg:order-2 lg:w-[340px] lg:shrink-0">
-        <div className="border border-hairline bg-canvas p-6">
-          <div className="mx-auto h-24 w-24 animate-pulse rounded-full bg-surface-soft md:h-28 md:w-28" />
-          <div className="mx-auto mt-4 h-4 w-2/3 animate-pulse bg-surface-soft" />
-          <div className="mx-auto mt-2 h-3 w-1/2 animate-pulse bg-surface-soft" />
-        </div>
-        <div className="border border-hairline bg-canvas p-6">
-          <div className="h-4 w-1/3 animate-pulse bg-surface-soft" />
-          <div className="mt-5 h-4 w-2/3 animate-pulse bg-surface-soft" />
-          <div className="mt-3 h-3 w-1/2 animate-pulse bg-surface-soft" />
+    <div className="space-y-4">
+      <div className="border border-hairline bg-canvas p-5 md:p-6">
+        <div className="flex items-center gap-4">
+          <div className="h-20 w-20 shrink-0 animate-pulse rounded-full bg-surface-soft" />
+          <div className="flex-1 space-y-3">
+            <div className="h-4 w-1/3 animate-pulse bg-surface-soft" />
+            <div className="h-3 w-1/4 animate-pulse bg-surface-soft" />
+            <div className="h-3 w-1/3 animate-pulse bg-surface-soft" />
+          </div>
         </div>
       </div>
-      <div className="min-w-0 flex-1 lg:order-1">
-        <div className="border border-hairline bg-canvas p-6 md:p-8">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <div className="border border-hairline bg-canvas p-5 md:p-6">
           <div className="h-4 w-1/3 animate-pulse bg-surface-soft" />
-          <div className="mt-6 h-11 animate-pulse bg-surface-soft" />
-          <div className="mt-6 h-11 animate-pulse bg-surface-soft" />
-          <div className="mt-6 h-11 w-40 animate-pulse bg-surface-soft" />
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <div className="h-11 animate-pulse bg-surface-soft" />
+            <div className="h-11 animate-pulse bg-surface-soft" />
+          </div>
+          <div className="mt-5 h-11 w-40 animate-pulse bg-surface-soft" />
+        </div>
+        <div className="border border-hairline bg-canvas p-5">
+          <div className="h-4 w-1/2 animate-pulse bg-surface-soft" />
+          <div className="mt-5 h-16 animate-pulse bg-surface-soft" />
         </div>
       </div>
     </div>
@@ -119,7 +124,7 @@ function LoadErrorState({ message, onRetry }: LoadErrorStateProps) {
       <button
         type="button"
         onClick={onRetry}
-        className="mt-4 border border-hairline bg-canvas px-4 py-2.5 button-sm text-ink transition-colors hover:border-primary hover:text-primary"
+        className="mt-4 h-11 border border-hairline bg-canvas px-4 button-sm text-ink transition-colors hover:border-primary hover:text-primary"
       >
         Try again
       </button>
@@ -179,57 +184,54 @@ function SignedInAccount() {
     }
   }
 
-  const renderBody = () => {
-    if (isInitialLoading) {
-      return <LoadingState />
-    }
-    if (loadError) {
-      return <LoadErrorState message={loadError} onRetry={retryLoad} />
-    }
-    return (
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex flex-col gap-4 lg:order-2 lg:w-[340px] lg:shrink-0">
-          <AvatarEditor
-            avatarUrl={avatarUrl}
-            displayName={fullName || displayName}
-            email={email}
-            memberSinceLabel={memberSinceLabel}
-            fallbackInitials={fallbackInitials}
-            hasAvatar={hasAvatar}
-            hasPendingFile={hasPendingFile}
-            isRemovalStaged={isRemovalStaged}
-            busy={avatarBusy}
-            disabled={isSaving}
-            error={avatarError}
-            urlError={avatarUrlError}
-            previewNote={previewNote}
-            onPickFile={onPickAvatarFile}
-            onRemove={onRequestRemoveAvatar}
-            onCancel={onCancelAvatarChange}
-          />
-          <ReviewsCard ratingAvg={ratingAvg} ratingCount={ratingCount} />
-        </div>
-        <div className="min-w-0 flex-1 lg:order-1">
-          <ProfileDetailsForm
-            fullName={fullName}
-            phone={phoneInput}
-            errors={errors}
-            isDirty={isDirty}
-            canSave={canSave}
-            isSaving={isSaving}
-            saveError={saveError}
-            onNameChange={onNameChange}
-            onNameBlur={onNameBlur}
-            onPhoneChange={onPhoneChange}
-            onPhoneBlur={onPhoneBlur}
-            onSubmit={handleSubmit}
-          />
-        </div>
-      </div>
-    )
+  if (isInitialLoading) {
+    return <LoadingState />
+  }
+  if (loadError) {
+    return <LoadErrorState message={loadError} onRetry={retryLoad} />
   }
 
-  return renderBody()
+  return (
+    <div className="space-y-4">
+      <ProfileIdentityCard
+        avatarUrl={avatarUrl}
+        displayName={fullName || displayName}
+        email={email}
+        memberSinceLabel={memberSinceLabel}
+        fallbackInitials={fallbackInitials}
+        hasAvatar={hasAvatar}
+        hasPendingFile={hasPendingFile}
+        isRemovalStaged={isRemovalStaged}
+        busy={avatarBusy}
+        disabled={isSaving}
+        error={avatarError}
+        urlError={avatarUrlError}
+        previewNote={previewNote}
+        ratingAvg={ratingAvg}
+        ratingCount={ratingCount}
+        onPickFile={onPickAvatarFile}
+        onRemove={onRequestRemoveAvatar}
+        onCancel={onCancelAvatarChange}
+      />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <ProfileDetailsForm
+          fullName={fullName}
+          phone={phoneInput}
+          errors={errors}
+          isDirty={isDirty}
+          canSave={canSave}
+          isSaving={isSaving}
+          saveError={saveError}
+          onNameChange={onNameChange}
+          onNameBlur={onNameBlur}
+          onPhoneChange={onPhoneChange}
+          onPhoneBlur={onPhoneBlur}
+          onSubmit={handleSubmit}
+        />
+        <ReviewsCard ratingAvg={ratingAvg} ratingCount={ratingCount} />
+      </div>
+    </div>
+  )
 }
 
 function SignedInProfile() {
@@ -244,23 +246,18 @@ function SignedInProfile() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Profile"
-        title="Your profile."
-        lead="Your account details, plus everything you have listed, sold, bought, or removed."
-      />
-      <Container className="py-10 md:py-[64px]">
+      <PageHeader title="Your profile.">
+        <ProfileTabs activeTab={activeTab} />
+      </PageHeader>
+      <Container className="py-6 md:py-8">
         <div className="mx-auto max-w-4xl">
-          <ProfileTabs activeTab={activeTab} />
-          <div className="mt-6">
-            {activeTab === PROFILE_TAB_IDS.LISTINGS ? (
-              <SellingHistoryPanel />
-            ) : activeTab === PROFILE_TAB_IDS.PURCHASES ? (
-              <PurchasesPanel />
-            ) : (
-              <SignedInAccount />
-            )}
-          </div>
+          {activeTab === PROFILE_TAB_IDS.LISTINGS ? (
+            <SellingHistoryPanel />
+          ) : activeTab === PROFILE_TAB_IDS.PURCHASES ? (
+            <PurchasesPanel />
+          ) : (
+            <SignedInAccount />
+          )}
         </div>
       </Container>
     </>
@@ -275,7 +272,7 @@ function ProfilePage() {
       <PrimaryNav />
       <main>
         {isInitializing ? (
-          <Container className="py-10 md:py-[64px]">
+          <Container className="py-6 md:py-8">
             <div className="mx-auto max-w-4xl">
               <LoadingState />
             </div>
@@ -284,12 +281,8 @@ function ProfilePage() {
           <SignedInProfile />
         ) : (
           <>
-            <PageHeader
-              eyebrow="Profile"
-              title="Your profile."
-              lead="The place to manage who you are on PalaySigla."
-            />
-            <Container className="py-10 md:py-[64px]">
+            <PageHeader title="Your profile." />
+            <Container className="py-6 md:py-8">
               <div className="mx-auto max-w-4xl">
                 <SignedOutPanel />
               </div>

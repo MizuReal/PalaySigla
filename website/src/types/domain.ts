@@ -49,6 +49,13 @@ export type ListingWithImages = ListingRow & {
   listing_images: ListingImageRef[]
 }
 
+// Owner-side listing row with the listing's live (reserved/sold) transaction
+// embedded, so the profile history table can show the counterparty and open
+// the review form without a second paginated fetch.
+export type MyListingWithTransaction = ListingWithImages & {
+  transactions: TransactionRow[]
+}
+
 // Marketplace messaging: conversations are listing-scoped threads; the inbox
 // summary carries the viewer's unread count attached by the service.
 export type ConversationRow = Tables<'conversations'>

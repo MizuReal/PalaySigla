@@ -22,7 +22,7 @@ const PAGE_LINKS: PageLink[] = [
   { label: 'Marketplace', to: '/marketplace' },
   { label: 'Forum', to: '/forum' },
   { label: 'Messages', to: '/messages' },
-  { label: 'Rice Husk Analysis', to: '/rice-husk-analysis' },
+  { label: 'Analysis', to: '/rice-husk-analysis' },
   { label: 'Profile', to: '/profile' },
 ]
 

@@ -11,9 +11,10 @@ import { supabase as supabaseClient } from '../supabaseClient'
 import {
   fetchListingTransaction,
   fetchMyPurchases,
-  fetchMySales,
+  TRANSACTION_SORTS,
   TRANSACTION_STATUSES,
 } from '../transactions'
+import type { TransactionSort } from '../transactions'
 
 const supabase = supabaseClient as unknown as SupabaseMock
 
@@ -64,8 +65,32 @@ describe('fetchMyPurchases', () => {
     expect(builder.eq).toHaveBeenCalledWith('buyer_id', 'buyer')
     expect(builder.neq).toHaveBeenCalledWith('status', 'cancelled')
     expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false })
+    expect(builder.order).toHaveBeenCalledWith('id', { ascending: true })
     expect(builder.range).toHaveBeenCalledWith(0, 19)
     expect(result.total).toBe(1)
+  })
+
+  it('applies price sorting and the page window', async () => {
+    const builder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(builder)
+
+    await fetchMyPurchases('buyer', {
+      sort: TRANSACTION_SORTS.PRICE_ASC,
+      page: 2,
+      limit: 5,
+    })
+
+    expect(builder.order).toHaveBeenCalledWith('price', { ascending: true })
+    expect(builder.range).toHaveBeenCalledWith(5, 9)
+  })
+
+  it('falls back to newest for an unknown sort', async () => {
+    const builder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(builder)
+
+    await fetchMyPurchases('buyer', { sort: 'bogus' as TransactionSort })
+
+    expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false })
   })
 
   it('throws a friendly error on failure', async () => {
@@ -73,18 +98,6 @@ describe('fetchMyPurchases', () => {
     await expect(fetchMyPurchases('buyer')).rejects.toThrow(
       'Could not load your purchases. Please try again.'
     )
-  })
-})
-
-describe('fetchMySales', () => {
-  it('scopes to the seller', async () => {
-    const builder = createQueryBuilder({ data: [TRANSACTION], error: null, count: 1 })
-    supabase.from.mockReturnValue(builder)
-
-    await fetchMySales('seller')
-
-    expect(builder.eq).toHaveBeenCalledWith('seller_id', 'seller')
-    expect(builder.neq).toHaveBeenCalledWith('status', 'cancelled')
   })
 })
 

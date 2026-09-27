@@ -1,28 +1,12 @@
+import { useMemo } from 'react'
 import Icon from '../Icon'
+import RatingStars from './RatingStars'
 import ReviewItem from './ReviewItem'
 import useUserReviews from '../../hooks/useUserReviews'
 import { useAuth } from '../../context/authContext'
+import { MAX_RATING } from '../../services/reviews'
 
-const MAX_RATING = 5
-const STAR_GLYPH_COUNT = MAX_RATING
-
-function StarRow({ ratingAvg }: { ratingAvg: number }) {
-  const filledStars = Math.round(ratingAvg)
-  return (
-    <div className="flex items-center gap-1" aria-hidden="true">
-      {Array.from({ length: STAR_GLYPH_COUNT }, (_, index) => (
-        <Icon
-          key={index}
-          name="star"
-          filled={index < filledStars}
-          className={`h-4 w-4 ${
-            index < filledStars ? 'text-primary' : 'text-stone'
-          }`}
-        />
-      ))}
-    </div>
-  )
-}
+const STAR_SCALE = Array.from({ length: MAX_RATING }, (_, index) => MAX_RATING - index)
 
 interface ReviewsCardProps {
   ratingAvg?: number
@@ -33,12 +17,23 @@ function ReviewsCard({ ratingAvg = 0, ratingCount = 0 }: ReviewsCardProps) {
   const { user } = useAuth()
   const { reviews, isInitialLoading, error, refresh } = useUserReviews(user?.id ?? null)
 
+  const distribution = useMemo(() => {
+    const counts = new Map<number, number>(STAR_SCALE.map((stars) => [stars, 0]))
+    for (const review of reviews) {
+      const stars = Math.min(Math.max(Math.round(review.rating), 1), MAX_RATING)
+      counts.set(stars, (counts.get(stars) ?? 0) + 1)
+    }
+    return counts
+  }, [reviews])
+
+  const totalRated = reviews.length
+
   const renderList = () => {
     if (isInitialLoading) {
       return (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Array.from({ length: 2 }, (_, index) => (
-            <div key={index} className="h-16 animate-pulse bg-surface-soft" />
+            <div key={index} className="h-14 animate-pulse bg-surface-soft" />
           ))}
         </div>
       )
@@ -59,14 +54,17 @@ function ReviewsCard({ ratingAvg = 0, ratingCount = 0 }: ReviewsCardProps) {
     }
     if (reviews.length === 0) {
       return (
-        <p className="body-sm text-body">
-          No reviews yet. Ratings from buyers and sellers you transact with will
-          show up here.
-        </p>
+        <div className="flex items-start gap-3">
+          <Icon name="star" className="mt-0.5 h-4 w-4 shrink-0 text-stone" />
+          <p className="body-sm text-body">
+            No reviews yet. Ratings from buyers and sellers you transact with will
+            show up here.
+          </p>
+        </div>
       )
     }
     return (
-      <div className="space-y-4">
+      <div>
         {reviews.map((review) => (
           <ReviewItem key={review.id} review={review} />
         ))}
@@ -75,21 +73,37 @@ function ReviewsCard({ ratingAvg = 0, ratingCount = 0 }: ReviewsCardProps) {
   }
 
   return (
-    <section className="border border-hairline bg-canvas p-6">
+    <section className="border border-hairline bg-canvas p-5" aria-label="Ratings and reviews">
       <h2 className="heading-sm text-ink">Ratings &amp; reviews</h2>
-      <div className="mt-5 flex items-center gap-4">
-        <div className="flex flex-col gap-1.5">
-          <StarRow ratingAvg={ratingAvg} />
-          <p className="caption-sm text-mute">
-            {ratingCount} rating{ratingCount === 1 ? '' : 's'}
-          </p>
-        </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <RatingStars rating={Math.round(ratingAvg)} />
         <p className="body-strong text-ink">
           {ratingAvg.toFixed(1)}
           <span className="body-sm font-normal text-mute"> / {MAX_RATING}</span>
         </p>
+        <p className="caption-sm text-mute">
+          {ratingCount} rating{ratingCount === 1 ? '' : 's'}
+        </p>
       </div>
-      <div className="mt-5 border-t border-hairline pt-5">{renderList()}</div>
+      {totalRated > 0 && (
+        <div className="mt-4 space-y-1.5">
+          {STAR_SCALE.map((stars) => {
+            const count = distribution.get(stars) ?? 0
+            const percent = Math.round((count / totalRated) * 100)
+            return (
+              <div key={stars} className="flex items-center gap-2">
+                <span className="caption-sm w-3 text-right text-mute">{stars}</span>
+                <Icon name="star" filled className="h-3 w-3 shrink-0 text-primary" />
+                <div className="h-1.5 flex-1 bg-surface-soft">
+                  <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
+                </div>
+                <span className="caption-sm w-5 text-right text-mute">{count}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      <div className="mt-4 border-t border-hairline pt-3">{renderList()}</div>
     </section>
   )
 }

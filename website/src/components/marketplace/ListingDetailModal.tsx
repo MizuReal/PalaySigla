@@ -12,7 +12,7 @@ import useStartConversation from '../../hooks/useStartConversation'
 import useUserRating from '../../hooks/useUserRating'
 import useUserReviews from '../../hooks/useUserReviews'
 import ReviewItem from '../profile/ReviewItem'
-import { ReviewStars } from '../profile/ReviewItem'
+import RatingStars from '../profile/RatingStars'
 import {
   clearListingReservation,
   markListingSold,
@@ -421,7 +421,7 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
               <div className="min-w-0 flex-1">
                 <p className="body-strong truncate text-ink">{listing.seller_name}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                  <ReviewStars rating={Math.round(sellerRating.ratingAvg)} />
+                  <RatingStars rating={Math.round(sellerRating.ratingAvg)} />
                   <span className="caption-sm text-mute">{ratingSummary}</span>
                 </div>
               </div>

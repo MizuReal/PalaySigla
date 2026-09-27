@@ -1,6 +1,11 @@
 import { supabase } from './supabaseClient'
 import { getSignedImageUrl } from './signedUrlCache'
-import type { ListingWithImages } from '../types/domain'
+import { TRANSACTION_STATUSES } from './transactions'
+import type {
+  MyListingWithTransaction,
+  ListingWithImages,
+  TransactionRow,
+} from '../types/domain'
 
 const PAGE_SIZE_DEFAULT = 12
 const LISTING_IMAGE_BUCKET = 'listings'
@@ -35,12 +40,21 @@ export const MY_LISTING_FILTERS = Object.freeze({
   DELETED: 'deleted',
 } as const)
 
+export const MY_LISTING_SORTS = Object.freeze({
+  NEWEST: 'newest',
+  OLDEST: 'oldest',
+  PRICE_ASC: 'price_asc',
+  PRICE_DESC: 'price_desc',
+} as const)
+
 export type ListingStatus = (typeof LISTING_STATUSES)[keyof typeof LISTING_STATUSES]
 export type ListingUnit = (typeof LISTING_UNITS)[number]
 export type ListingCategory = (typeof LISTING_CATEGORIES)[number]
 export type ListingSort = (typeof LISTING_SORTS)[keyof typeof LISTING_SORTS]
 export type MyListingFilter =
   (typeof MY_LISTING_FILTERS)[keyof typeof MY_LISTING_FILTERS]
+export type MyListingSort =
+  (typeof MY_LISTING_SORTS)[keyof typeof MY_LISTING_SORTS]
 
 export function isListingUnit(value: string): value is ListingUnit {
   return (LISTING_UNITS as readonly string[]).includes(value)
@@ -56,6 +70,16 @@ const SORT_COLUMNS: Record<ListingSort, { column: 'created_at' | 'price'; ascend
   [LISTING_SORTS.PRICE_DESC]: { column: 'price', ascending: false },
 }
 
+const MY_LISTING_SORT_COLUMNS: Record<
+  MyListingSort,
+  { column: 'created_at' | 'price'; ascending: boolean }
+> = {
+  [MY_LISTING_SORTS.NEWEST]: { column: 'created_at', ascending: false },
+  [MY_LISTING_SORTS.OLDEST]: { column: 'created_at', ascending: true },
+  [MY_LISTING_SORTS.PRICE_ASC]: { column: 'price', ascending: true },
+  [MY_LISTING_SORTS.PRICE_DESC]: { column: 'price', ascending: false },
+}
+
 export interface FetchListingsParams {
   category?: ListingCategory | null
   search?: string
@@ -67,12 +91,18 @@ export interface FetchListingsParams {
 export interface FetchMyListingsParams {
   userId?: string
   filter?: MyListingFilter
+  sort?: MyListingSort
   page?: number
   limit?: number
 }
 
 export interface ListingsPage {
   data: ListingWithImages[] | null
+  total: number
+}
+
+export interface MyListingsPage {
+  data: MyListingWithTransaction[] | null
   total: number
 }
 
@@ -137,20 +167,26 @@ export async function fetchListings({
 export async function fetchMyListings({
   userId,
   filter = MY_LISTING_FILTERS.ALL,
+  sort = MY_LISTING_SORTS.NEWEST,
   page = 1,
   limit = PAGE_SIZE_DEFAULT,
-}: FetchMyListingsParams = {}): Promise<ListingsPage> {
+}: FetchMyListingsParams = {}): Promise<MyListingsPage> {
   if (!userId) {
     throw new Error('Could not load your listings. Please try again.')
   }
+  const sortSpec = MY_LISTING_SORT_COLUMNS[sort] ?? MY_LISTING_SORT_COLUMNS[MY_LISTING_SORTS.NEWEST]
   const from = (page - 1) * limit
   const to = from + limit - 1
 
   let query = supabase
     .from('listings')
-    .select('*, listing_images(id, storage_path, position)', { count: 'exact' })
+    .select(
+      '*, listing_images(id, storage_path, position), transactions(*)',
+      { count: 'exact' }
+    )
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .order(sortSpec.column, { ascending: sortSpec.ascending })
+    .order('id', { ascending: true })
     .order('position', { referencedTable: 'listing_images', ascending: true })
 
   if (filter === MY_LISTING_FILTERS.ACTIVE) {
@@ -167,7 +203,19 @@ export async function fetchMyListings({
   if (error) {
     throw new Error('Could not load your listings. Please try again.')
   }
-  return { data: data as ListingWithImages[] | null, total: count ?? 0 }
+  return { data: data as MyListingWithTransaction[] | null, total: count ?? 0 }
+}
+
+// At most one non-cancelled transaction exists per listing by construction
+// (the sync trigger opens a hold, promotes it to a sale, or cancels it).
+export function getLiveTransaction(
+  listing: MyListingWithTransaction
+): TransactionRow | null {
+  return (
+    listing.transactions.find(
+      (transaction) => transaction.status !== TRANSACTION_STATUSES.CANCELLED
+    ) ?? null
+  )
 }
 
 export async function getListing(id: string): Promise<ListingWithImages> {

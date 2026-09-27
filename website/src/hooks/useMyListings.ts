@@ -1,46 +1,65 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchMyListings, MY_LISTING_FILTERS } from '../services/listings'
-import type { MyListingFilter } from '../services/listings'
-import type { ListingWithImages } from '../types/domain'
+import {
+  fetchMyListings,
+  MY_LISTING_FILTERS,
+  MY_LISTING_SORTS,
+} from '../services/listings'
+import type { MyListingFilter, MyListingSort } from '../services/listings'
+import type { MyListingWithTransaction } from '../types/domain'
 
-const PAGE_SIZE = 12
+export const MY_LISTINGS_PAGE_SIZE = 12
 
 export interface UseMyListingsParams {
   userId?: string
   filter?: MyListingFilter
+  sort?: MyListingSort
+  page?: number
+  limit?: number
+  refreshKey?: number
 }
 
 export interface UseMyListingsResult {
-  listings: ListingWithImages[]
+  listings: MyListingWithTransaction[]
   total: number
   isInitialLoading: boolean
-  isLoadingMore: boolean
+  isPageLoading: boolean
   error: string
-  loadMore: () => Promise<void>
-  hasMore: boolean
+  retry: () => void
 }
 
+// Server-paged owner listing history; the caller owns the page and sort so the
+// table's pagination state stays the single source of truth.
 function useMyListings({
   userId,
   filter = MY_LISTING_FILTERS.ALL,
+  sort = MY_LISTING_SORTS.NEWEST,
+  page = 1,
+  limit = MY_LISTINGS_PAGE_SIZE,
+  refreshKey = 0,
 }: UseMyListingsParams = {}): UseMyListingsResult {
-  const [listings, setListings] = useState<ListingWithImages[]>([])
+  const [listings, setListings] = useState<MyListingWithTransaction[]>([])
   const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(false)
   const [error, setError] = useState('')
+  const [refreshNonce, setRefreshNonce] = useState(0)
 
   useEffect(() => {
     let isCurrent = true
-    const loadFirstPage = async () => {
+    const load = async () => {
+      if (!userId) {
+        if (isCurrent) {
+          setListings([])
+          setTotal(0)
+          setError('')
+          setIsInitialLoading(false)
+          setIsPageLoading(false)
+        }
+        return
+      }
+      setIsPageLoading(true)
       try {
-        const result = await fetchMyListings({
-          userId,
-          filter,
-          page: 1,
-          limit: PAGE_SIZE,
-        })
+        const result = await fetchMyListings({ userId, filter, sort, page, limit })
         if (isCurrent) {
           setListings(result.data ?? [])
           setTotal(result.total)
@@ -57,52 +76,27 @@ function useMyListings({
       } finally {
         if (isCurrent) {
           setIsInitialLoading(false)
-          setIsLoadingMore(false)
+          setIsPageLoading(false)
         }
       }
     }
-    loadFirstPage()
+    load()
     return () => {
       isCurrent = false
     }
-  }, [userId, filter])
+  }, [userId, filter, sort, page, limit, refreshNonce, refreshKey])
 
-  const loadMore = useCallback(async () => {
-    if (isLoadingMore || listings.length >= total) {
-      return
-    }
-    setIsLoadingMore(true)
-    const nextPage = page + 1
-    try {
-      const result = await fetchMyListings({
-        userId,
-        filter,
-        page: nextPage,
-        limit: PAGE_SIZE,
-      })
-      setListings((current) => [...current, ...(result.data ?? [])])
-      setTotal(result.total)
-      setError('')
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Could not load your listings. Please try again.'
-      )
-    } finally {
-      setIsLoadingMore(false)
-      setPage(nextPage)
-    }
-  }, [userId, filter, isLoadingMore, listings.length, total, page])
+  const retry = useCallback(() => {
+    setRefreshNonce((current) => current + 1)
+  }, [])
 
   return {
     listings,
     total,
     isInitialLoading,
-    isLoadingMore,
+    isPageLoading,
     error,
-    loadMore,
-    hasMore: listings.length < total,
+    retry,
   }
 }
 

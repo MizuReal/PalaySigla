@@ -108,7 +108,7 @@ and `ChatWidget`. `AuthProvider` and `MessagingProvider` wrap the router;
 `MessagingProvider` owns the inbox Realtime subscription and the unread
 badge total.
 
-> **Known stub.** The navbar's "Rice Husk Analysis" link points to
+> **Known stub.** The navbar's "Analysis" link points to
 > `/rice-husk-analysis`, which has no registered route yet — navigating there
 > lands on `NotFoundPage`. The entry exists for a planned future phase.
 
@@ -212,28 +212,38 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
 
 - **`/profile`** — signed-out visitors get a sign-in pitch panel; signed-in
   users manage their photo, display name, and PH contact number.
-- **Tabs:** `/profile` (Account), `/profile?tab=listings` (Selling history),
-  and `/profile?tab=purchases` (Purchases); signed-out visitors see no tabs.
-- **Selling history:** the signed-in seller's listings filtered All / Active /
-  Reserved / Sold / Deleted — thumbnail, title, price + unit, status chip
-  (Active / Reserved / Sold / Deleted), and a category + listed / reserved /
-  sold (`sold_at`) / deleted (`deleted_at`) date line, plus an owner-only
-  "Reserved for …" / "Sold to …" line. Active and sold rows reopen the
-  marketplace detail modal (owner actions refresh the list); deleted rows are
-  read-only. Backed by `services/listings.ts#fetchMyListings`,
-  `hooks/useMyListings.ts`, and `components/profile/SellingHistoryPanel.tsx`.
+- **Header:** a compact hairline band (eyebrow + title, no lead copy) with the
+  tab pills right-aligned on desktop; `/profile` (Account),
+  `/profile?tab=listings` (Selling history), and `/profile?tab=purchases`
+  (Purchases); signed-out visitors see no tabs.
+- **Account tab:** a horizontal identity band (avatar, name/email/member-since,
+  rating stat, photo actions) above a `minmax(0,1fr) + 360px` desktop grid —
+  `ProfileDetailsForm` (name + phone side by side, dirty-state cue) and
+  `ReviewsCard` (aggregate stars, five-row star distribution, received
+  reviews).
+- **Selling history:** a server-paged/sorted history table (TanStack Table v9
+  with manual sorting + pagination) filtered All / Active / Reserved / Sold /
+  Deleted — Listing (thumbnail + title + category), status chip, price, listed
+  date, transaction line ("Reserved for …" / "Sold to …"), and action. Sold
+  rows expose the stateful **Leave a review** → **Reviewed** control;
+  active/reserved rows open the marketplace detail modal (row click or a
+  `Manage` button), and deleted rows are read-only. Backed by
+  `services/listings.ts#fetchMyListings` (which embeds the listing's live
+  `transactions` row), `hooks/useMyListings.ts`, and
+  `components/profile/SellingHistoryPanel.tsx`.
 - **Purchases:** the signed-in buyer's durable `transactions`
   (`services/transactions.ts#fetchMyPurchases`, `hooks/useMyPurchases.ts`,
-  `components/profile/PurchasesPanel.tsx`) — reserved/sold rows with title,
-  price + unit, status chip, seller, and date. Participant RLS keeps them
-  reachable after the listing leaves the feed or is removed; a sold row offers
-  **Leave a review**.
+  `components/profile/PurchasesPanel.tsx`) rendered in the same history table —
+  listing, seller, status chip, price, and resolved date, with the same review
+  action. Participant RLS keeps them reachable after the listing leaves the
+  feed or is removed.
 - **Reviews:** mutual, public ratings anchored to a sold transaction
   (`services/reviews.ts`, `010_reviews.sql`). Web opens
   `components/profile/ReviewFormModal.tsx` from a Purchases row, a sold
   Selling-history row, or the conversation thread; the profile `ReviewsCard`
-  lists received reviews and a listing detail shows the seller's aggregate +
-  recent reviews. `user_rating(user_id)` supplies the public aggregate.
+  shows the star distribution plus received reviews, and a listing detail
+  shows the seller's aggregate + recent reviews. `user_rating(user_id)`
+  supplies the public aggregate.
 - Avatar: JPEG/PNG ≤ 10 MB, compressed client-side to ≤ 512 px (EXIF
   stripped), staged until one Save commits photo + fields together; stored in
   the private `avatars` bucket at `{user_id}/avatar.jpg` and served via
@@ -246,9 +256,6 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   initials monogram fallback) beside the name and links to `/profile`; the
   URL is fetched via `services/profile.ts#getOwnAvatarUrl` (~60 s per-user
   cache) through `hooks/useAvatar.ts`.
-- Ratings & reviews is a schema-backed placeholder: `rating_avg` /
-  `rating_count` on `profiles` render an empty state until a future reviews
-  table populates them.
 - Everything goes through `services/profile.ts`.
 
 ## Conventions

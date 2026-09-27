@@ -12,6 +12,26 @@ export const TRANSACTION_STATUSES = Object.freeze({
 export type TransactionStatus =
   (typeof TRANSACTION_STATUSES)[keyof typeof TRANSACTION_STATUSES]
 
+export const TRANSACTION_SORTS = Object.freeze({
+  NEWEST: 'newest',
+  OLDEST: 'oldest',
+  PRICE_ASC: 'price_asc',
+  PRICE_DESC: 'price_desc',
+} as const)
+
+export type TransactionSort =
+  (typeof TRANSACTION_SORTS)[keyof typeof TRANSACTION_SORTS]
+
+const SORT_COLUMNS: Record<
+  TransactionSort,
+  { column: 'created_at' | 'price'; ascending: boolean }
+> = {
+  [TRANSACTION_SORTS.NEWEST]: { column: 'created_at', ascending: false },
+  [TRANSACTION_SORTS.OLDEST]: { column: 'created_at', ascending: true },
+  [TRANSACTION_SORTS.PRICE_ASC]: { column: 'price', ascending: true },
+  [TRANSACTION_SORTS.PRICE_DESC]: { column: 'price', ascending: false },
+}
+
 export interface TransactionsPage {
   data: TransactionRow[] | null
   total: number
@@ -20,44 +40,32 @@ export interface TransactionsPage {
 export interface FetchTransactionsParams {
   page?: number
   limit?: number
+  sort?: TransactionSort
 }
 
 // Buyer-side purchased/reserved records. RLS scopes every query to the caller,
 // so these survive the listing leaving the feed or being soft-deleted.
 export async function fetchMyPurchases(
   userId: string,
-  { page = 1, limit = PAGE_SIZE_DEFAULT }: FetchTransactionsParams = {}
+  {
+    page = 1,
+    limit = PAGE_SIZE_DEFAULT,
+    sort = TRANSACTION_SORTS.NEWEST,
+  }: FetchTransactionsParams = {}
 ): Promise<TransactionsPage> {
+  const sortSpec = SORT_COLUMNS[sort] ?? SORT_COLUMNS[TRANSACTION_SORTS.NEWEST]
   const from = (page - 1) * limit
   const to = from + limit - 1
   const { data, error, count } = await supabase
     .from('transactions')
     .select('*', { count: 'exact' })
     .eq('buyer_id', userId)
-    .neq('status', 'cancelled')
-    .order('created_at', { ascending: false })
+    .neq('status', TRANSACTION_STATUSES.CANCELLED)
+    .order(sortSpec.column, { ascending: sortSpec.ascending })
+    .order('id', { ascending: true })
     .range(from, to)
   if (error) {
     throw new Error('Could not load your purchases. Please try again.')
-  }
-  return { data: data as TransactionRow[] | null, total: count ?? 0 }
-}
-
-export async function fetchMySales(
-  userId: string,
-  { page = 1, limit = PAGE_SIZE_DEFAULT }: FetchTransactionsParams = {}
-): Promise<TransactionsPage> {
-  const from = (page - 1) * limit
-  const to = from + limit - 1
-  const { data, error, count } = await supabase
-    .from('transactions')
-    .select('*', { count: 'exact' })
-    .eq('seller_id', userId)
-    .neq('status', 'cancelled')
-    .order('created_at', { ascending: false })
-    .range(from, to)
-  if (error) {
-    throw new Error('Could not load your sales. Please try again.')
   }
   return { data: data as TransactionRow[] | null, total: count ?? 0 }
 }

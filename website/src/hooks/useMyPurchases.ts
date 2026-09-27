@@ -1,45 +1,56 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchMyPurchases } from '../services/transactions'
+import { fetchMyPurchases, TRANSACTION_SORTS } from '../services/transactions'
+import type { TransactionSort } from '../services/transactions'
 import type { TransactionRow } from '../types/domain'
 
-const PAGE_SIZE = 20
+export const MY_PURCHASES_PAGE_SIZE = 12
+
+export interface UseMyPurchasesParams {
+  userId?: string
+  sort?: TransactionSort
+  page?: number
+  limit?: number
+}
 
 export interface UseMyPurchasesResult {
   purchases: TransactionRow[]
   total: number
   isInitialLoading: boolean
-  isLoadingMore: boolean
+  isPageLoading: boolean
   error: string
-  loadMore: () => Promise<void>
-  refresh: () => void
-  hasMore: boolean
+  retry: () => void
 }
 
-// Paginated buyer-side transaction list; mirrors useMyListings.
-function useMyPurchases(userId?: string): UseMyPurchasesResult {
+// Server-paged buyer transaction list; the caller owns the page and sort.
+function useMyPurchases({
+  userId,
+  sort = TRANSACTION_SORTS.NEWEST,
+  page = 1,
+  limit = MY_PURCHASES_PAGE_SIZE,
+}: UseMyPurchasesParams = {}): UseMyPurchasesResult {
   const [purchases, setPurchases] = useState<TransactionRow[]>([])
   const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(false)
   const [error, setError] = useState('')
   const [refreshNonce, setRefreshNonce] = useState(0)
 
   useEffect(() => {
     let isCurrent = true
-    const loadFirstPage = async () => {
+    const load = async () => {
       if (!userId) {
         if (isCurrent) {
           setPurchases([])
           setTotal(0)
           setError('')
           setIsInitialLoading(false)
-          setIsLoadingMore(false)
+          setIsPageLoading(false)
         }
         return
       }
+      setIsPageLoading(true)
       try {
-        const result = await fetchMyPurchases(userId, { page: 1, limit: PAGE_SIZE })
+        const result = await fetchMyPurchases(userId, { sort, page, limit })
         if (isCurrent) {
           setPurchases(result.data ?? [])
           setTotal(result.total)
@@ -48,45 +59,25 @@ function useMyPurchases(userId?: string): UseMyPurchasesResult {
       } catch (err) {
         if (isCurrent) {
           setError(
-            err instanceof Error ? err.message : 'Could not load your purchases. Please try again.'
+            err instanceof Error
+              ? err.message
+              : 'Could not load your purchases. Please try again.'
           )
         }
       } finally {
         if (isCurrent) {
           setIsInitialLoading(false)
-          setIsLoadingMore(false)
+          setIsPageLoading(false)
         }
       }
     }
-    loadFirstPage()
+    load()
     return () => {
       isCurrent = false
     }
-  }, [userId, refreshNonce])
+  }, [userId, sort, page, limit, refreshNonce])
 
-  const loadMore = useCallback(async () => {
-    if (!userId || isLoadingMore || purchases.length >= total) {
-      return
-    }
-    setIsLoadingMore(true)
-    const nextPage = page + 1
-    try {
-      const result = await fetchMyPurchases(userId, { page: nextPage, limit: PAGE_SIZE })
-      setPurchases((current) => [...current, ...(result.data ?? [])])
-      setTotal(result.total)
-      setError('')
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Could not load your purchases. Please try again.'
-      )
-    } finally {
-      setIsLoadingMore(false)
-      setPage(nextPage)
-    }
-  }, [userId, isLoadingMore, purchases.length, total, page])
-
-  const refresh = useCallback(() => {
-    setPage(1)
+  const retry = useCallback(() => {
     setRefreshNonce((current) => current + 1)
   }, [])
 
@@ -94,11 +85,9 @@ function useMyPurchases(userId?: string): UseMyPurchasesResult {
     purchases,
     total,
     isInitialLoading,
-    isLoadingMore,
+    isPageLoading,
     error,
-    loadMore,
-    refresh,
-    hasMore: purchases.length < total,
+    retry,
   }
 }
 

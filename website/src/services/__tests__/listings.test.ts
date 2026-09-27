@@ -19,17 +19,20 @@ import {
   fetchMyListings,
   getListing,
   getListingImageUrl,
+  getLiveTransaction,
   LISTING_CATEGORIES,
   LISTING_SORTS,
   LISTING_UNITS,
   markListingSold,
   MY_LISTING_FILTERS,
+  MY_LISTING_SORTS,
   reserveListing,
   softDeleteListing,
   updateListingStatus,
   uploadListingImage,
 } from '../listings'
 import type { CreateListingInput, ListingSort } from '../listings'
+import type { MyListingWithTransaction } from '../../types/domain'
 
 // vi.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
 const supabase = supabaseClient as unknown as SupabaseMock
@@ -52,6 +55,12 @@ describe('constants', () => {
     expect(LISTING_CATEGORIES).toEqual(['palay', 'rice', 'seeds', 'machinery', 'other'])
     expect(LISTING_SORTS).toEqual({
       NEWEST: 'newest',
+      PRICE_ASC: 'price_asc',
+      PRICE_DESC: 'price_desc',
+    })
+    expect(MY_LISTING_SORTS).toEqual({
+      NEWEST: 'newest',
+      OLDEST: 'oldest',
       PRICE_ASC: 'price_asc',
       PRICE_DESC: 'price_desc',
     })
@@ -141,9 +150,24 @@ describe('fetchMyListings', () => {
     expect(builder.eq).not.toHaveBeenCalledWith('status', expect.anything())
     expect(builder.is).not.toHaveBeenCalled()
     expect(builder.range).toHaveBeenCalledWith(8, 11)
-    expect(builder.select).toHaveBeenCalledWith('*, listing_images(id, storage_path, position)', {
-      count: 'exact',
-    })
+    expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false })
+    expect(builder.order).toHaveBeenCalledWith('id', { ascending: true })
+    expect(builder.select).toHaveBeenCalledWith(
+      '*, listing_images(id, storage_path, position), transactions(*)',
+      { count: 'exact' }
+    )
+  })
+
+  it('applies the owner sort', async () => {
+    const priceBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(priceBuilder)
+    await fetchMyListings({ userId: 'u1', sort: MY_LISTING_SORTS.PRICE_ASC })
+    expect(priceBuilder.order).toHaveBeenCalledWith('price', { ascending: true })
+
+    const oldestBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(oldestBuilder)
+    await fetchMyListings({ userId: 'u1', sort: MY_LISTING_SORTS.OLDEST })
+    expect(oldestBuilder.order).toHaveBeenCalledWith('created_at', { ascending: true })
   })
 
   it('applies the active, sold, and deleted filters', async () => {
@@ -178,6 +202,30 @@ describe('fetchMyListings', () => {
     await expect(fetchMyListings({ userId: 'u1' })).rejects.toThrow(
       'Could not load your listings. Please try again.'
     )
+  })
+})
+
+describe('getLiveTransaction', () => {
+  it('returns the non-cancelled transaction row', () => {
+    const cancelled = { id: 't-old', status: 'cancelled' }
+    const live = { id: 't-live', status: 'sold' }
+    const listing = {
+      id: 'L1',
+      transactions: [cancelled, live],
+    } as unknown as MyListingWithTransaction
+
+    expect(getLiveTransaction(listing)).toBe(live)
+  })
+
+  it('returns null when every transaction is cancelled or absent', () => {
+    const cancelledOnly = {
+      id: 'L1',
+      transactions: [{ id: 't-old', status: 'cancelled' }],
+    } as unknown as MyListingWithTransaction
+    const empty = { id: 'L2', transactions: [] } as unknown as MyListingWithTransaction
+
+    expect(getLiveTransaction(cancelledOnly)).toBeNull()
+    expect(getLiveTransaction(empty)).toBeNull()
   })
 })
 
