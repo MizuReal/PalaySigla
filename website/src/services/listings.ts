@@ -7,6 +7,7 @@ const LISTING_IMAGE_BUCKET = 'listings'
 
 export const LISTING_STATUSES = Object.freeze({
   ACTIVE: 'active',
+  RESERVED: 'reserved',
   SOLD: 'sold',
 } as const)
 
@@ -29,6 +30,7 @@ export const LISTING_SORTS = Object.freeze({
 export const MY_LISTING_FILTERS = Object.freeze({
   ALL: 'all',
   ACTIVE: 'active',
+  RESERVED: 'reserved',
   SOLD: 'sold',
   DELETED: 'deleted',
 } as const)
@@ -88,6 +90,13 @@ export interface CreateListingInput {
   sellerName: string
 }
 
+// the counterparty of a reserve/sold action, chosen from the listing's
+// conversations; null records the transition without a linked buyer (no review)
+export interface ListingBuyer {
+  buyerId: string
+  buyerName: string
+}
+
 export async function fetchListings({
   category = null,
   search = '',
@@ -103,7 +112,7 @@ export async function fetchListings({
   let query = supabase
     .from('listings')
     .select('*, listing_images(id, storage_path, position)', { count: 'exact' })
-    .eq('status', LISTING_STATUSES.ACTIVE)
+    .in('status', [LISTING_STATUSES.ACTIVE, LISTING_STATUSES.RESERVED])
     .is('deleted_at', null)
     .order(sortSpec.column, { ascending: sortSpec.ascending })
     .order('position', { referencedTable: 'listing_images', ascending: true })
@@ -146,6 +155,8 @@ export async function fetchMyListings({
 
   if (filter === MY_LISTING_FILTERS.ACTIVE) {
     query = query.eq('status', LISTING_STATUSES.ACTIVE).is('deleted_at', null)
+  } else if (filter === MY_LISTING_FILTERS.RESERVED) {
+    query = query.eq('status', LISTING_STATUSES.RESERVED).is('deleted_at', null)
   } else if (filter === MY_LISTING_FILTERS.SOLD) {
     query = query.eq('status', LISTING_STATUSES.SOLD).is('deleted_at', null)
   } else if (filter === MY_LISTING_FILTERS.DELETED) {
@@ -245,6 +256,51 @@ export async function updateListingStatus(id: string, status: ListingStatus): Pr
   const { error } = await supabase.from('listings').update({ status }).eq('id', id)
   if (error) {
     throw new Error('Could not update the listing. Please try again.')
+  }
+}
+
+export async function reserveListing(
+  id: string,
+  buyer: ListingBuyer | null
+): Promise<void> {
+  const { error } = await supabase
+    .from('listings')
+    .update({
+      status: LISTING_STATUSES.RESERVED,
+      reserved_for: buyer?.buyerId ?? null,
+      reserved_for_name: buyer?.buyerName ?? null,
+    })
+    .eq('id', id)
+  if (error) {
+    throw new Error('Could not reserve the listing. Please try again.')
+  }
+}
+
+export async function markListingSold(
+  id: string,
+  buyer: ListingBuyer | null
+): Promise<void> {
+  const { error } = await supabase
+    .from('listings')
+    .update({
+      status: LISTING_STATUSES.SOLD,
+      sold_to: buyer?.buyerId ?? null,
+      sold_to_name: buyer?.buyerName ?? null,
+    })
+    .eq('id', id)
+  if (error) {
+    throw new Error('Could not mark the listing as sold. Please try again.')
+  }
+}
+
+// the transaction-state trigger clears the reserved columns on the active move
+export async function clearListingReservation(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('listings')
+    .update({ status: LISTING_STATUSES.ACTIVE })
+    .eq('id', id)
+  if (error) {
+    throw new Error('Could not release the reservation. Please try again.')
   }
 }
 

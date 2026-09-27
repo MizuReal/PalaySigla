@@ -5,6 +5,7 @@
 // inline two-tap confirm) when the signed-in reader owns the listing.
 import { useState } from 'react'
 import {
+  ActivityIndicator,
   Animated,
   Linking,
   Pressable,
@@ -23,9 +24,11 @@ import Photo from '../components/Photo'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import { TOAST_VARIANTS, useToast } from '../context/toastContext'
 import useListingActions from '../hooks/useListingActions'
+import useListingConversations from '../hooks/useListingConversations'
 import useListingDetail from '../hooks/useListingDetail'
 import usePulseOpacity from '../hooks/usePulseOpacity'
 import useStartConversation from '../hooks/useStartConversation'
+import type { ListingBuyer } from '../services/listings'
 import {
   CATEGORY_LABELS,
   formatCoordinates,
@@ -35,6 +38,13 @@ import {
 } from '../utils/format'
 import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../theme/designTokens'
 import type { RootStackParamList } from '../types/navigation'
+
+const TRANSACTION_MODES = Object.freeze({
+  RESERVE: 'reserve',
+  SOLD: 'sold',
+} as const)
+
+type TransactionMode = (typeof TRANSACTION_MODES)[keyof typeof TRANSACTION_MODES]
 
 function DetailSkeleton() {
   const opacity = usePulseOpacity()
@@ -79,12 +89,34 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
   const { user, openAuthModal } = useAuth()
   const { showToast } = useToast()
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
-  const { isActing, error: actionError, markSold, remove, clearError } =
-    useListingActions()
+  const {
+    isActing,
+    error: actionError,
+    reserve,
+    markSold,
+    release,
+    remove,
+    clearError,
+  } = useListingActions()
   const { start, isStarting, error: startError } = useStartConversation()
   const [isConfirmingRemove, setIsConfirmingRemove] = useState(false)
+  const [transactionMode, setTransactionMode] = useState<TransactionMode | null>(null)
+  const [selectedBuyerId, setSelectedBuyerId] = useState('')
+  const buyers = useListingConversations(transactionMode ? listingId : null)
 
   const isOwner = user !== null && listing?.user_id === user.id
+
+  const selectedConversation = buyers.conversations.find(
+    (conversation) => conversation.buyer_id === selectedBuyerId
+  )
+  const selectedBuyer: ListingBuyer | null = selectedConversation
+    ? {
+        buyerId: selectedConversation.buyer_id,
+        buyerName: selectedConversation.buyer_name,
+      }
+    : null
+  const hasBuyerChoices = buyers.conversations.length > 0
+  const canConfirm = !isActing && (!hasBuyerChoices || selectedBuyer !== null)
 
   const handleMessageSeller = async () => {
     if (!listing) {
@@ -109,13 +141,42 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
     }
   }
 
-  const handleMarkSold = async () => {
+  const openTransaction = (mode: TransactionMode) => {
+    clearError()
+    setSelectedBuyerId('')
+    setTransactionMode(mode)
+  }
+
+  const closeTransaction = () => {
+    clearError()
+    setTransactionMode(null)
+    setSelectedBuyerId('')
+  }
+
+  const handleConfirmTransaction = async () => {
+    if (!listing || !transactionMode) {
+      return
+    }
+    const isSold = transactionMode === TRANSACTION_MODES.SOLD
+    const succeeded = isSold
+      ? await markSold(listing.id, selectedBuyer)
+      : await reserve(listing.id, selectedBuyer)
+    if (succeeded) {
+      showToast(
+        isSold ? 'Listing marked as sold.' : 'Listing reserved.',
+        TOAST_VARIANTS.SUCCESS
+      )
+      navigation.goBack()
+    }
+  }
+
+  const handleRelease = async () => {
     if (!listing) {
       return
     }
-    const succeeded = await markSold(listing.id)
+    const succeeded = await release(listing.id)
     if (succeeded) {
-      showToast('Listing marked as sold.', TOAST_VARIANTS.SUCCESS)
+      showToast('Reservation released.', TOAST_VARIANTS.SUCCESS)
       navigation.goBack()
     }
   }
@@ -141,9 +202,97 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
     setIsConfirmingRemove(false)
   }
 
+  const renderBuyerPicker = () => {
+    const isSold = transactionMode === TRANSACTION_MODES.SOLD
+    return (
+      <View style={styles.pickerPanel}>
+        <Text style={[TYPE.captionMd, styles.pickerHeading]}>
+          {isSold ? 'Who is this sold to?' : 'Who is this reserved for?'}
+        </Text>
+        {buyers.error ? (
+          <Text accessibilityRole="alert" style={[TYPE.bodySm, styles.pickerError]}>
+            {buyers.error}
+          </Text>
+        ) : buyers.isLoading ? (
+          <ActivityIndicator color={COLORS.primary} style={styles.pickerSpinner} />
+        ) : hasBuyerChoices ? (
+          <View style={styles.pickerList}>
+            {buyers.conversations.map((conversation) => {
+              const isSelected = conversation.buyer_id === selectedBuyerId
+              return (
+                <Pressable
+                  key={conversation.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  onPress={() => setSelectedBuyerId(conversation.buyer_id)}
+                  style={({ pressed }) => [
+                    styles.pickerOption,
+                    isSelected && styles.pickerOptionSelected,
+                    pressed && styles.pickerOptionPressed,
+                  ]}
+                >
+                  <Text style={[TYPE.bodySm, styles.pickerOptionText]}>
+                    {conversation.buyer_name}
+                  </Text>
+                  {isSelected ? (
+                    <Icon name="check" size={18} color={COLORS.primary} />
+                  ) : null}
+                </Pressable>
+              )
+            })}
+          </View>
+        ) : (
+          <Text style={[TYPE.bodySm, styles.pickerHint]}>
+            No buyer conversations for this listing yet. You can continue without
+            tagging a buyer — reviews will not be available for this transaction.
+          </Text>
+        )}
+        <View style={styles.pickerActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canConfirm }}
+            disabled={!canConfirm}
+            onPress={handleConfirmTransaction}
+            style={({ pressed }) => [
+              styles.markSoldButton,
+              !canConfirm && styles.actionDisabled,
+              pressed && canConfirm && styles.markSoldButtonPressed,
+            ]}
+          >
+            <Text
+              style={[
+                TYPE.buttonSm,
+                styles.markSoldLabel,
+                !canConfirm && styles.actionLabelDisabled,
+              ]}
+            >
+              {isActing ? 'Saving…' : isSold ? 'Mark as sold' : 'Reserve listing'}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isActing }}
+            disabled={isActing}
+            onPress={closeTransaction}
+            style={({ pressed }) => [
+              styles.cancelButton,
+              isActing && styles.actionDisabled,
+              pressed && !isActing && styles.cancelButtonPressed,
+            ]}
+          >
+            <Text style={[TYPE.buttonSm, styles.cancelLabel]}>Cancel</Text>
+          </Pressable>
+        </View>
+      </View>
+    )
+  }
+
   const renderOwnerActions = () => {
     if (!isOwner || !listing) {
       return null
+    }
+    if (transactionMode) {
+      return renderBuyerPicker()
     }
     if (isConfirmingRemove) {
       return (
@@ -198,28 +347,95 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
             <Text style={[TYPE.bodySm, styles.actionErrorText]}>{actionError}</Text>
           </View>
         ) : null}
+        {listing.status === 'sold' && listing.sold_to_name ? (
+          <Text style={[TYPE.captionSm, styles.transactionLine]}>
+            Sold to {listing.sold_to_name}
+          </Text>
+        ) : null}
+        {listing.status === 'reserved' && listing.reserved_for_name ? (
+          <Text style={[TYPE.captionSm, styles.transactionLine]}>
+            Reserved for {listing.reserved_for_name}
+          </Text>
+        ) : null}
         {listing.status === 'active' ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ disabled: isActing }}
-            disabled={isActing}
-            onPress={handleMarkSold}
-            style={({ pressed }) => [
-              styles.markSoldButton,
-              isActing && styles.actionDisabled,
-              pressed && !isActing && styles.markSoldButtonPressed,
-            ]}
-          >
-            <Text
-              style={[
-                TYPE.buttonSm,
-                styles.markSoldLabel,
-                isActing && styles.actionLabelDisabled,
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isActing }}
+              disabled={isActing}
+              onPress={() => openTransaction(TRANSACTION_MODES.RESERVE)}
+              style={({ pressed }) => [
+                styles.cancelButton,
+                isActing && styles.actionDisabled,
+                pressed && !isActing && styles.cancelButtonPressed,
               ]}
             >
-              {isActing ? 'Updating…' : 'Mark as sold'}
-            </Text>
-          </Pressable>
+              <Text style={[TYPE.buttonSm, styles.cancelLabel]}>
+                Reserve for a buyer
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isActing }}
+              disabled={isActing}
+              onPress={() => openTransaction(TRANSACTION_MODES.SOLD)}
+              style={({ pressed }) => [
+                styles.markSoldButton,
+                isActing && styles.actionDisabled,
+                pressed && !isActing && styles.markSoldButtonPressed,
+              ]}
+            >
+              <Text
+                style={[
+                  TYPE.buttonSm,
+                  styles.markSoldLabel,
+                  isActing && styles.actionLabelDisabled,
+                ]}
+              >
+                Mark as sold
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+        {listing.status === 'reserved' ? (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isActing }}
+              disabled={isActing}
+              onPress={() => openTransaction(TRANSACTION_MODES.SOLD)}
+              style={({ pressed }) => [
+                styles.markSoldButton,
+                isActing && styles.actionDisabled,
+                pressed && !isActing && styles.markSoldButtonPressed,
+              ]}
+            >
+              <Text
+                style={[
+                  TYPE.buttonSm,
+                  styles.markSoldLabel,
+                  isActing && styles.actionLabelDisabled,
+                ]}
+              >
+                Mark as sold
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isActing }}
+              disabled={isActing}
+              onPress={handleRelease}
+              style={({ pressed }) => [
+                styles.cancelButton,
+                isActing && styles.actionDisabled,
+                pressed && !isActing && styles.cancelButtonPressed,
+              ]}
+            >
+              <Text style={[TYPE.buttonSm, styles.cancelLabel]}>
+                {isActing ? 'Releasing…' : 'Release reservation'}
+              </Text>
+            </Pressable>
+          </>
         ) : null}
         <Pressable
           accessibilityRole="button"
@@ -286,9 +502,11 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
                 {CATEGORY_LABELS[listing.category]}
               </Text>
             </View>
-            {listing.status === 'sold' ? (
+            {listing.status !== 'active' ? (
               <View style={styles.chip}>
-                <Text style={[TYPE.captionMd, styles.chipSold]}>Sold</Text>
+                <Text style={[TYPE.captionMd, styles.chipSold]}>
+                  {listing.status === 'sold' ? 'Sold' : 'Reserved'}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -529,6 +747,58 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.hairline,
     marginTop: SPACING.xl,
     paddingTop: SPACING.lg,
+    gap: SPACING.md,
+  },
+  transactionLine: {
+    color: COLORS.mute,
+  },
+  pickerPanel: {
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.surfaceSoft,
+    marginTop: SPACING.xl,
+    padding: SPACING.lg,
+    gap: SPACING.md,
+  },
+  pickerHeading: {
+    color: COLORS.primary,
+  },
+  pickerError: {
+    color: COLORS.error,
+  },
+  pickerSpinner: {
+    marginVertical: SPACING.sm,
+  },
+  pickerList: {
+    gap: SPACING.sm,
+  },
+  pickerOption: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.canvas,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.lg,
+  },
+  pickerOptionSelected: {
+    borderColor: COLORS.primary,
+  },
+  pickerOptionPressed: {
+    opacity: 0.7,
+  },
+  pickerOptionText: {
+    flex: 1,
+    color: COLORS.ink,
+  },
+  pickerHint: {
+    color: COLORS.mute,
+  },
+  pickerActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: SPACING.md,
   },
   actionError: {

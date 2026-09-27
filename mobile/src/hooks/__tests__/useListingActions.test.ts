@@ -2,62 +2,105 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native'
 
 jest.mock('../../services/listings', () => ({
-  LISTING_STATUSES: { ACTIVE: 'active', SOLD: 'sold' },
+  LISTING_STATUSES: { ACTIVE: 'active', RESERVED: 'reserved', SOLD: 'sold' },
+  reserveListing: jest.fn(),
+  markListingSold: jest.fn(),
+  clearListingReservation: jest.fn(),
   softDeleteListing: jest.fn(),
-  updateListingStatus: jest.fn(),
 }))
 jest.mock('../../utils/listingEvents', () => ({
   notifyListingsChanged: jest.fn(),
 }))
 
-import { softDeleteListing, updateListingStatus } from '../../services/listings'
+import {
+  clearListingReservation,
+  markListingSold,
+  reserveListing,
+  softDeleteListing,
+} from '../../services/listings'
 import { notifyListingsChanged } from '../../utils/listingEvents'
 import useListingActions from '../useListingActions'
 
-const mockedUpdateListingStatus = jest.mocked(updateListingStatus)
+const mockedReserveListing = jest.mocked(reserveListing)
+const mockedMarkListingSold = jest.mocked(markListingSold)
+const mockedClearListingReservation = jest.mocked(clearListingReservation)
 const mockedSoftDeleteListing = jest.mocked(softDeleteListing)
 const mockedNotifyListingsChanged = jest.mocked(notifyListingsChanged)
 
 beforeEach(() => {
   jest.resetAllMocks()
-  mockedUpdateListingStatus.mockResolvedValue(undefined)
+  mockedReserveListing.mockResolvedValue(undefined)
+  mockedMarkListingSold.mockResolvedValue(undefined)
+  mockedClearListingReservation.mockResolvedValue(undefined)
   mockedSoftDeleteListing.mockResolvedValue(undefined)
 })
 
 describe('useListingActions', () => {
-  it('marks a listing as sold and notifies', async () => {
+  it('reserves for a buyer and notifies', async () => {
     const { result } = await renderHook(() => useListingActions())
 
     let succeeded = false
     await act(async () => {
-      succeeded = await result.current.markSold('L1')
+      succeeded = await result.current.reserve('L1', { buyerId: 'b1', buyerName: 'Bata' })
     })
 
     expect(succeeded).toBe(true)
-    expect(mockedUpdateListingStatus).toHaveBeenCalledWith('L1', 'sold')
+    expect(mockedReserveListing).toHaveBeenCalledWith('L1', {
+      buyerId: 'b1',
+      buyerName: 'Bata',
+    })
     expect(mockedNotifyListingsChanged).toHaveBeenCalledTimes(1)
     expect(result.current.error).toBe('')
     expect(result.current.isActing).toBe(false)
   })
 
+  it('marks a listing as sold to a buyer and notifies', async () => {
+    const { result } = await renderHook(() => useListingActions())
+
+    let succeeded = false
+    await act(async () => {
+      succeeded = await result.current.markSold('L1', { buyerId: 'b1', buyerName: 'Bata' })
+    })
+
+    expect(succeeded).toBe(true)
+    expect(mockedMarkListingSold).toHaveBeenCalledWith('L1', {
+      buyerId: 'b1',
+      buyerName: 'Bata',
+    })
+    expect(mockedNotifyListingsChanged).toHaveBeenCalledTimes(1)
+  })
+
   it('reports a failed status update without notifying', async () => {
-    mockedUpdateListingStatus.mockRejectedValue(
-      new Error('Could not update the listing. Please try again.')
+    mockedMarkListingSold.mockRejectedValue(
+      new Error('Could not mark the listing as sold. Please try again.')
     )
     const { result } = await renderHook(() => useListingActions())
 
     let succeeded = true
     await act(async () => {
-      succeeded = await result.current.markSold('L1')
+      succeeded = await result.current.markSold('L1', null)
     })
 
     expect(succeeded).toBe(false)
     expect(mockedNotifyListingsChanged).not.toHaveBeenCalled()
     await waitFor(() =>
       expect(result.current.error).toBe(
-        'Could not update the listing. Please try again.'
+        'Could not mark the listing as sold. Please try again.'
       )
     )
+  })
+
+  it('releases a reservation and notifies', async () => {
+    const { result } = await renderHook(() => useListingActions())
+
+    let succeeded = false
+    await act(async () => {
+      succeeded = await result.current.release('L1')
+    })
+
+    expect(succeeded).toBe(true)
+    expect(mockedClearListingReservation).toHaveBeenCalledWith('L1')
+    expect(mockedNotifyListingsChanged).toHaveBeenCalledTimes(1)
   })
 
   it('removes a listing and notifies', async () => {

@@ -4,7 +4,9 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 const mockGoBack = jest.fn()
+const mockReserve = jest.fn()
 const mockMarkSold = jest.fn()
+const mockRelease = jest.fn()
 const mockRemove = jest.fn()
 const mockClearError = jest.fn()
 const mockShowToast = jest.fn()
@@ -50,6 +52,11 @@ jest.mock('../../hooks/useListingActions', () => ({
   default: jest.fn(),
 }))
 
+jest.mock('../../hooks/useListingConversations', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}))
+
 jest.mock('../../context/authContext', () => ({ useAuth: jest.fn() }))
 
 jest.mock('../../context/toastContext', () => ({
@@ -59,6 +66,7 @@ jest.mock('../../context/toastContext', () => ({
 
 import { useAuth } from '../../context/authContext'
 import useListingActions from '../../hooks/useListingActions'
+import useListingConversations from '../../hooks/useListingConversations'
 import useListingDetail from '../../hooks/useListingDetail'
 import ListingDetailScreen from '../ListingDetailScreen'
 import type { ListingWithImages } from '../../types/domain'
@@ -66,6 +74,7 @@ import type { RootStackParamList } from '../../types/navigation'
 
 const mockedUseAuth = jest.mocked(useAuth)
 const mockedUseListingActions = jest.mocked(useListingActions)
+const mockedUseListingConversations = jest.mocked(useListingConversations)
 const mockedUseListingDetail = jest.mocked(useListingDetail)
 
 const LISTING = {
@@ -112,9 +121,16 @@ beforeEach(() => {
   mockedUseListingActions.mockReturnValue({
     isActing: false,
     error: '',
+    reserve: mockReserve,
     markSold: mockMarkSold,
+    release: mockRelease,
     remove: mockRemove,
     clearError: mockClearError,
+  })
+  mockedUseListingConversations.mockReturnValue({
+    conversations: [],
+    isLoading: false,
+    error: '',
   })
   mockedUseAuth.mockReturnValue({
     user: { id: 'u1' },
@@ -126,9 +142,14 @@ describe('ListingDetailScreen owner actions', () => {
     mockMarkSold.mockResolvedValue(true)
     const screen = await render(<ListingDetailScreen {...buildProps()} />)
 
+    // the owner action opens the buyer picker; with no linked buyer the
+    // confirm proceeds with a null buyer
+    await fireEvent.press(screen.getByRole('button', { name: 'Mark as sold' }))
+    expect(screen.getByText('Who is this sold to?')).toBeTruthy()
+
     await fireEvent.press(screen.getByRole('button', { name: 'Mark as sold' }))
 
-    await waitFor(() => expect(mockMarkSold).toHaveBeenCalledWith('L1'))
+    await waitFor(() => expect(mockMarkSold).toHaveBeenCalledWith('L1', null))
     expect(mockShowToast).toHaveBeenCalledWith('Listing marked as sold.', 'success')
     expect(mockGoBack).toHaveBeenCalledTimes(1)
   })
@@ -154,7 +175,9 @@ describe('ListingDetailScreen owner actions', () => {
     mockedUseListingActions.mockReturnValue({
       isActing: false,
       error: 'Could not update the listing. Please try again.',
+      reserve: mockReserve,
       markSold: mockMarkSold,
+      release: mockRelease,
       remove: mockRemove,
       clearError: mockClearError,
     })

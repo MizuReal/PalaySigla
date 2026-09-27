@@ -172,7 +172,10 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   (scroll-zoom disabled) with an "Open in OpenStreetMap" link, an address +
   decimal-coordinates strip, and the seller / posted line; tall dialogs
   scroll internally.
-- **Owner actions:** mark as sold, remove (soft delete, inline confirm).
+- **Owner actions:** reserve for a buyer, mark sold to a buyer (chosen from the
+  listing's conversations), release a reservation, and remove (soft delete,
+  inline confirm). Reserved listings stay in the feed with a badge; a sold
+  listing is terminal.
 - **Messaging:** the signed-in-owner check hides a "Message seller" action on
   someone else's listing; it opens (or reuses) the listing-scoped thread and
   routes to `/messages/:conversationId`. The Inbox nav link carries a live
@@ -196,6 +199,11 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   `components/messages/ListingInquiryCard.tsx` ("User inquired about this
   product": photo, title, price/unit, category), derived from the conversation
   and degrading to the snapshotted title when the listing is gone.
+- **Starter questions** — an empty buyer-side thread shows
+  `components/messages/MessageSuggestions.tsx` ("Is this still available?",
+  "Is this negotiable?", "What's your best price?", "Can I pick it up?"); tapping
+  one sends it as the first message, and the chips disappear once the thread
+  has any message. Sellers keep the generic empty prompt.
 - **Provider** — `MessagingProvider` owns the single inbox subscription and
   exposes the unread total + an inbox refresh nonce; it reconciles on window
   focus and tears down on sign-out.
@@ -204,15 +212,22 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
 
 - **`/profile`** — signed-out visitors get a sign-in pitch panel; signed-in
   users manage their photo, display name, and PH contact number.
-- **Tabs:** `/profile` (Account) and `/profile?tab=listings` (Selling
-  history); signed-out visitors see no tabs.
+- **Tabs:** `/profile` (Account), `/profile?tab=listings` (Selling history),
+  and `/profile?tab=purchases` (Purchases); signed-out visitors see no tabs.
 - **Selling history:** the signed-in seller's listings filtered All / Active /
-  Sold / Deleted — thumbnail, title, price + unit, status chip (Active /
-  Sold / Deleted), and a category + listed / sold (`sold_at`) / deleted
-  (`deleted_at`) date line. Active and sold rows reopen the marketplace
-  detail modal (owner actions refresh the list); deleted rows are read-only.
-  Backed by `services/listings.ts#fetchMyListings`,
+  Reserved / Sold / Deleted — thumbnail, title, price + unit, status chip
+  (Active / Reserved / Sold / Deleted), and a category + listed / reserved /
+  sold (`sold_at`) / deleted (`deleted_at`) date line, plus an owner-only
+  "Reserved for …" / "Sold to …" line. Active and sold rows reopen the
+  marketplace detail modal (owner actions refresh the list); deleted rows are
+  read-only. Backed by `services/listings.ts#fetchMyListings`,
   `hooks/useMyListings.ts`, and `components/profile/SellingHistoryPanel.tsx`.
+- **Purchases:** the signed-in buyer's durable `transactions`
+  (`services/transactions.ts#fetchMyPurchases`, `hooks/useMyPurchases.ts`,
+  `components/profile/PurchasesPanel.tsx`) — reserved/sold rows with title,
+  price + unit, status chip, seller, and date. Participant RLS keeps them
+  reachable after the listing leaves the feed or is removed; this is where the
+  Phase 2 "leave a review" action will live.
 - Avatar: JPEG/PNG ≤ 10 MB, compressed client-side to ≤ 512 px (EXIF
   stripped), staged until one Save commits photo + fields together; stored in
   the private `avatars` bucket at `{user_id}/avatar.jpg` and served via

@@ -6,8 +6,15 @@ import { buildOpenStreetMapUrl } from './mapConfig'
 import Modal from '../Modal'
 import Photo from '../Photo'
 import useListingDetail from '../../hooks/useListingDetail'
+import useListingConversations from '../../hooks/useListingConversations'
 import useStartConversation from '../../hooks/useStartConversation'
-import { softDeleteListing, updateListingStatus } from '../../services/listings'
+import {
+  clearListingReservation,
+  markListingSold,
+  reserveListing,
+  softDeleteListing,
+} from '../../services/listings'
+import type { ListingBuyer } from '../../services/listings'
 import { AUTH_MODAL_MODES, useAuth } from '../../context/authContext'
 import { TOAST_VARIANTS, useToast } from '../../context/toastContext'
 import {
@@ -19,6 +26,13 @@ import {
 } from '../../utils/format'
 
 const DETAIL_TITLE_ID = 'listing-detail-title'
+
+const TRANSACTION_MODES = Object.freeze({
+  RESERVE: 'reserve',
+  SOLD: 'sold',
+} as const)
+
+type TransactionMode = (typeof TRANSACTION_MODES)[keyof typeof TRANSACTION_MODES]
 
 interface ListingDetailModalProps {
   listingId: string
@@ -34,8 +48,23 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
   const { start, isStarting, error: startError } = useStartConversation()
   const [isConfirmingRemove, setIsConfirmingRemove] = useState(false)
   const [isActing, setIsActing] = useState(false)
+  const [transactionMode, setTransactionMode] = useState<TransactionMode | null>(null)
+  const [selectedBuyerId, setSelectedBuyerId] = useState('')
+  const buyers = useListingConversations(transactionMode ? listingId : null)
 
   const isOwner = user !== null && listing?.user_id === user.id
+
+  const selectedConversation = buyers.conversations.find(
+    (conversation) => conversation.buyer_id === selectedBuyerId
+  )
+  const selectedBuyer: ListingBuyer | null = selectedConversation
+    ? {
+        buyerId: selectedConversation.buyer_id,
+        buyerName: selectedConversation.buyer_name,
+      }
+    : null
+  const hasBuyerChoices = buyers.conversations.length > 0
+  const canConfirm = !isActing && (!hasBuyerChoices || selectedBuyer !== null)
 
   const handleMessageSeller = async () => {
     if (!listing) {
@@ -52,19 +81,61 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
     }
   }
 
-  const handleMarkSold = async () => {
+  const openTransaction = (mode: TransactionMode) => {
+    setSelectedBuyerId('')
+    setTransactionMode(mode)
+  }
+
+  const closeTransaction = () => {
+    setTransactionMode(null)
+    setSelectedBuyerId('')
+  }
+
+  const handleConfirmTransaction = async () => {
+    if (!listing || !transactionMode) {
+      return
+    }
+    const isSold = transactionMode === TRANSACTION_MODES.SOLD
+    setIsActing(true)
+    try {
+      if (isSold) {
+        await markListingSold(listing.id, selectedBuyer)
+      } else {
+        await reserveListing(listing.id, selectedBuyer)
+      }
+      showToast(
+        isSold ? 'Listing marked as sold.' : 'Listing reserved.',
+        TOAST_VARIANTS.SUCCESS
+      )
+      onChanged()
+      onClose()
+    } catch (err) {
+      showToast(
+        err instanceof Error
+          ? err.message
+          : isSold
+            ? 'Could not mark the listing as sold.'
+            : 'Could not reserve the listing.',
+        TOAST_VARIANTS.ERROR
+      )
+    } finally {
+      setIsActing(false)
+    }
+  }
+
+  const handleRelease = async () => {
     if (!listing) {
       return
     }
     setIsActing(true)
     try {
-      await updateListingStatus(listing.id, 'sold')
-      showToast('Listing marked as sold.', TOAST_VARIANTS.SUCCESS)
+      await clearListingReservation(listing.id)
+      showToast('Reservation released.', TOAST_VARIANTS.SUCCESS)
       onChanged()
       onClose()
     } catch (err) {
       showToast(
-        err instanceof Error ? err.message : 'Could not update the listing.',
+        err instanceof Error ? err.message : 'Could not release the reservation.',
         TOAST_VARIANTS.ERROR
       )
     } finally {
@@ -96,9 +167,72 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
     }
   }
 
+  const renderBuyerPicker = () => {
+    const isSold = transactionMode === TRANSACTION_MODES.SOLD
+    return (
+      <div className="mt-6 border border-hairline bg-surface-soft p-4">
+        <p className="caption-md text-primary">
+          {isSold ? 'Who is this sold to?' : 'Who is this reserved for?'}
+        </p>
+        {buyers.isLoading ? (
+          <div className="mt-3 space-y-2" aria-hidden="true">
+            <div className="h-11 animate-pulse bg-canvas" />
+            <div className="h-11 animate-pulse bg-canvas" />
+          </div>
+        ) : buyers.error ? (
+          <p role="alert" className="body-sm mt-3 text-error">
+            {buyers.error}
+          </p>
+        ) : hasBuyerChoices ? (
+          <ul className="mt-3 flex flex-col gap-1">
+            {buyers.conversations.map((conversation) => (
+              <li key={conversation.id}>
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-sm border border-hairline bg-canvas px-4">
+                  <input
+                    type="radio"
+                    name="transaction-buyer"
+                    checked={selectedBuyerId === conversation.buyer_id}
+                    onChange={() => setSelectedBuyerId(conversation.buyer_id)}
+                  />
+                  <span className="body-sm text-ink">{conversation.buyer_name}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="body-sm mt-3 text-mute">
+            No buyer conversations for this listing yet. You can continue without
+            tagging a buyer — reviews will not be available for this transaction.
+          </p>
+        )}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={handleConfirmTransaction}
+            disabled={!canConfirm}
+            className="h-11 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
+          >
+            {isActing ? 'Saving…' : isSold ? 'Mark as sold' : 'Reserve listing'}
+          </button>
+          <button
+            type="button"
+            onClick={closeTransaction}
+            disabled={isActing}
+            className="h-11 border border-hairline bg-canvas px-5 button-sm text-ink transition-colors hover:border-primary hover:text-primary disabled:text-ash"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const renderOwnerActions = () => {
     if (!isOwner || !listing) {
       return null
+    }
+    if (transactionMode) {
+      return renderBuyerPicker()
     }
     if (isConfirmingRemove) {
       return (
@@ -126,25 +260,65 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
       )
     }
     return (
-      <div className="mt-6 flex flex-col gap-3 border-t border-hairline pt-4 sm:flex-row">
-        {listing.status === 'active' && (
+      <div className="mt-6 border-t border-hairline pt-4">
+        {listing.status === 'sold' && listing.sold_to_name && (
+          <p className="caption-sm mb-3 text-mute">Sold to {listing.sold_to_name}</p>
+        )}
+        {listing.status === 'reserved' && listing.reserved_for_name && (
+          <p className="caption-sm mb-3 text-mute">
+            Reserved for {listing.reserved_for_name}
+          </p>
+        )}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          {listing.status === 'active' && (
+            <>
+              <button
+                type="button"
+                onClick={() => openTransaction(TRANSACTION_MODES.RESERVE)}
+                disabled={isActing}
+                className="h-11 border border-hairline bg-canvas px-5 button-sm text-ink transition-colors hover:border-primary hover:text-primary disabled:text-ash"
+              >
+                Reserve for a buyer
+              </button>
+              <button
+                type="button"
+                onClick={() => openTransaction(TRANSACTION_MODES.SOLD)}
+                disabled={isActing}
+                className="h-11 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
+              >
+                Mark as sold
+              </button>
+            </>
+          )}
+          {listing.status === 'reserved' && (
+            <>
+              <button
+                type="button"
+                onClick={() => openTransaction(TRANSACTION_MODES.SOLD)}
+                disabled={isActing}
+                className="h-11 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
+              >
+                Mark as sold
+              </button>
+              <button
+                type="button"
+                onClick={handleRelease}
+                disabled={isActing}
+                className="h-11 border border-hairline bg-canvas px-5 button-sm text-ink transition-colors hover:border-primary hover:text-primary disabled:text-ash"
+              >
+                {isActing ? 'Releasing…' : 'Release reservation'}
+              </button>
+            </>
+          )}
           <button
             type="button"
-            onClick={handleMarkSold}
+            onClick={handleRemove}
             disabled={isActing}
-            className="h-11 border border-primary px-5 button-sm text-ink transition-colors hover:bg-primary hover:text-on-primary disabled:text-ash"
+            className="h-11 border border-error px-5 button-sm text-error transition-colors hover:bg-error hover:text-on-dark disabled:text-ash"
           >
-            {isActing ? 'Updating…' : 'Mark as sold'}
+            Remove listing
           </button>
-        )}
-        <button
-          type="button"
-          onClick={handleRemove}
-          disabled={isActing}
-          className="h-11 border border-error px-5 button-sm text-error transition-colors hover:bg-error hover:text-on-dark disabled:text-ash"
-        >
-          Remove listing
-        </button>
+        </div>
       </div>
     )
   }
@@ -202,9 +376,11 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
                 {CATEGORY_LABELS[listing.category]}
               </span>
             </span>
-            {listing.status === 'sold' && (
+            {listing.status !== 'active' && (
               <span className="ml-2 rounded-sm border border-hairline bg-surface-soft px-3 py-1.5">
-                <span className="caption-md text-ink">Sold</span>
+                <span className="caption-md text-ink">
+                  {listing.status === 'sold' ? 'Sold' : 'Reserved'}
+                </span>
               </span>
             )}
             <h2 id={DETAIL_TITLE_ID} className="heading-lg mt-3 text-ink">

@@ -5,6 +5,7 @@ import type {
   ListingUnit,
 } from '../services/listings'
 import type { ForumCategory } from '../services/forum'
+import type { TransactionStatus } from '../services/transactions'
 
 // The generated row types keep CHECK-constrained columns as `string`; the
 // domain layer narrows them to the unions the app already validates against.
@@ -53,3 +54,12 @@ export type ConversationRow = Tables<'conversations'>
 export type MessageRow = Tables<'messages'>
 
 export type ConversationSummary = ConversationRow & { unreadCount: number }
+
+// Durable reserve/sold record; readable by both participants regardless of the
+// listing's feed visibility or soft-deletion.
+type TransactionBaseRow = Tables<'transactions'>
+
+export type TransactionRow = Omit<TransactionBaseRow, 'status' | 'unit'> & {
+  status: TransactionStatus
+  unit: ListingUnit
+}

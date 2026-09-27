@@ -271,8 +271,13 @@ export type Database = {
           location_label: string
           price: number | null
           quantity: number | null
+          reserved_at: string | null
+          reserved_for: string | null
+          reserved_for_name: string | null
           seller_name: string
           sold_at: string | null
+          sold_to: string | null
+          sold_to_name: string | null
           status: string
           title: string
           unit: string
@@ -290,8 +295,13 @@ export type Database = {
           location_label: string
           price?: number | null
           quantity?: number | null
+          reserved_at?: string | null
+          reserved_for?: string | null
+          reserved_for_name?: string | null
           seller_name: string
           sold_at?: string | null
+          sold_to?: string | null
+          sold_to_name?: string | null
           status?: string
           title: string
           unit: string
@@ -309,8 +319,13 @@ export type Database = {
           location_label?: string
           price?: number | null
           quantity?: number | null
+          reserved_at?: string | null
+          reserved_for?: string | null
+          reserved_for_name?: string | null
           seller_name?: string
           sold_at?: string | null
+          sold_to?: string | null
+          sold_to_name?: string | null
           status?: string
           title?: string
           unit?: string
@@ -386,6 +401,65 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          buyer_id: string | null
+          buyer_name: string | null
+          created_at: string
+          id: string
+          listing_id: string | null
+          listing_title: string
+          price: number | null
+          reserved_at: string | null
+          seller_id: string
+          seller_name: string
+          sold_at: string | null
+          status: string
+          unit: string
+          updated_at: string | null
+        }
+        Insert: {
+          buyer_id?: string | null
+          buyer_name?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string | null
+          listing_title: string
+          price?: number | null
+          reserved_at?: string | null
+          seller_id: string
+          seller_name: string
+          sold_at?: string | null
+          status: string
+          unit: string
+          updated_at?: string | null
+        }
+        Update: {
+          buyer_id?: string | null
+          buyer_name?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string | null
+          listing_title?: string
+          price?: number | null
+          reserved_at?: string | null
+          seller_id?: string
+          seller_name?: string
+          sold_at?: string | null
+          status?: string
+          unit?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

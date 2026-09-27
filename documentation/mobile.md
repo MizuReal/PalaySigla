@@ -3,7 +3,7 @@
 Expo SDK 57 (managed workflow) + React Navigation v7 + TypeScript (`strict`),
 migrating from JavaScript phase by phase. Ships the **light-only landing screen**, the tab shell, the
 **marketplace** — browse feed, 3-step posting wizard (photo + map pin),
-listing detail with owner actions (mark sold / remove), and the
+listing detail with owner actions (reserve / mark sold / release / remove), and the
 **location picker** — the live **Community forum** (feed, categories,
 threads, comments, hearts, photos), **marketplace messaging** (listing-scoped
 buyer/seller chat with live delivery and unread badges), **full
@@ -105,7 +105,8 @@ src/
 │   │                       profile (fetch/upsert/name sync + avatar upload/remove/URLs)
 ├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
 │   │                       useImagePicker (camera/library + permissions + compression), usePostListing,
-│   │                       useListingActions (mark sold / remove), useMyListings,
+│   │                       useListingActions (reserve / mark sold / release / remove), useMyListings,
+│   │                       useListingConversations (buyer picker candidates),
 │   │                       useForumPosts, useForumPost, useForumComments, useForumPostEditor,
 │   │                       useForumCategoryCounts, useForumImagePicker, useForumImageUrl,
 │   │                       useConversations, useConversation, useStartConversation, useUnreadMessageCount,
@@ -244,23 +245,42 @@ three-step wizard (`screens/PostListingScreen.tsx`) — the web
 
 ### Owner actions (current)
 
-Owners (signed-in `user.id === listing.user_id`) get an action block on
-**ListingDetail**: "Mark as sold" while `active`, and "Remove listing" with
-the web's inline two-tap confirm (error-bordered panel, "Yes, remove it" /
-Cancel). Actions show busy labels, surface failures inline, and leave the
+Owners (signed-in `user.id === listing.user_id`) get a state-aware action
+block on **ListingDetail**: an `active` listing offers "Reserve for a buyer"
+and "Mark as sold", a `reserved` listing offers "Mark as sold" and "Release
+reservation", and a terminal `sold` listing offers only remove. Reserve/sold
+open a buyer picker drawn from the listing's conversations (a listing with no
+conversations can still be tagged without a buyer, with reviews unavailable);
+the owner also sees a "Reserved for …" / "Sold to …" line. "Remove listing"
+keeps the web's inline two-tap confirm (error-bordered panel, "Yes, remove it"
+/ Cancel). Actions show busy labels, surface failures inline, and leave the
 screen on success; the mutation event refreshes the marketplace feed and
 Selling history. Deleted rows stay owner-visible under the schema-003 RLS
 policy and remain in Selling history.
 
 ### Selling history (current)
 
-Signed-in **Settings** is the profile surface: an Account / Selling history
-pair of pill tabs. Selling history uses `hooks/useMyListings.ts` (12/page,
-load more) against `fetchMyListings` with All / Active / Sold / Deleted
-filters; rows show a 96px 4:3 signed-URL thumbnail, title + status chip,
-price + unit, and a category / Listed · Sold · Deleted date line. Deleted
-rows are read-only; active and sold rows push **ListingDetail** for owner
+Signed-in **Settings** is the profile surface: an Account / Selling history /
+Purchases set of pill tabs. Selling history uses `hooks/useMyListings.ts` (12/page,
+load more) against `fetchMyListings` with All / Active / Reserved / Sold /
+Deleted filters; rows show a 96px 4:3 signed-URL thumbnail, title + status
+chip, price + unit, a category / Listed · Reserved · Sold · Deleted date line,
+and an owner-only "Reserved for …" / "Sold to …" line. Deleted rows are
+read-only; active, reserved, and sold rows push **ListingDetail** for owner
 actions, and the list reloads through the listings-changed event.
+
+### Purchases (current)
+
+The Settings **Purchases** tab is the buyer-side counterpart of Selling
+history, backed by `services/transactions.ts` (`fetchMyPurchases`) and
+`hooks/useMyPurchases.ts`. It lists the signed-in user's durable
+`transactions` — reserved/sold rows with listing title, price + unit, a status
+chip, the seller, and date. Because transactions are participant-readable
+under RLS and independent of the listing's visibility, a purchase stays
+reachable after the listing leaves the feed or is removed; this is where the
+Phase 2 "leave a review" action lands. The conversation thread also shows a
+transaction line (`useListingTransaction`) — "Reserved for you" / "You bought
+this" for the buyer, "Sold to …" for the seller.
 
 ### Profile management (current)
 
@@ -348,7 +368,10 @@ Listing-scoped buyer/seller chat, the mobile twin of the website's
   transcript opens with a read-only `ListingInquiryCard` ("User inquired about
   this product": photo, title, price/unit, category) from `useConversationListing`,
   which degrades to the snapshotted title when the listing is no longer
-  available.
+  available. An empty buyer-side thread also shows opener chips
+  (`MessageSuggestions`): "Is this still available?", "Is this negotiable?",
+  "What's your best price?", "Can I pick it up?"; tapping one sends it as the
+  first message, and the chips disappear once the thread has any message.
 - **Live delivery.** `useConversation` subscribes to `messages` INSERTs for the
   thread, appends optimistically and dedupes the Realtime echo by id, and marks
   the thread read once an incoming turn is newest. `MessagingProvider` owns the

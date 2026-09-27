@@ -24,12 +24,8 @@ function MessagesPage() {
 
   const renderHeader = () => (
     <div className="border-b border-hairline bg-canvas">
-      <Container className="py-10 md:py-[64px]">
+      <Container className="py-4 md:py-5">
         <p className="caption-md text-primary">Messages</p>
-        <h1 className="heading-xl mt-3 text-ink">Your marketplace conversations.</h1>
-        <p className="body-md mt-4 max-w-2xl text-body">
-          Chat with buyers and sellers about a listing, all in one place.
-        </p>
       </Container>
     </div>
   )
@@ -75,7 +71,7 @@ function MessagesPage() {
       <PrimaryNav />
       <main>
         {renderHeader()}
-        <Container className="py-8 md:py-10">
+        <Container className="py-6 md:py-8">
           <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
             <div className={conversationId ? 'hidden lg:block' : ''}>
               <ConversationList
@@ -92,7 +88,7 @@ function MessagesPage() {
               />
             </div>
             <div
-              className={`min-h-0 h-[calc(100dvh-16rem)] lg:h-[calc(100dvh-18rem)] ${
+              className={`min-h-0 h-[calc(100dvh-11rem)] lg:h-[calc(100dvh-12rem)] ${
                 conversationId ? '' : 'hidden lg:block'
               }`}
             >

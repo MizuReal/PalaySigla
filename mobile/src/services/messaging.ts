@@ -109,6 +109,23 @@ export async function getConversation(conversationId: string): Promise<Conversat
   return data as ConversationRow
 }
 
+// buyer candidates for a listing's reserve/sold picker; RLS narrows this to
+// the caller's own participant threads
+export async function fetchListingConversations(
+  listingId: string
+): Promise<ConversationRow[]> {
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('*')
+    .eq('listing_id', listingId)
+    .order('last_message_at', { ascending: false, nullsFirst: true })
+    .order('created_at', { ascending: false })
+  if (error) {
+    throw new Error('Could not load buyers for this listing. Please try again.')
+  }
+  return (data ?? []) as ConversationRow[]
+}
+
 export async function getOrCreateConversation({
   listingId,
   listingTitle,

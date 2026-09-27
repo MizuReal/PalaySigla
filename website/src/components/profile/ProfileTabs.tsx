@@ -16,6 +16,11 @@ const TABS: readonly ProfileTab[] = Object.freeze([
     label: 'Selling history',
     to: `/profile?tab=${PROFILE_TAB_IDS.LISTINGS}`,
   },
+  {
+    id: PROFILE_TAB_IDS.PURCHASES,
+    label: 'Purchases',
+    to: `/profile?tab=${PROFILE_TAB_IDS.PURCHASES}`,
+  },
 ])
 
 interface ProfileTabsProps {

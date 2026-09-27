@@ -60,6 +60,8 @@ Current migrations:
 | `schemas/005_forum_categories.sql` | `forum_posts.category` (CHECK-constrained, defaults to `general`), `(category, created_at desc)` index, category-aware edited-at trigger, `forum_category_counts()` RPC |
 | `schemas/006_forum_images.sql` | `forum_images` (optional post photos, up to 4), private `forum` bucket, indexes, RLS policies (rows scoped to visible posts) |
 | `schemas/007_messaging.sql` | `conversations` + `messages` (listing-scoped buyer/seller chat), indexes, last-message trigger, `unread_message_counts()` RPC, participant RLS, Realtime publication + `replica identity full` |
+| `schemas/008_listing_transactions.sql` | `listings` reserved/sold columns (`reserved_at`, `reserved_for(_name)`, `sold_to(_name)`), extended status CHECK (`active`/`reserved`/`sold`), transaction-state trigger with a terminal `sold` state, indexes |
+| `schemas/009_transactions.sql` | `transactions` durable record (listing/buyer/seller snapshots, `status`, dates), `sync_listing_transaction` definer trigger, participant RLS, backfill |
 | `schemas/seed_demo_listings.sql` | Demo rows for local testing (idempotent inserts; safe to run anytime) |
 
 ## Row-level security model
@@ -81,6 +83,7 @@ there is no implicit public access.
 | `storage.objects` (`forum` bucket) | Signed URLs only while the parent post is visible | Insert/update/delete: path must start with `auth.uid()::text/` |
 | `conversations` | Participants only (`buyer_id = auth.uid()` or `seller_id = auth.uid()`) | Insert: the buyer, against an active listing they do not own (seller derived from `listings.user_id`). Update: participants (read watermark only). No hard-delete policy. |
 | `messages` | Participants of the parent conversation only | Insert: the sender, into a conversation they belong to (`sender_id = auth.uid()`). No update/delete policy — messages are an immutable, append-only log. |
+| `transactions` | Either participant (`buyer_id = auth.uid()` or `seller_id = auth.uid()`), independent of the listing's visibility | No client write policies: rows are written only by the `sync_listing_transaction` `SECURITY DEFINER` trigger on `listings`. |
 
 Consequences:
 

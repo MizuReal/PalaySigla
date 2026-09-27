@@ -47,6 +47,11 @@ function ListingCard({ listing, onPress }: ListingCardProps) {
         <View pointerEvents="none" style={styles.chip}>
           <Text style={[TYPE.captionMd, styles.chipText]}>{categoryLabel}</Text>
         </View>
+        {listing.status === 'reserved' ? (
+          <View pointerEvents="none" style={styles.reservedChip}>
+            <Text style={[TYPE.captionMd, styles.reservedChipText]}>Reserved</Text>
+          </View>
+        ) : null}
       </View>
       <View style={styles.body}>
         <Text numberOfLines={2} style={[TYPE.cardTitle, styles.title]}>
@@ -97,6 +102,19 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: COLORS.primary,
+  },
+  reservedChip: {
+    position: 'absolute',
+    top: SPACING.md,
+    right: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.canvas,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  reservedChipText: {
+    color: COLORS.ink,
   },
   body: {
     padding: SPACING.lg,

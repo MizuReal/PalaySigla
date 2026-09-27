@@ -250,8 +250,18 @@ Notes:
   canvas (max 1600 px, quality 0.82), which strips EXIF/GPS.
 - Storage path is `{user_id}/{listing_id}/0.jpg`; the storage RLS insert
   policy enforces the `auth.uid()` prefix.
-- Owner actions (mark sold / remove) run through the same service layer; removals
-  are soft deletes (`deleted_at`), never hard deletes.
+- Owner actions (reserve, mark sold, release, remove) run through the same
+  service layer; a reserve/sold transition records the buyer chosen from the
+  listing's conversations, and removals are soft deletes (`deleted_at`), never
+  hard deletes. A `sold` listing is terminal (enforced by the
+  `008_listing_transactions.sql` trigger); `reserved` listings stay in the
+  public feed with a badge.
+- **Durable transactions.** Each reserve/sold transition maintains a
+  `transactions` row (listing/buyer/seller snapshots + status) via a
+  `SECURITY DEFINER` trigger. Reads are participant-scoped under RLS, so a
+  buyer keeps access to what they bought — and can later review it — even
+  after the listing leaves the feed or is soft-deleted. The buyer's Purchases
+  tab and the conversation's transaction line read this table.
 
 ## Marketplace messaging
 

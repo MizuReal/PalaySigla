@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react'
 import Icon from '../Icon'
 import MessageComposer from './MessageComposer'
 import ListingInquiryCard from './ListingInquiryCard'
+import MessageSuggestions from './MessageSuggestions'
 import useConversation from '../../hooks/useConversation'
 import useConversationListing from '../../hooks/useConversationListing'
+import useListingTransaction from '../../hooks/useListingTransaction'
 import { getConversationRole } from '../../services/messaging'
 import { formatDate } from '../../utils/format'
 import type { ThreadMessage } from '../../hooks/useConversation'
@@ -67,7 +69,19 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
     send,
   } = useConversation({ conversationId })
   const conversationListing = useConversationListing(conversation)
+  const { transaction } = useListingTransaction(conversation?.listing_id ?? null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+
+  const transactionLabel =
+    transaction === null
+      ? ''
+      : transaction.status === 'sold'
+        ? transaction.buyer_id === viewerId
+          ? 'You bought this'
+          : `Sold to ${transaction.buyer_name ?? 'a buyer'}`
+        : transaction.buyer_id === viewerId
+          ? 'Reserved for you'
+          : `Reserved for ${transaction.buyer_name ?? 'a buyer'}`
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
@@ -110,6 +124,20 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
       )
     }
     if (messages.length === 0) {
+      if (role === 'buyer') {
+        return (
+          <div className="border border-hairline bg-surface-soft p-8 text-center">
+            <p className="heading-sm text-ink">Ask about this listing.</p>
+            <p className="body-sm mt-2 text-mute">Tap a question to send it.</p>
+            <MessageSuggestions
+              onSelect={(text) => {
+                void send(text)
+              }}
+              disabled={isSending}
+            />
+          </div>
+        )
+      }
       return (
         <div className="border border-hairline bg-surface-soft p-8 text-center">
           <p className="heading-sm text-ink">Say hello.</p>
@@ -172,6 +200,9 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
           <p className="card-title truncate text-ink">{counterpartName}</p>
           {conversation && (
             <p className="caption-sm truncate text-primary">{conversation.listing_title}</p>
+          )}
+          {transactionLabel && (
+            <p className="caption-sm truncate text-ink">{transactionLabel}</p>
           )}
         </div>
       </div>

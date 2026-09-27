@@ -58,6 +58,11 @@ function ListingCard({ listing, onSelect }: ListingCardProps) {
             {CATEGORY_LABELS[listing.category]}
           </span>
         </span>
+        {listing.status === 'reserved' && (
+          <span className="absolute right-3 top-3 rounded-sm border border-hairline bg-canvas px-3 py-1.5">
+            <span className="caption-md text-ink">Reserved</span>
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col p-4">
         <h3 className="card-title text-ink">{listing.title}</h3>

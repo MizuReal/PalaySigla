@@ -24,6 +24,7 @@ interface HistoryFilterOption {
 const HISTORY_FILTERS: readonly HistoryFilterOption[] = Object.freeze([
   { id: MY_LISTING_FILTERS.ALL, label: 'All' },
   { id: MY_LISTING_FILTERS.ACTIVE, label: 'Active' },
+  { id: MY_LISTING_FILTERS.RESERVED, label: 'Reserved' },
   { id: MY_LISTING_FILTERS.SOLD, label: 'Sold' },
   { id: MY_LISTING_FILTERS.DELETED, label: 'Deleted' },
 ])
@@ -33,6 +34,8 @@ const EMPTY_MESSAGES: Record<MyListingFilter, string> = Object.freeze({
     'You have not listed anything yet. Post your harvest from the marketplace and it will show up here.',
   [MY_LISTING_FILTERS.ACTIVE]:
     'No active listings right now. Post one from the marketplace.',
+  [MY_LISTING_FILTERS.RESERVED]:
+    'No reserved listings. Reserve one for a buyer and it will show up here.',
   [MY_LISTING_FILTERS.SOLD]:
     'Nothing sold yet. Mark a listing as sold and it will show up here.',
   [MY_LISTING_FILTERS.DELETED]:

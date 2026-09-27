@@ -68,23 +68,20 @@ function MessagesScreen({ navigation }: MessagesScreenProps) {
             { paddingBottom: insets.bottom + SPACING.xxl },
           ]}
         >
-          <Text style={[TYPE.displayLg, styles.title]}>Your conversations.</Text>
-          <View style={styles.listWrap}>
-            <ConversationList
-              conversations={conversations}
-              viewerId={user.id}
-              activeConversationId={null}
-              isInitialLoading={isInitialLoading}
-              isLoadingMore={isLoadingMore}
-              error={error}
-              hasMore={hasMore}
-              onSelect={(conversationId) =>
-                navigation.navigate('Conversation', { conversationId })
-              }
-              onLoadMore={loadMore}
-              onRetry={refresh}
-            />
-          </View>
+          <ConversationList
+            conversations={conversations}
+            viewerId={user.id}
+            activeConversationId={null}
+            isInitialLoading={isInitialLoading}
+            isLoadingMore={isLoadingMore}
+            error={error}
+            hasMore={hasMore}
+            onSelect={(conversationId) =>
+              navigation.navigate('Conversation', { conversationId })
+            }
+            onLoadMore={loadMore}
+            onRetry={refresh}
+          />
         </ScrollView>
       )}
     </View>
@@ -121,13 +118,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: GUTTER,
-    paddingTop: SPACING.xxl,
-  },
-  title: {
-    color: COLORS.ink,
-  },
-  listWrap: {
-    marginTop: SPACING.xl,
+    paddingTop: SPACING.lg,
   },
   signedOut: {
     flex: 1,

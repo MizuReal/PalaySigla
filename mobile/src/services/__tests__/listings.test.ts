@@ -11,6 +11,7 @@ jest.mock('../supabaseClient', () => {
 import type { SupabaseMock } from '../../test/supabaseMock'
 import { supabase as supabaseClient } from '../supabaseClient'
 import {
+  clearListingReservation,
   createListing,
   fetchListings,
   fetchMyListings,
@@ -19,7 +20,9 @@ import {
   LISTING_CATEGORIES,
   LISTING_SORTS,
   LISTING_UNITS,
+  markListingSold,
   MY_LISTING_FILTERS,
+  reserveListing,
   softDeleteListing,
   updateListingStatus,
   uploadListingImage,
@@ -49,6 +52,7 @@ describe('constants', () => {
     expect(MY_LISTING_FILTERS).toEqual({
       ALL: 'all',
       ACTIVE: 'active',
+      RESERVED: 'reserved',
       SOLD: 'sold',
       DELETED: 'deleted',
     })
@@ -69,7 +73,7 @@ describe('fetchListings', () => {
     expect(builder.select).toHaveBeenCalledWith('*, listing_images(id, storage_path, position)', {
       count: 'exact',
     })
-    expect(builder.eq).toHaveBeenCalledWith('status', 'active')
+    expect(builder.in).toHaveBeenCalledWith('status', ['active', 'reserved'])
     expect(builder.is).toHaveBeenCalledWith('deleted_at', null)
     expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false })
     expect(builder.order).toHaveBeenCalledWith('position', {
@@ -211,12 +215,18 @@ describe('fetchMyListings', () => {
     expect(builder.range).toHaveBeenCalledWith(5, 9)
   })
 
-  it('applies the active, sold, and deleted filters', async () => {
+  it('applies the active, reserved, sold, and deleted filters', async () => {
     const activeBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
     supabase.from.mockReturnValue(activeBuilder)
     await fetchMyListings({ userId: 'u1', filter: MY_LISTING_FILTERS.ACTIVE })
     expect(activeBuilder.eq).toHaveBeenCalledWith('status', 'active')
     expect(activeBuilder.is).toHaveBeenCalledWith('deleted_at', null)
+
+    const reservedBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(reservedBuilder)
+    await fetchMyListings({ userId: 'u1', filter: MY_LISTING_FILTERS.RESERVED })
+    expect(reservedBuilder.eq).toHaveBeenCalledWith('status', 'reserved')
+    expect(reservedBuilder.is).toHaveBeenCalledWith('deleted_at', null)
 
     const soldBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
     supabase.from.mockReturnValue(soldBuilder)
@@ -399,5 +409,55 @@ describe('updateListingStatus', () => {
     await expect(updateListingStatus('L1', 'sold')).rejects.toThrow(
       'Could not update the listing. Please try again.'
     )
+  })
+})
+
+describe('reserveListing', () => {
+  it('reserves for the given buyer', async () => {
+    const builder = createQueryBuilder({ data: null, error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await reserveListing('L1', { buyerId: 'b1', buyerName: 'Bata' })
+
+    expect(builder.update).toHaveBeenCalledWith({
+      status: 'reserved',
+      reserved_for: 'b1',
+      reserved_for_name: 'Bata',
+    })
+    expect(builder.eq).toHaveBeenCalledWith('id', 'L1')
+  })
+
+  it('throws a friendly error on failure', async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ data: null, error: { message: 'boom' } }))
+
+    await expect(reserveListing('L1', null)).rejects.toThrow(
+      'Could not reserve the listing. Please try again.'
+    )
+  })
+})
+
+describe('markListingSold', () => {
+  it('marks the listing sold to the given buyer', async () => {
+    const builder = createQueryBuilder({ data: null, error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await markListingSold('L1', { buyerId: 'b1', buyerName: 'Bata' })
+
+    expect(builder.update).toHaveBeenCalledWith({
+      status: 'sold',
+      sold_to: 'b1',
+      sold_to_name: 'Bata',
+    })
+  })
+})
+
+describe('clearListingReservation', () => {
+  it('moves the listing back to active', async () => {
+    const builder = createQueryBuilder({ data: null, error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await clearListingReservation('L1')
+
+    expect(builder.update).toHaveBeenCalledWith({ status: 'active' })
   })
 })

@@ -7,6 +7,7 @@ import PrimaryNav from '../components/site/PrimaryNav'
 import AvatarEditor from '../components/profile/AvatarEditor'
 import ProfileDetailsForm from '../components/profile/ProfileDetailsForm'
 import ProfileTabs from '../components/profile/ProfileTabs'
+import PurchasesPanel from '../components/profile/PurchasesPanel'
 import ReviewsCard from '../components/profile/ReviewsCard'
 import SellingHistoryPanel from '../components/profile/SellingHistoryPanel'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
@@ -233,17 +234,20 @@ function SignedInAccount() {
 
 function SignedInProfile() {
   const [searchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
   const activeTab: ProfileTabId =
-    searchParams.get('tab') === PROFILE_TAB_IDS.LISTINGS
+    tabParam === PROFILE_TAB_IDS.LISTINGS
       ? PROFILE_TAB_IDS.LISTINGS
-      : PROFILE_TAB_IDS.ACCOUNT
+      : tabParam === PROFILE_TAB_IDS.PURCHASES
+        ? PROFILE_TAB_IDS.PURCHASES
+        : PROFILE_TAB_IDS.ACCOUNT
 
   return (
     <>
       <PageHeader
         eyebrow="Profile"
         title="Your profile."
-        lead="Your account details, plus everything you have listed, sold, or removed."
+        lead="Your account details, plus everything you have listed, sold, bought, or removed."
       />
       <Container className="py-10 md:py-[64px]">
         <div className="mx-auto max-w-4xl">
@@ -251,6 +255,8 @@ function SignedInProfile() {
           <div className="mt-6">
             {activeTab === PROFILE_TAB_IDS.LISTINGS ? (
               <SellingHistoryPanel />
+            ) : activeTab === PROFILE_TAB_IDS.PURCHASES ? (
+              <PurchasesPanel />
             ) : (
               <SignedInAccount />
             )}

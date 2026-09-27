@@ -13,6 +13,7 @@ vi.mock('../supabaseClient', async () => {
 
 import { supabase as supabaseClient } from '../supabaseClient'
 import {
+  clearListingReservation,
   createListing,
   fetchListings,
   fetchMyListings,
@@ -21,6 +22,9 @@ import {
   LISTING_CATEGORIES,
   LISTING_SORTS,
   LISTING_UNITS,
+  markListingSold,
+  MY_LISTING_FILTERS,
+  reserveListing,
   softDeleteListing,
   updateListingStatus,
   uploadListingImage,
@@ -67,7 +71,8 @@ describe('fetchListings', () => {
     expect(builder.select).toHaveBeenCalledWith('*, listing_images(id, storage_path, position)', {
       count: 'exact',
     })
-    expect(builder.eq).toHaveBeenCalledWith('status', 'active')
+    expect(builder.eq).not.toHaveBeenCalledWith('status', expect.anything())
+    expect(builder.in).toHaveBeenCalledWith('status', ['active', 'reserved'])
     expect(builder.is).toHaveBeenCalledWith('deleted_at', null)
     expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false })
     expect(builder.order).toHaveBeenCalledWith('position', {
@@ -153,6 +158,12 @@ describe('fetchMyListings', () => {
     await fetchMyListings({ userId: 'u1', filter: 'sold' })
     expect(soldBuilder.eq).toHaveBeenCalledWith('status', 'sold')
     expect(soldBuilder.is).toHaveBeenCalledWith('deleted_at', null)
+
+    const reservedBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
+    supabase.from.mockReturnValue(reservedBuilder)
+    await fetchMyListings({ userId: 'u1', filter: MY_LISTING_FILTERS.RESERVED })
+    expect(reservedBuilder.eq).toHaveBeenCalledWith('status', 'reserved')
+    expect(reservedBuilder.is).toHaveBeenCalledWith('deleted_at', null)
 
     const deletedBuilder = createQueryBuilder({ data: [], error: null, count: 0 })
     supabase.from.mockReturnValue(deletedBuilder)
@@ -337,6 +348,86 @@ describe('updateListingStatus', () => {
 
     await expect(updateListingStatus('L1', 'sold')).rejects.toThrow(
       'Could not update the listing. Please try again.'
+    )
+  })
+})
+
+describe('reserveListing', () => {
+  it('reserves for the given buyer', async () => {
+    const builder = createQueryBuilder({ error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await reserveListing('L1', { buyerId: 'b1', buyerName: 'Bata' })
+
+    expect(builder.update).toHaveBeenCalledWith({
+      status: 'reserved',
+      reserved_for: 'b1',
+      reserved_for_name: 'Bata',
+    })
+    expect(builder.eq).toHaveBeenCalledWith('id', 'L1')
+  })
+
+  it('reserves without a linked buyer', async () => {
+    const builder = createQueryBuilder({ error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await reserveListing('L1', null)
+
+    expect(builder.update).toHaveBeenCalledWith({
+      status: 'reserved',
+      reserved_for: null,
+      reserved_for_name: null,
+    })
+  })
+
+  it('throws a friendly error on failure', async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ error: { message: 'boom' } }))
+
+    await expect(reserveListing('L1', null)).rejects.toThrow(
+      'Could not reserve the listing. Please try again.'
+    )
+  })
+})
+
+describe('markListingSold', () => {
+  it('marks the listing sold to the given buyer', async () => {
+    const builder = createQueryBuilder({ error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await markListingSold('L1', { buyerId: 'b1', buyerName: 'Bata' })
+
+    expect(builder.update).toHaveBeenCalledWith({
+      status: 'sold',
+      sold_to: 'b1',
+      sold_to_name: 'Bata',
+    })
+  })
+
+  it('throws a friendly error on failure', async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ error: { message: 'boom' } }))
+
+    await expect(markListingSold('L1', null)).rejects.toThrow(
+      'Could not mark the listing as sold. Please try again.'
+    )
+  })
+})
+
+describe('clearListingReservation', () => {
+  it('moves the listing back to active', async () => {
+    const builder = createQueryBuilder({ error: null })
+    supabase.from.mockReturnValue(builder)
+
+    await clearListingReservation('L1')
+
+    expect(builder.update).toHaveBeenCalledWith({ status: 'active' })
+    expect(builder.eq).toHaveBeenCalledWith('id', 'L1')
+  })
+
+  it('throws a friendly error on failure', async () => {
+    supabase.from.mockReturnValue(createQueryBuilder({ error: { message: 'boom' } }))
+
+    await expect(clearListingReservation('L1')).rejects.toThrow(
+      'Could not release the reservation. Please try again.'
     )
   })
 })

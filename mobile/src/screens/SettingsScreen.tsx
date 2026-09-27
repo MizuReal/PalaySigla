@@ -14,6 +14,7 @@ import Button from '../components/Button'
 import TabScreen from '../components/TabScreen'
 import AvatarEditor from '../components/profile/AvatarEditor'
 import ProfileDetailsForm from '../components/profile/ProfileDetailsForm'
+import PurchasesPanel from '../components/profile/PurchasesPanel'
 import ReviewsCard from '../components/profile/ReviewsCard'
 import SellingHistoryPanel from '../components/profile/SellingHistoryPanel'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
@@ -32,6 +33,7 @@ const ACCOUNT_BENEFITS = [
 const PROFILE_TABS = Object.freeze({
   ACCOUNT: 'account',
   LISTINGS: 'listings',
+  PURCHASES: 'purchases',
 } as const)
 
 type ProfileTab = (typeof PROFILE_TABS)[keyof typeof PROFILE_TABS]
@@ -40,6 +42,7 @@ const PROFILE_TAB_OPTIONS: readonly { id: ProfileTab; label: string }[] =
   Object.freeze([
     { id: PROFILE_TABS.ACCOUNT, label: 'Account' },
     { id: PROFILE_TABS.LISTINGS, label: 'Selling history' },
+    { id: PROFILE_TABS.PURCHASES, label: 'Purchases' },
   ])
 
 interface ProfileTabsProps {
@@ -211,8 +214,10 @@ function SignedInProfile({ user, onSelectListing }: SignedInProfileProps) {
       <ProfileTabs activeTab={activeTab} onSelect={setActiveTab} />
       {activeTab === PROFILE_TABS.ACCOUNT ? (
         renderAccount()
-      ) : (
+      ) : activeTab === PROFILE_TABS.LISTINGS ? (
         <SellingHistoryPanel onSelectListing={onSelectListing} />
+      ) : (
+        <PurchasesPanel />
       )}
     </View>
   )

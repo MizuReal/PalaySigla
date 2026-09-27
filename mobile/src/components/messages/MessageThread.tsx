@@ -3,8 +3,10 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import MessageBubble from './MessageBubble'
 import MessageComposer from './MessageComposer'
 import ListingInquiryCard from './ListingInquiryCard'
+import MessageSuggestions from './MessageSuggestions'
 import useConversation from '../../hooks/useConversation'
 import useConversationListing from '../../hooks/useConversationListing'
+import useListingTransaction from '../../hooks/useListingTransaction'
 import { getConversationRole } from '../../services/messaging'
 import { COLORS, RADIUS, SPACING, TOUCH_TARGET, TYPE } from '../../theme/designTokens'
 import { formatDate } from '../../utils/format'
@@ -33,7 +35,19 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
     send,
   } = useConversation({ conversationId })
   const conversationListing = useConversationListing(conversation)
+  const { transaction } = useListingTransaction(conversation?.listing_id ?? null)
   const scrollRef = useRef<ScrollView | null>(null)
+
+  const transactionLabel =
+    transaction === null
+      ? ''
+      : transaction.status === 'sold'
+        ? transaction.buyer_id === viewerId
+          ? 'You bought this'
+          : `Sold to ${transaction.buyer_name ?? 'a buyer'}`
+        : transaction.buyer_id === viewerId
+          ? 'Reserved for you'
+          : `Reserved for ${transaction.buyer_name ?? 'a buyer'}`
 
   const role = conversation ? getConversationRole(conversation, viewerId) : null
   const counterpartName = conversation
@@ -72,6 +86,20 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
       )
     }
     if (messages.length === 0) {
+      if (role === 'buyer') {
+        return (
+          <View style={styles.emptyBlock}>
+            <Text style={[TYPE.headingSm, styles.emptyTitle]}>Ask about this listing.</Text>
+            <Text style={[TYPE.bodySm, styles.emptyHint]}>Tap a question to send it.</Text>
+            <MessageSuggestions
+              onSelect={(text) => {
+                void send(text)
+              }}
+              disabled={isSending}
+            />
+          </View>
+        )
+      }
       return (
         <View style={styles.emptyBlock}>
           <Text style={[TYPE.headingSm, styles.emptyTitle]}>Say hello.</Text>
@@ -124,6 +152,11 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
           <Text style={[TYPE.captionSm, styles.headerListing]} numberOfLines={1}>
             {conversation.listing_title}
           </Text>
+          {transactionLabel ? (
+            <Text style={[TYPE.captionSm, styles.headerTransaction]} numberOfLines={1}>
+              {transactionLabel}
+            </Text>
+          ) : null}
         </View>
       ) : null}
       <ScrollView
@@ -162,6 +195,10 @@ const styles = StyleSheet.create({
   },
   headerListing: {
     color: COLORS.primary,
+    marginTop: SPACING.xxs,
+  },
+  headerTransaction: {
+    color: COLORS.ink,
     marginTop: SPACING.xxs,
   },
   scroll: {
