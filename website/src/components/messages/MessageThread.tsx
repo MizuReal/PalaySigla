@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import Icon from '../Icon'
 import MessageComposer from './MessageComposer'
+import ListingInquiryCard from './ListingInquiryCard'
 import useConversation from '../../hooks/useConversation'
+import useConversationListing from '../../hooks/useConversationListing'
 import { getConversationRole } from '../../services/messaging'
 import { formatDate } from '../../utils/format'
 import type { ThreadMessage } from '../../hooks/useConversation'
@@ -64,6 +66,7 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
     sendError,
     send,
   } = useConversation({ conversationId })
+  const conversationListing = useConversationListing(conversation)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -173,6 +176,15 @@ function MessageThread({ conversationId, viewerId, onBack }: MessageThreadProps)
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto py-4">
+        {conversation && (
+          <ListingInquiryCard
+            title={conversation.listing_title}
+            listing={conversationListing.listing}
+            imageUrl={conversationListing.imageUrl}
+            isLoading={conversationListing.isLoading}
+            isUnavailable={conversationListing.isUnavailable}
+          />
+        )}
         {renderMessages()}
         <div ref={bottomRef} />
       </div>

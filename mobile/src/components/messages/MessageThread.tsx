@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import MessageBubble from './MessageBubble'
 import MessageComposer from './MessageComposer'
+import ListingInquiryCard from './ListingInquiryCard'
 import useConversation from '../../hooks/useConversation'
+import useConversationListing from '../../hooks/useConversationListing'
 import { getConversationRole } from '../../services/messaging'
 import { COLORS, RADIUS, SPACING, TOUCH_TARGET, TYPE } from '../../theme/designTokens'
 import { formatDate } from '../../utils/format'
@@ -30,6 +32,7 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
     sendError,
     send,
   } = useConversation({ conversationId })
+  const conversationListing = useConversationListing(conversation)
   const scrollRef = useRef<ScrollView | null>(null)
 
   const role = conversation ? getConversationRole(conversation, viewerId) : null
@@ -129,6 +132,15 @@ function MessageThread({ conversationId, viewerId }: MessageThreadProps) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        {conversation ? (
+          <ListingInquiryCard
+            title={conversation.listing_title}
+            listing={conversationListing.listing}
+            imageUrl={conversationListing.imageUrl}
+            isLoading={conversationListing.isLoading}
+            isUnavailable={conversationListing.isUnavailable}
+          />
+        ) : null}
         {renderMessages()}
       </ScrollView>
       <MessageComposer onSend={send} isSending={isSending} error={sendError} />

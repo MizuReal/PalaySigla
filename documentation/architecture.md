@@ -303,6 +303,12 @@ Notes:
   of the other party's newer messages per thread for the badge and rows.
 - **Optimistic sends.** The client appends a pending bubble, then reconciles
   the server row by id so the Realtime echo cannot double-render.
+- **Product context.** Every thread opens with a read-only listing inquiry card
+  ("User inquired about this product") derived from the conversation's
+  `listing_id` + snapshotted title and enriched from the live listing
+  (`useConversationListing`). A soft-deleted listing degrades to the snapshot
+  title with a "no longer available" line; no extra message row or schema is
+  involved.
 - **Lifecycle.** `MessagingProvider` owns the single inbox subscription and the
   badge total, tearing it down on sign-out and reconciling on window focus
   (web) / AppState `active` (mobile). Realtime is not guaranteed delivery, so

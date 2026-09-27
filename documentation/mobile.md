@@ -344,7 +344,11 @@ Listing-scoped buyer/seller chat, the mobile twin of the website's
 - **Thread** (`Conversation` root-stack push) — `MessageThread` renders
   counterpart/listing header, day-separated bubbles (viewer turns primary
   right, counterpart turns surface-soft left), load-earlier, and
-  `MessageComposer`; it is keyboard-aware via `KeyboardAvoidingView`.
+  `MessageComposer`; it is keyboard-aware via `KeyboardAvoidingView`. The
+  transcript opens with a read-only `ListingInquiryCard` ("User inquired about
+  this product": photo, title, price/unit, category) from `useConversationListing`,
+  which degrades to the snapshotted title when the listing is no longer
+  available.
 - **Live delivery.** `useConversation` subscribes to `messages` INSERTs for the
   thread, appends optimistically and dedupes the Realtime echo by id, and marks
   the thread read once an incoming turn is newest. `MessagingProvider` owns the

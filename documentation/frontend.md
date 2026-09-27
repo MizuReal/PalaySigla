@@ -189,8 +189,13 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   `fetchMessages`, `sendMessage`, `markConversationRead`, `fetchUnreadCounts`,
   plus `subscribeToInbox` / `subscribeToConversation` Realtime helpers.
 - **Hooks** — `useConversations`, `useConversation` (pagination, optimistic
-  send with server-echo dedupe, read watermark), `useStartConversation`, and
+  send with server-echo dedupe, read watermark), `useStartConversation`,
+  `useConversationListing` (per-thread listing snapshot + live enrich), and
   `useUnreadMessageCount`.
+- **Product context** — each thread opens with the read-only
+  `components/messages/ListingInquiryCard.tsx` ("User inquired about this
+  product": photo, title, price/unit, category), derived from the conversation
+  and degrading to the snapshotted title when the listing is gone.
 - **Provider** — `MessagingProvider` owns the single inbox subscription and
   exposes the unread total + an inbox refresh nonce; it reconciles on window
   focus and tears down on sign-out.
