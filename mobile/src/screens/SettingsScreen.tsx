@@ -13,6 +13,7 @@ import type { User } from '@supabase/supabase-js'
 import Button from '../components/Button'
 import TabScreen from '../components/TabScreen'
 import AvatarEditor from '../components/profile/AvatarEditor'
+import FarmerProfilePanel from '../components/profile/FarmerProfilePanel'
 import ProfileDetailsForm from '../components/profile/ProfileDetailsForm'
 import PurchasesPanel from '../components/profile/PurchasesPanel'
 import ReviewsCard from '../components/profile/ReviewsCard'
@@ -23,7 +24,7 @@ import useProfile from '../hooks/useProfile'
 import { getDisplayName } from '../utils/userProfile'
 import { COLORS, GUTTER, RADIUS, SPACING, TYPE } from '../theme/designTokens'
 import type { ListingWithImages } from '../types/domain'
-import type { MainTabParamList, RootStackParamList } from '../types/navigation'
+import type { MainTabParamList, RootStackParamList, SettingsTab } from '../types/navigation'
 
 const ACCOUNT_BENEFITS = [
   'PalaySigla Assistant — chat history follows your account',
@@ -32,15 +33,17 @@ const ACCOUNT_BENEFITS = [
 
 const PROFILE_TABS = Object.freeze({
   ACCOUNT: 'account',
+  FARMER: 'farmer',
   LISTINGS: 'listings',
   PURCHASES: 'purchases',
 } as const)
 
-type ProfileTab = (typeof PROFILE_TABS)[keyof typeof PROFILE_TABS]
+type ProfileTab = SettingsTab
 
 const PROFILE_TAB_OPTIONS: readonly { id: ProfileTab; label: string }[] =
   Object.freeze([
     { id: PROFILE_TABS.ACCOUNT, label: 'Account' },
+    { id: PROFILE_TABS.FARMER, label: 'Farmer profile' },
     { id: PROFILE_TABS.LISTINGS, label: 'Selling history' },
     { id: PROFILE_TABS.PURCHASES, label: 'Purchases' },
   ])
@@ -125,11 +128,18 @@ function SignedOutAccount({ onSignIn, onCreateAccount }: SignedOutAccountProps) 
 
 interface SignedInProfileProps {
   user: User
+  initialTab: ProfileTab
   onSelectListing: (listing: ListingWithImages) => void
+  onOpenFarmerProfile: () => void
 }
 
-function SignedInProfile({ user, onSelectListing }: SignedInProfileProps) {
-  const [activeTab, setActiveTab] = useState<ProfileTab>(PROFILE_TABS.ACCOUNT)
+function SignedInProfile({
+  user,
+  initialTab,
+  onSelectListing,
+  onOpenFarmerProfile,
+}: SignedInProfileProps) {
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab)
   const profile = useProfile()
   const { showToast } = useToast()
   const memberSinceLabel = new Date(user.created_at).toLocaleDateString('en-PH', {
@@ -214,6 +224,8 @@ function SignedInProfile({ user, onSelectListing }: SignedInProfileProps) {
       <ProfileTabs activeTab={activeTab} onSelect={setActiveTab} />
       {activeTab === PROFILE_TABS.ACCOUNT ? (
         renderAccount()
+      ) : activeTab === PROFILE_TABS.FARMER ? (
+        <FarmerProfilePanel onOpenProfile={onOpenFarmerProfile} />
       ) : activeTab === PROFILE_TABS.LISTINGS ? (
         <SellingHistoryPanel onSelectListing={onSelectListing} />
       ) : (
@@ -228,16 +240,22 @@ type SettingsScreenProps = CompositeScreenProps<
   NativeStackScreenProps<RootStackParamList>
 >
 
-function SettingsScreen({ navigation }: SettingsScreenProps) {
+function SettingsScreen({ navigation, route }: SettingsScreenProps) {
   const { user, openAuthModal } = useAuth()
 
   if (user) {
+    const initialTab = route.params?.tab ?? PROFILE_TABS.ACCOUNT
     return (
       <TabScreen>
         <SignedInProfile
+          key={initialTab}
           user={user}
+          initialTab={initialTab}
           onSelectListing={(listing) =>
             navigation.navigate('ListingDetail', { listingId: listing.id })
+          }
+          onOpenFarmerProfile={() =>
+            navigation.navigate('FarmerProfile', { userId: user.id })
           }
         />
       </TabScreen>

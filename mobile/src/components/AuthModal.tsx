@@ -35,6 +35,7 @@ import {
   updatePassword,
 } from '../services/auth'
 import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation'
+import { triggerProfileNudge } from '../utils/profileNudge'
 import Button from './Button'
 import Icon from './Icon'
 import { COLORS, RADIUS, SPACING, TYPE } from '../theme/designTokens'
@@ -404,6 +405,7 @@ function AuthDialog({
       if (result.requiresEmailConfirmation) {
         setIsRegisterSent(true)
       } else {
+        triggerProfileNudge()
         onClose()
       }
     } catch (error) {
@@ -715,7 +717,14 @@ function AuthDialog({
           title="Welcome to PalaySigla."
           message="Continue to explore the app with your new account."
         />
-        <Button label="Continue" onPress={onClose} fullWidth />
+        <Button
+          label="Continue"
+          onPress={() => {
+            triggerProfileNudge()
+            onClose()
+          }}
+          fullWidth
+        />
       </View>
     )
   }

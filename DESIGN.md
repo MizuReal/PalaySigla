@@ -911,6 +911,9 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
 - **Toasts sit above the modal layer.** The toast viewport renders at a higher z-order than `{component.modal-surface}` so auth-completion notifications remain visible when the dialog closes; toasts otherwise follow the light-surface card treatment (no shadow, hairline border, `{rounded.sm}`).
 - **Profile history status chips + one-CTA identity band.** The profile `{component.data-table}` codes listing/transaction state with colored chips: Active = `{colors.accent-leaf-pale}` / `{colors.success-deep}`; Reserved = `{colors.accent-yellow-pale}` with a `{colors.warning-bright}` border (the messaging transaction-chip pairing); Sold = neutral `{colors.surface-soft}` with a `check` glyph; Deleted = neutral muted. This is a scoped exception to the "reserve green" rule and to the pill-chip deviation — profile history chips stay `{rounded.sm}`. The identity band keeps `Change photo` in `{component.button-outline}` so the Account fold holds exactly one solid-green CTA (`Save changes`).
 - **Messaging panel lift.** The web `/messages` inbox rail and thread pane (plus the no-selection placeholder) each render as one hairline `{colors.canvas}` panel carrying a soft two-layer shadow — `0 1px 2px 0 rgba(0,0,0,0.05)` + `0 8px 24px -18px rgba(0,0,0,0.22)`, shipped as the `--shadow-panel` token in `index.css` — so the panes separate from the white page without darkening the hairline borders. Scoped to those messaging panes only; no other messaging surface or card lifts. Inside the panel the inbox rows drop their individual borders and rounded corners for 1px `{colors.hairline}` dividers with a 2px `{colors.primary}` left bar on the active row.
+- **Farmer profile wall + verification credentials** (`/farmers/:userId`, signed-in) — a read-only public wall rendered from existing tokens on light surfaces. The header band mirrors the profile page (`caption-md` primary eyebrow "Farmer profile" + `heading-xl` name), content max-width 5xl; the wall is a desktop grid (`minmax(0,1fr)` + fixed 360px rail, single column on tablet/mobile). The **identity card** pairs an 80px `{rounded.full}` avatar photo with `heading-sm` name, a `pin` + `caption-sm` `{colors.mute}` location line (barangay, municipality, province), and member-since; the avatar signs from the private `avatars` bucket through the new authenticated-read storage policy, with the monogram fallback when no photo exists. The **verification status chip** is the wall's badge language: Verified Rice Farmer = `{colors.accent-leaf-pale}` fill / `{colors.success-deep}` text + a `shield` glyph; Pending Verification = `{colors.accent-yellow-pale}` / `{colors.warning-bright}`; Unverified = `{colors.surface-soft}` / `{colors.mute}`. The **Farming information card** lists farm size (hectares), years of experience, and varieties as `{component.badge-tag}`-family hairline chips. The **Verification card** shows the `Pending`/`Unverified` explanatory copy and, only once verified, the full RSBSA number plus credential/affiliation/endorsement metadata (never the uploaded documents or phone). The right rail reuses the profile `Ratings & reviews` card against the wall's user id. Signed-out visitors get the sign-in gate panel; a missing account renders a neutral not-found panel. The listing detail seller line is now a link to the wall (web `{component.product-card}` seller card → route; mobile pressable seller card).
+- **Farmer profile tab + credential management** (own `/profile?tab=farmer`) — a fourth `{component.pill-tab}` hosting the verification-status card (`View my public profile` `{component.button-outline}`), a **Farm information** form card (barangay / municipality / province text fields, farm size, years, and a varieties checker plus free-text "Other" with add/remove chips; one `{component.button-primary}` Save with the dirty/status cue), and five verification cards (RSBSA, PhilRice/BPI credentials, FCA/co-op affiliation, LGU/MAO endorsement, supporting documents). Each record card is a hairline `{colors.canvas}` panel with `heading-sm` title, `{component.body-sm}` description, an add toggle, a hairline-divided record list with destructive-text Remove, and its own inline `{colors.error}` / `{component.form-alert-error}` failure copy. Document fields use the `{component.image-uploader}` treatment (dashed `{colors.hairline}` dropzone on `{colors.surface-soft}`) and accept JPEG/PNG ≤ 10 MB re-encoded client-side to ≤ 1600px (EXIF stripped); files live in the private `credentials` bucket under `{user_id}/…`. Credential types are a 44px pill row (PhilRice training / BPI seed grower / Other); the endorsement date is a typed `YYYY-MM-DD` field validated as not-in-the-future. Once staff mark the profile `verified`, every record card shows a lock notice and hides add/remove, preserving the reviewed evidence set; the `verification_status` and `verified_at` columns are revoked from client writes in SQL, and first submission flips `unverified → pending` via a definer trigger. Docs/runbook live in `documentation/setup-supabase.md`.
+- **Credentials nudge modal.** A `{component.modal-surface}` dialog (max-width 448px, hairline border, `{rounded.sm}`, no shadow) with a `{typography.caption-md}` `{colors.primary}` "Farmer verification" eyebrow, a `{typography.heading-md}` "Add your credentials" title, the body copy "For easier transaction and to be credible, please visit your profile and add credentials.", and a primary/secondary action pair ("Go to my profile" `{component.button-primary}` → the Farmer profile tab; "Later" `{component.button-outline}`). Fired once per account after signup and after email verification, dismissed per user in `localStorage` (web) / `AsyncStorage` (mobile); the registration form itself stays untouched.
 
 ## Mobile (React Native) Implementation Notes
 
@@ -1122,6 +1125,46 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   and sold rows push the detail screen, and a 44px hairline "Load more"
   button pages 12 at a time. The list refreshes through the
   listings-changed event.
+- **Settings farmer profile surface.** The Settings pill row gains a fourth
+  "Farmer profile" tab (Account / Farmer profile / Selling history /
+  Purchases) whose panel is the verification-management surface: a status card
+  with the `VerificationStatusBadge` and a "View my public profile"
+  `{component.button-primary}`, the **Farm information** form card
+  (`{component.form-field}` inputs for barangay / municipality / province,
+  farm size, years; a 44px variety toggle-chip wrap plus a free-text "Other"
+  field with an Add action; one Save in the primary treatment with the dirty
+  cue and `{component.form-alert-error}` failure banner), and the five
+  verification cards mirroring the web: RSBSA, PhilRice/BPI credentials,
+  FCA/co-op affiliation, LGU/MAO endorsement, supporting documents. Each card
+  is a hairline `{colors.canvas}` panel with an add toggle, hairline-divided
+  rows with a `{colors.error}` Remove, and inline field errors. Documents use
+  the mobile picker (explicit camera permission handling with denied/blocked
+  copy plus a library option, JPEG/PNG re-encoded to ≤ 1600px with EXIF
+  stripped) and upload to the same private `credentials` bucket. Verified
+  profiles show the lock notice and hide add/remove. The panel opens directly
+  when the tab is reached with the `?tab=farmer` route param equivalent
+  (`{ screen: 'Settings', params: { tab: 'farmer' } }`).
+- **Farmer profile wall (mobile).** The public wall is a root-stack
+  `FarmerProfile` push above the tab bar with the standard 44px back chrome.
+  Its body reuses the web wall structure at phone scale — identity card (80px
+  `{rounded.full}` avatar photo via the signed-URL cache or monogram fallback,
+  `heading-sm` name, `pin` + `caption-sm` location, member since), the
+  verification status badge and verification card (RSBSA plus credential,
+  affiliation, and endorsement rows only when verified; pending/unverified
+  explanatory copy), the Farming information card with hairline variety chips,
+  an owner-only "This is your public profile wall" panel that switches to the
+  Settings Farmer profile tab, and the shared `Ratings & reviews` card bound
+  to the wall's user id. Signed-out visitors get the sign-in gate; a missing
+  account gets the neutral not-found copy. The listing detail seller card is
+  now a `Pressable` that pushes the wall.
+- **Credentials nudge (mobile).** The root-level `ProfileNudgeModal` (native
+  `Modal`, `{colors.surface-elevated}`-at-70% backdrop, canvas panel with the
+  hairline border and 2px radius) shows the same eyebrow/title/copy and
+  "Go to my profile" / "Later" action pair as the web dialog. It fires after
+  the register flow completes (immediate session and the VERIFIED "Continue"
+  card alike), once per account, with the dismissal persisted in AsyncStorage
+  under `palaysigla:credentials-nudge:<userId>`; "Go to my profile" switches
+  to the Settings tab with the Farmer profile tab selected.
 - **Community forum.** The Community tab is the live forum (the web `/forum`
   at phone scale), deliberately content-first: the fixed chrome is a single
   compact `{colors.surface-soft}` toolbar over the scrolling feed, so the

@@ -17,6 +17,15 @@ export interface UpsertProfileInput {
   avatarPath?: string | null
 }
 
+export interface UpdateFarmerDetailsInput {
+  barangay: string | null
+  municipality: string | null
+  province: string | null
+  farmSizeHectares: number | null
+  yearsFarmingExperience: number | null
+  riceVarieties: string[]
+}
+
 export function getAvatarStoragePath(userId: string): string {
   return `${userId}/${AVATAR_FILE_NAME}`
 }
@@ -60,6 +69,33 @@ export async function upsertProfile(
     .upsert(fields, { onConflict: 'id' })
   if (error) {
     throw new Error('Could not save your profile. Please try again.')
+  }
+}
+
+export async function updateFarmerDetails(
+  userId: string,
+  {
+    barangay,
+    municipality,
+    province,
+    farmSizeHectares,
+    yearsFarmingExperience,
+    riceVarieties,
+  }: UpdateFarmerDetailsInput
+): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      barangay,
+      municipality,
+      province,
+      farm_size_hectares: farmSizeHectares,
+      years_farming_experience: yearsFarmingExperience,
+      rice_varieties: riceVarieties,
+    })
+    .eq('id', userId)
+  if (error) {
+    throw new Error('Could not save your farm details. Please try again.')
   }
 }
 

@@ -11,11 +11,14 @@ const STAR_SCALE = Array.from({ length: MAX_RATING }, (_, index) => MAX_RATING -
 interface ReviewsCardProps {
   ratingAvg?: number
   ratingCount?: number
+  userId?: string
 }
 
-function ReviewsCard({ ratingAvg = 0, ratingCount = 0 }: ReviewsCardProps) {
+function ReviewsCard({ ratingAvg = 0, ratingCount = 0, userId }: ReviewsCardProps) {
   const { user } = useAuth()
-  const { reviews, isInitialLoading, error, refresh } = useUserReviews(user?.id ?? null)
+  const targetUserId = userId ?? user?.id ?? null
+  const isOwnProfile = !userId || userId === user?.id
+  const { reviews, isInitialLoading, error, refresh } = useUserReviews(targetUserId)
 
   const distribution = useMemo(() => {
     const counts = new Map<number, number>(STAR_SCALE.map((stars) => [stars, 0]))
@@ -57,8 +60,9 @@ function ReviewsCard({ ratingAvg = 0, ratingCount = 0 }: ReviewsCardProps) {
         <div className="flex items-start gap-3">
           <Icon name="star" className="mt-0.5 h-4 w-4 shrink-0 text-stone" />
           <p className="body-sm text-body">
-            No reviews yet. Ratings from buyers and sellers you transact with will
-            show up here.
+            {isOwnProfile
+              ? 'No reviews yet. Ratings from buyers and sellers you transact with will show up here.'
+              : 'No reviews yet for this farmer.'}
           </p>
         </div>
       )

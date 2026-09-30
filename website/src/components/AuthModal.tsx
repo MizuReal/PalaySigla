@@ -18,6 +18,7 @@ import {
   sendPasswordReset,
 } from '../services/auth'
 import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation'
+import { triggerProfileNudge } from '../utils/profileNudge'
 
 const MODAL_TITLE_ID = 'auth-modal-title'
 
@@ -287,6 +288,7 @@ function AuthModal() {
         )
         setIsRegisterSent(true)
       } else {
+        triggerProfileNudge()
         closeAuthModal()
       }
     } catch (error) {

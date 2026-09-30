@@ -1,10 +1,12 @@
 import type { NavigatorScreenParams } from '@react-navigation/native'
 
+export type SettingsTab = 'account' | 'farmer' | 'listings' | 'purchases'
+
 export type MainTabParamList = {
   Marketplace: undefined
   Community: undefined
   Scan: undefined
-  Settings: undefined
+  Settings: { tab?: SettingsTab } | undefined
 }
 
 export type RootStackParamList = {
@@ -17,5 +19,6 @@ export type RootStackParamList = {
   ReviewForm: { transactionId: string }
   ForumThread: { postId: string }
   ForumPostEditor: { postId?: string } | undefined
+  FarmerProfile: { userId: string }
   NotFound: undefined
 }

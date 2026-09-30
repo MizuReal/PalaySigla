@@ -1,7 +1,7 @@
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
 
-const MAX_IMAGE_DIMENSION = 1600
+export const MAX_DOCUMENT_DIMENSION = 1600
 export const MAX_AVATAR_DIMENSION = 512
 const JPEG_QUALITY = 0.82
 
@@ -27,7 +27,7 @@ function loadImage(file: File | Blob): Promise<HTMLImageElement> {
 
 export async function compressImage(
   file: File | Blob,
-  maxDimension = MAX_IMAGE_DIMENSION
+  maxDimension = MAX_DOCUMENT_DIMENSION
 ): Promise<Blob> {
   const image = await loadImage(file)
   const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))

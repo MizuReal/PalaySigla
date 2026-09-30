@@ -12,6 +12,11 @@ interface ProfileTab {
 const TABS: readonly ProfileTab[] = Object.freeze([
   { id: PROFILE_TAB_IDS.ACCOUNT, label: 'Account', to: '/profile' },
   {
+    id: PROFILE_TAB_IDS.FARMER,
+    label: 'Farmer profile',
+    to: `/profile?tab=${PROFILE_TAB_IDS.FARMER}`,
+  },
+  {
     id: PROFILE_TAB_IDS.LISTINGS,
     label: 'Selling history',
     to: `/profile?tab=${PROFILE_TAB_IDS.LISTINGS}`,

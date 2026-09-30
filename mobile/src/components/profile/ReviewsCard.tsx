@@ -12,11 +12,14 @@ const MAX_RATING = 5
 interface ReviewsCardProps {
   ratingAvg: number
   ratingCount: number
+  userId?: string
 }
 
-function ReviewsCard({ ratingAvg, ratingCount }: ReviewsCardProps) {
+function ReviewsCard({ ratingAvg, ratingCount, userId }: ReviewsCardProps) {
   const { user } = useAuth()
-  const { reviews, isInitialLoading, error, refresh } = useUserReviews(user?.id ?? null)
+  const targetUserId = userId ?? user?.id ?? null
+  const isOwnProfile = !userId || userId === user?.id
+  const { reviews, isInitialLoading, error, refresh } = useUserReviews(targetUserId)
   const filledStars = Math.round(ratingAvg)
 
   const renderList = () => {
@@ -36,8 +39,9 @@ function ReviewsCard({ ratingAvg, ratingCount }: ReviewsCardProps) {
     if (reviews.length === 0) {
       return (
         <Text style={[TYPE.bodySm, styles.copy]}>
-          No reviews yet. Ratings from buyers and sellers you transact with will
-          show up here.
+          {isOwnProfile
+            ? 'No reviews yet. Ratings from buyers and sellers you transact with will show up here.'
+            : 'No reviews yet for this farmer.'}
         </Text>
       )
     }

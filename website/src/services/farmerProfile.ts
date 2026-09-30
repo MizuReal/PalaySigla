@@ -1,0 +1,115 @@
+import { supabase } from './supabaseClient'
+import { toCredentialType, toVerificationStatus } from '../utils/verification'
+import type { CredentialType, VerificationStatus } from '../utils/verification'
+
+export interface PublicFarmerProfile {
+  id: string
+  fullName: string
+  avatarPath: string
+  barangay: string
+  municipality: string
+  province: string
+  farmSizeHectares: number | null
+  yearsFarmingExperience: number | null
+  riceVarieties: string[]
+  rsbsaNumber: string
+  verificationStatus: VerificationStatus
+  memberSince: string
+  ratingAvg: number
+  ratingCount: number
+}
+
+export interface PublicCredential {
+  credentialType: CredentialType
+  issuingOrganization: string
+  certificateNumber: string | null
+  createdAt: string
+}
+
+export interface PublicAffiliation {
+  organizationName: string
+  membershipId: string | null
+  createdAt: string
+}
+
+export interface PublicEndorsement {
+  municipality: string
+  issuingOffice: string
+  dateIssued: string
+  createdAt: string
+}
+
+// The wall is readable by signed-in users through a security definer RPC, so
+// the owner-only profiles RLS never has to be relaxed and phone stays private.
+export async function fetchFarmerProfile(
+  userId: string
+): Promise<PublicFarmerProfile | null> {
+  const { data, error } = await supabase.rpc('farmer_profile', { p_user: userId })
+  if (error) {
+    throw new Error('Could not load this farmer profile. Please try again.')
+  }
+  const row = data?.[0]
+  if (!row) {
+    return null
+  }
+  return {
+    id: row.id,
+    fullName: row.full_name || '',
+    avatarPath: row.avatar_path || '',
+    barangay: row.barangay || '',
+    municipality: row.municipality || '',
+    province: row.province || '',
+    farmSizeHectares: row.farm_size_hectares ?? null,
+    yearsFarmingExperience: row.years_farming_experience ?? null,
+    riceVarieties: row.rice_varieties ?? [],
+    rsbsaNumber: row.rsbsa_number || '',
+    verificationStatus: toVerificationStatus(row.verification_status),
+    memberSince: row.created_at,
+    ratingAvg: Number(row.rating_avg ?? 0),
+    ratingCount: Number(row.rating_count ?? 0),
+  }
+}
+
+export async function fetchFarmerCredentials(
+  userId: string
+): Promise<PublicCredential[]> {
+  const { data, error } = await supabase.rpc('farmer_credentials', { p_user: userId })
+  if (error) {
+    throw new Error('Could not load this farmer\u2019s credentials.')
+  }
+  return (data ?? []).map((row) => ({
+    credentialType: toCredentialType(row.credential_type),
+    issuingOrganization: row.issuing_organization || '',
+    certificateNumber: row.certificate_number ?? null,
+    createdAt: row.created_at,
+  }))
+}
+
+export async function fetchFarmerAffiliations(
+  userId: string
+): Promise<PublicAffiliation[]> {
+  const { data, error } = await supabase.rpc('farmer_affiliations', { p_user: userId })
+  if (error) {
+    throw new Error('Could not load this farmer\u2019s affiliations.')
+  }
+  return (data ?? []).map((row) => ({
+    organizationName: row.organization_name || '',
+    membershipId: row.membership_id ?? null,
+    createdAt: row.created_at,
+  }))
+}
+
+export async function fetchFarmerEndorsements(
+  userId: string
+): Promise<PublicEndorsement[]> {
+  const { data, error } = await supabase.rpc('farmer_endorsements', { p_user: userId })
+  if (error) {
+    throw new Error('Could not load this farmer\u2019s endorsements.')
+  }
+  return (data ?? []).map((row) => ({
+    municipality: row.municipality || '',
+    issuingOffice: row.issuing_office || '',
+    dateIssued: row.date_issued,
+    createdAt: row.created_at,
+  }))
+}

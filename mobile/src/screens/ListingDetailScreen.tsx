@@ -551,7 +551,12 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
           <Text style={[TYPE.captionSm, styles.posted]}>
             Posted {formatRelativeTime(listing.created_at)}
           </Text>
-          <View style={styles.sellerCard}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`View ${listing.seller_name}'s farmer profile`}
+            onPress={() => navigation.navigate('FarmerProfile', { userId: listing.user_id })}
+            style={({ pressed }) => [styles.sellerCard, pressed && styles.sellerCardPressed]}
+          >
             <Avatar name={listing.seller_name} />
             <View style={styles.sellerInfo}>
               <Text style={[TYPE.bodyStrong, styles.sellerName]} numberOfLines={1}>
@@ -564,7 +569,7 @@ function ListingDetailContent({ listingId, onRetry }: ListingDetailContentProps)
                 </Text>
               </View>
             </View>
-          </View>
+          </Pressable>
           {!isOwner ? (
             <View style={styles.messageSellerBlock}>
               <Pressable
@@ -998,6 +1003,9 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
     padding: SPACING.md,
     marginTop: SPACING.lg,
+  },
+  sellerCardPressed: {
+    opacity: 0.7,
   },
   sellerInfo: {
     flex: 1,

@@ -56,6 +56,12 @@ export function formatDate(isoTimestamp: string): string {
   return new Date(isoTimestamp).toLocaleDateString('en-PH', DATE_OPTIONS)
 }
 
+// date-only values (yyyy-mm-dd) are parsed as local midnight so the displayed
+// day never shifts back across timezones
+export function formatDateOnly(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('en-PH', DATE_OPTIONS)
+}
+
 export function formatRelativeTime(isoTimestamp: string): string {
   const elapsedMs = Date.now() - new Date(isoTimestamp).getTime()
   if (elapsedMs < MINUTE_MS) {

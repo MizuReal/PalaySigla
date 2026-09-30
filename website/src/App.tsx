@@ -7,12 +7,14 @@ import MessagingProvider from './context/MessagingProvider'
 import ToastProvider from './context/ToastProvider'
 import { useAuth } from './context/authContext'
 import ForumPage from './pages/ForumPage'
+import FarmerProfilePage from './pages/FarmerProfilePage'
 import Home from './pages/Home'
 import MarketplacePage from './pages/MarketplacePage'
 import MessagesPage from './pages/MessagesPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ProfilePage from './pages/ProfilePage'
 import RouteErrorPage from './pages/RouteErrorPage'
+import ProfileNudgeModal from './components/ProfileNudgeModal'
 
 const router = createBrowserRouter([
   {
@@ -43,6 +45,10 @@ const router = createBrowserRouter([
         element: <ProfilePage />,
       },
       {
+        path: '/farmers/:userId',
+        element: <FarmerProfilePage />,
+      },
+      {
         path: '*',
         element: <NotFoundPage />,
       },
@@ -64,6 +70,11 @@ export function App() {
           <RouterProvider router={router} />
         </MessagingProvider>
         <AppModals />
+        <ProfileNudgeModal
+          onOpenProfile={() => {
+            void router.navigate('/profile?tab=farmer')
+          }}
+        />
         <AuthToasts />
         <ChatWidget />
       </AuthProvider>

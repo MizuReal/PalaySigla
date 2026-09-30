@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Avatar from '../Avatar'
 import Icon from '../Icon'
 import ListingLocationMap from './ListingLocationMap'
@@ -417,14 +417,20 @@ function ListingDetailModal({ listingId, onClose, onChanged }: ListingDetailModa
             </p>
 
             <div className="mt-4 flex flex-col gap-3 rounded-sm border border-hairline bg-surface-soft p-3 sm:flex-row sm:items-center">
-              <Avatar name={listing.seller_name} />
-              <div className="min-w-0 flex-1">
-                <p className="body-strong truncate text-ink">{listing.seller_name}</p>
-                <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                  <RatingStars rating={Math.round(sellerRating.ratingAvg)} />
-                  <span className="caption-sm text-mute">{ratingSummary}</span>
+              <Link
+                to={`/farmers/${listing.user_id}`}
+                className="flex min-w-0 flex-1 items-center gap-3 transition-opacity hover:opacity-80"
+                aria-label={`View ${listing.seller_name}'s farmer profile`}
+              >
+                <Avatar name={listing.seller_name} />
+                <div className="min-w-0 flex-1">
+                  <p className="body-strong truncate text-ink">{listing.seller_name}</p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                    <RatingStars rating={Math.round(sellerRating.ratingAvg)} />
+                    <span className="caption-sm text-mute">{ratingSummary}</span>
+                  </div>
                 </div>
-              </div>
+              </Link>
               {!isOwner && (
                 <button
                   type="button"

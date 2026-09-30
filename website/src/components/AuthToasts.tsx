@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import { useAuth } from '../context/authContext'
 import { TOAST_VARIANTS, useToast } from '../context/toastContext'
 import { getAuthUrlHint } from '../utils/authUrlHint'
+import { triggerProfileNudge } from '../utils/profileNudge'
 import { getDisplayName } from '../utils/userProfile'
 
 function AuthToasts() {
@@ -26,6 +27,7 @@ function AuthToasts() {
           'Email verified — your account is active.',
           TOAST_VARIANTS.SUCCESS
         )
+        triggerProfileNudge()
       }
       return undefined
     }

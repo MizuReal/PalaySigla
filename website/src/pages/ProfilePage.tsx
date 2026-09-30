@@ -5,6 +5,7 @@ import Container from '../components/Container'
 import Footer from '../components/site/Footer'
 import PrimaryNav from '../components/site/PrimaryNav'
 import ProfileDetailsForm from '../components/profile/ProfileDetailsForm'
+import FarmerVerificationPanel from '../components/profile/FarmerVerificationPanel'
 import ProfileIdentityCard from '../components/profile/ProfileIdentityCard'
 import ProfileTabs from '../components/profile/ProfileTabs'
 import PurchasesPanel from '../components/profile/PurchasesPanel'
@@ -242,7 +243,9 @@ function SignedInProfile() {
       ? PROFILE_TAB_IDS.LISTINGS
       : tabParam === PROFILE_TAB_IDS.PURCHASES
         ? PROFILE_TAB_IDS.PURCHASES
-        : PROFILE_TAB_IDS.ACCOUNT
+        : tabParam === PROFILE_TAB_IDS.FARMER
+          ? PROFILE_TAB_IDS.FARMER
+          : PROFILE_TAB_IDS.ACCOUNT
 
   return (
     <>
@@ -255,6 +258,8 @@ function SignedInProfile() {
             <SellingHistoryPanel />
           ) : activeTab === PROFILE_TAB_IDS.PURCHASES ? (
             <PurchasesPanel />
+          ) : activeTab === PROFILE_TAB_IDS.FARMER ? (
+            <FarmerVerificationPanel />
           ) : (
             <SignedInAccount />
           )}

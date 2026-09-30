@@ -366,39 +366,192 @@ export type Database = {
           },
         ]
       }
+      profile_affiliations: {
+        Row: {
+          created_at: string
+          id: string
+          membership_id: string | null
+          organization_name: string
+          proof_path: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          membership_id?: string | null
+          organization_name: string
+          proof_path: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          membership_id?: string | null
+          organization_name?: string
+          proof_path?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_credentials: {
+        Row: {
+          certificate_number: string | null
+          created_at: string
+          credential_type: string
+          document_path: string
+          id: string
+          issuing_organization: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          certificate_number?: string | null
+          created_at?: string
+          credential_type: string
+          document_path: string
+          id?: string
+          issuing_organization: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          certificate_number?: string | null
+          created_at?: string
+          credential_type?: string
+          document_path?: string
+          id?: string
+          issuing_organization?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_documents: {
+        Row: {
+          created_at: string
+          document_path: string
+          id: string
+          label: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_path: string
+          id?: string
+          label: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          document_path?: string
+          id?: string
+          label?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_endorsements: {
+        Row: {
+          created_at: string
+          date_issued: string
+          document_path: string
+          id: string
+          issuing_office: string
+          municipality: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_issued: string
+          document_path: string
+          id?: string
+          issuing_office: string
+          municipality: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date_issued?: string
+          document_path?: string
+          id?: string
+          issuing_office?: string
+          municipality?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_path: string | null
+          barangay: string | null
           created_at: string
           deleted_at: string | null
+          farm_size_hectares: number | null
           full_name: string | null
           id: string
+          municipality: string | null
           phone: string | null
+          province: string | null
           rating_avg: number
           rating_count: number
+          rice_varieties: string[]
+          rsbsa_document_path: string | null
+          rsbsa_number: string | null
           updated_at: string | null
+          verification_status: string
+          verified_at: string | null
+          years_farming_experience: number | null
         }
         Insert: {
           avatar_path?: string | null
+          barangay?: string | null
           created_at?: string
           deleted_at?: string | null
+          farm_size_hectares?: number | null
           full_name?: string | null
           id: string
+          municipality?: string | null
           phone?: string | null
+          province?: string | null
           rating_avg?: number
           rating_count?: number
+          rice_varieties?: string[]
+          rsbsa_document_path?: string | null
+          rsbsa_number?: string | null
           updated_at?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          years_farming_experience?: number | null
         }
         Update: {
           avatar_path?: string | null
+          barangay?: string | null
           created_at?: string
           deleted_at?: string | null
+          farm_size_hectares?: number | null
           full_name?: string | null
           id?: string
+          municipality?: string | null
           phone?: string | null
+          province?: string | null
           rating_avg?: number
           rating_count?: number
+          rice_varieties?: string[]
+          rsbsa_document_path?: string | null
+          rsbsa_number?: string | null
           updated_at?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          years_farming_experience?: number | null
         }
         Relationships: []
       }
@@ -516,6 +669,51 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      farmer_affiliations: {
+        Args: { p_user: string }
+        Returns: {
+          created_at: string
+          membership_id: string
+          organization_name: string
+        }[]
+      }
+      farmer_credentials: {
+        Args: { p_user: string }
+        Returns: {
+          certificate_number: string
+          created_at: string
+          credential_type: string
+          issuing_organization: string
+        }[]
+      }
+      farmer_endorsements: {
+        Args: { p_user: string }
+        Returns: {
+          created_at: string
+          date_issued: string
+          issuing_office: string
+          municipality: string
+        }[]
+      }
+      farmer_profile: {
+        Args: { p_user: string }
+        Returns: {
+          avatar_path: string
+          barangay: string
+          created_at: string
+          farm_size_hectares: number
+          full_name: string
+          id: string
+          municipality: string
+          province: string
+          rating_avg: number
+          rating_count: number
+          rice_varieties: string[]
+          rsbsa_number: string
+          verification_status: string
+          years_farming_experience: number
+        }[]
+      }
       forum_category_counts: {
         Args: never
         Returns: {
