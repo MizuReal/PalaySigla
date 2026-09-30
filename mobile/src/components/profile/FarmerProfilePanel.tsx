@@ -1,6 +1,6 @@
 // Farmer profile management panel — the Settings "Farmer profile" tab. Owns
 // the verification-record hook and composes the farm details card, the status
-// card, and the five record sections.
+// card, and the three taxonomy groups.
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import Button from '../Button'
 import FarmerDetailsCard from './FarmerDetailsCard'
@@ -9,22 +9,22 @@ import {
   AffiliationsCard,
   CredentialsCard,
   EndorsementsCard,
+  RmnSealCard,
   RsbsaCard,
-  SupportingDocumentsCard,
 } from './VerificationSections'
 import { TOAST_VARIANTS, useToast } from '../../context/toastContext'
 import useVerificationRecords from '../../hooks/useVerificationRecords'
-import { VERIFICATION_STATUSES } from '../../utils/verification'
+import { CREDENTIAL_TYPES, toCredentialType, VERIFICATION_STATUSES } from '../../utils/verification'
 import type { VerificationStatus } from '../../utils/verification'
 import { COLORS, SPACING, TYPE } from '../../theme/designTokens'
 
 const STATUS_EXPLANATIONS: Record<VerificationStatus, string> = {
   [VERIFICATION_STATUSES.UNVERIFIED]:
-    'Add at least one credential or supporting document to start the verification process.',
+    'Add at least one certificate or registration to start the verification process. Uploaded files already appear on your public profile wall.',
   [VERIFICATION_STATUSES.PENDING]:
     'Your documents are in. Our team reviews every submission before granting the Verified Rice Farmer badge.',
   [VERIFICATION_STATUSES.VERIFIED]:
-    'Your documents were reviewed and approved. The badge appears on your profile wall.',
+    'Your documents were reviewed and approved. The Verified Rice Farmer badge appears on your profile wall.',
 }
 
 interface FarmerProfilePanelProps {
@@ -50,8 +50,6 @@ function FarmerProfilePanel({ onOpenProfile }: FarmerProfilePanelProps) {
     removeAffiliation,
     addEndorsement,
     removeEndorsement,
-    addSupportingDocument,
-    removeSupportingDocument,
   } = useVerificationRecords()
 
   const notify = (message: string) => {
@@ -79,6 +77,13 @@ function FarmerProfilePanel({ onOpenProfile }: FarmerProfilePanelProps) {
     )
   }
 
+  const seals = records.credentials.filter(
+    (credential) => toCredentialType(credential.credential_type) === CREDENTIAL_TYPES.RMN_SEAL
+  )
+  const certifications = records.credentials.filter(
+    (credential) => toCredentialType(credential.credential_type) !== CREDENTIAL_TYPES.RMN_SEAL
+  )
+
   return (
     <View style={styles.panel}>
       <View style={styles.card}>
@@ -96,49 +101,62 @@ function FarmerProfilePanel({ onOpenProfile }: FarmerProfilePanelProps) {
 
       <FarmerDetailsCard />
 
-      <RsbsaCard
-        isLocked={isLocked}
-        rsbsaNumber={rsbsaNumber}
-        rsbsaDocumentPath={rsbsaDocumentPath}
-        saveRsbsa={saveRsbsa}
-        onSaved={notify}
-      />
+      <View style={styles.group}>
+        <Text style={[TYPE.headingMd, styles.groupTitle]}>
+          Official government registrations
+        </Text>
+        <RsbsaCard
+          isLocked={isLocked}
+          rsbsaNumber={rsbsaNumber}
+          rsbsaDocumentPath={rsbsaDocumentPath}
+          saveRsbsa={saveRsbsa}
+          onSaved={notify}
+        />
+        <RmnSealCard
+          isLocked={isLocked}
+          seals={seals}
+          removingId={removingId}
+          addCredential={addCredential}
+          removeCredential={removeCredential}
+          onSaved={notify}
+        />
+      </View>
 
-      <CredentialsCard
-        isLocked={isLocked}
-        credentials={records.credentials}
-        removingId={removingId}
-        addCredential={addCredential}
-        removeCredential={removeCredential}
-        onSaved={notify}
-      />
+      <View style={styles.group}>
+        <Text style={[TYPE.headingMd, styles.groupTitle]}>
+          Certifications and accreditations
+        </Text>
+        <CredentialsCard
+          isLocked={isLocked}
+          credentials={certifications}
+          removingId={removingId}
+          addCredential={addCredential}
+          removeCredential={removeCredential}
+          onSaved={notify}
+        />
+      </View>
 
-      <AffiliationsCard
-        isLocked={isLocked}
-        affiliations={records.affiliations}
-        removingId={removingId}
-        addAffiliation={addAffiliation}
-        removeAffiliation={removeAffiliation}
-        onSaved={notify}
-      />
-
-      <EndorsementsCard
-        isLocked={isLocked}
-        endorsements={records.endorsements}
-        removingId={removingId}
-        addEndorsement={addEndorsement}
-        removeEndorsement={removeEndorsement}
-        onSaved={notify}
-      />
-
-      <SupportingDocumentsCard
-        isLocked={isLocked}
-        documents={records.documents}
-        removingId={removingId}
-        addSupportingDocument={addSupportingDocument}
-        removeSupportingDocument={removeSupportingDocument}
-        onSaved={notify}
-      />
+      <View style={styles.group}>
+        <Text style={[TYPE.headingMd, styles.groupTitle]}>
+          Local government and cooperative endorsements
+        </Text>
+        <EndorsementsCard
+          isLocked={isLocked}
+          endorsements={records.endorsements}
+          removingId={removingId}
+          addEndorsement={addEndorsement}
+          removeEndorsement={removeEndorsement}
+          onSaved={notify}
+        />
+        <AffiliationsCard
+          isLocked={isLocked}
+          affiliations={records.affiliations}
+          removingId={removingId}
+          addAffiliation={addAffiliation}
+          removeAffiliation={removeAffiliation}
+          onSaved={notify}
+        />
+      </View>
     </View>
   )
 }
@@ -168,6 +186,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.hairline,
     paddingTop: SPACING.lg,
+  },
+  group: {
+    gap: SPACING.lg,
+  },
+  groupTitle: {
+    color: COLORS.ink,
   },
   loading: {
     paddingVertical: SPACING.xxl,

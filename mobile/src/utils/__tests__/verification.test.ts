@@ -1,8 +1,10 @@
 /// <reference types="jest" />
 import {
   CREDENTIAL_TYPES,
+  ENDORSEMENT_TYPES,
   VERIFICATION_STATUSES,
   toCredentialType,
+  toEndorsementType,
   toVerificationStatus,
 } from '../verification'
 
@@ -20,12 +22,25 @@ describe('toVerificationStatus', () => {
 
 describe('toCredentialType', () => {
   it('passes known types through', () => {
-    expect(toCredentialType('philrice_training')).toBe(
-      CREDENTIAL_TYPES.PHILRICE_TRAINING
-    )
+    expect(toCredentialType('philgap')).toBe(CREDENTIAL_TYPES.PHILGAP)
+    expect(toCredentialType('rmn_seal')).toBe(CREDENTIAL_TYPES.RMN_SEAL)
   })
 
   it('falls back to other for unknown values', () => {
     expect(toCredentialType('mystery')).toBe(CREDENTIAL_TYPES.OTHER)
+  })
+})
+
+describe('toEndorsementType', () => {
+  it('passes known types through', () => {
+    expect(toEndorsementType('coop_recognition')).toBe(
+      ENDORSEMENT_TYPES.COOP_RECOGNITION
+    )
+  })
+
+  it('falls back to the barangay type for unknown values', () => {
+    expect(toEndorsementType('mystery')).toBe(
+      ENDORSEMENT_TYPES.BARANGAY_CERTIFICATION
+    )
   })
 })

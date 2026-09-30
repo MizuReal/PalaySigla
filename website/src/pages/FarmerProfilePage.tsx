@@ -4,6 +4,7 @@ import Container from '../components/Container'
 import Icon from '../components/Icon'
 import Footer from '../components/site/Footer'
 import PrimaryNav from '../components/site/PrimaryNav'
+import CertificateThumbnail from '../components/profile/CertificateThumbnail'
 import ReviewsCard from '../components/profile/ReviewsCard'
 import VerificationStatusBadge from '../components/profile/VerificationStatusBadge'
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
@@ -11,8 +12,10 @@ import useFarmerProfile from '../hooks/useFarmerProfile'
 import { formatDateOnly } from '../utils/format'
 import { getInitials } from '../utils/userProfile'
 import {
+  CREDENTIAL_TYPES,
   CREDENTIAL_TYPE_LABELS,
-  VERIFICATION_STATUSES,
+  ENDORSEMENT_TYPE_LABELS,
+  RMN_ORGANIZATION_NAME,
 } from '../utils/verification'
 import type {
   PublicAffiliation,
@@ -41,47 +44,60 @@ function RecordRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function IdentityBand({ profile, avatarUrl, avatarError }: {
+function IdentityBand({
+  profile,
+  avatarUrl,
+  avatarError,
+}: {
   profile: PublicFarmerProfile
   avatarUrl: string
   avatarError: string
 }) {
   const location = locationLabel(profile)
   return (
-    <section className="border border-hairline bg-canvas p-5 md:p-6" aria-label="Farmer identity">
-      <div className="flex items-center gap-4">
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={`${profile.fullName || 'Farmer'} profile photo`}
-            className="h-20 w-20 shrink-0 rounded-full border border-hairline object-cover"
-          />
-        ) : (
-          <span
-            aria-hidden="true"
-            className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-soft"
-          >
-            <span className="heading-md text-ink">{getInitials(profile.fullName)}</span>
-          </span>
-        )}
-        <div className="min-w-0">
-          <p className="heading-sm truncate text-ink">
-            {profile.fullName || 'Farmer'}
-          </p>
-          {location ? (
-            <p className="caption-sm mt-1 flex items-center gap-1.5 text-mute">
-              <Icon name="pin" className="h-3.5 w-3.5 shrink-0" />
-              {location}
+    <section
+      className="border border-hairline bg-canvas p-5 md:p-6"
+      aria-label="Farmer identity"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={`${profile.fullName || 'Farmer'} profile photo`}
+              className="h-20 w-20 shrink-0 rounded-full border border-hairline object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-soft"
+            >
+              <span className="heading-md text-ink">{getInitials(profile.fullName)}</span>
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="heading-sm truncate text-ink">
+              {profile.fullName || 'Farmer'}
             </p>
-          ) : null}
-          <p className="caption-sm mt-0.5 text-mute">
-            Member since{' '}
-            {new Date(profile.memberSince).toLocaleDateString(
-              'en-PH',
-              MEMBER_SINCE_DATE_OPTIONS
-            )}
-          </p>
+            {location ? (
+              <p className="caption-sm mt-1 flex items-center gap-1.5 text-mute">
+                <Icon name="pin" className="h-3.5 w-3.5 shrink-0" />
+                {location}
+              </p>
+            ) : null}
+            <p className="caption-sm mt-0.5 text-mute">
+              Member since{' '}
+              {new Date(profile.memberSince).toLocaleDateString(
+                'en-PH',
+                MEMBER_SINCE_DATE_OPTIONS
+              )}
+            </p>
+          </div>
         </div>
+        <VerificationStatusBadge
+          status={profile.verificationStatus}
+          className="shrink-0"
+        />
       </div>
       {avatarError ? (
         <p className="caption-sm mt-3 text-error" role="alert">
@@ -146,120 +162,145 @@ function FarmInformationCard({ profile }: { profile: PublicFarmerProfile }) {
   )
 }
 
-function VerifiedDetails({ credentials, affiliations, endorsements, detailsError }: {
-  credentials: PublicCredential[]
-  affiliations: PublicAffiliation[]
-  endorsements: PublicEndorsement[]
-  detailsError: string
+function RegistrationsCard({
+  profile,
+  seals,
+}: {
+  profile: PublicFarmerProfile
+  seals: PublicCredential[]
 }) {
+  const hasRegistrations = Boolean(profile.rsbsaDocumentPath) || seals.length > 0
   return (
-    <div className="mt-4 space-y-5 border-t border-hairline pt-4">
-      {detailsError ? (
-        <p className="body-sm text-error" role="alert">
-          {detailsError}
+    <section className="border border-hairline bg-canvas p-5 md:p-6">
+      <h2 className="heading-sm text-ink">Official government registrations</h2>
+      {hasRegistrations ? (
+        <ul className="mt-3 divide-y divide-hairline">
+          {profile.rsbsaDocumentPath ? (
+            <li className="flex items-center gap-3 py-3">
+              <CertificateThumbnail
+                storagePath={profile.rsbsaDocumentPath}
+                title="RSBSA registration stub"
+              />
+              <div className="min-w-0">
+                <p className="body-strong text-ink">RSBSA Control Number Stub</p>
+                <p className="caption-sm text-mute">
+                  Public copy — the control number is hidden on the stub.
+                </p>
+              </div>
+            </li>
+          ) : null}
+          {seals.map((seal) => (
+            <li key={seal.id} className="flex items-center gap-3 py-3">
+              <CertificateThumbnail
+                storagePath={seal.documentPath}
+                title="RMN seal"
+              />
+              <div className="min-w-0">
+                <p className="body-strong text-ink">
+                  Rice Farmers&apos; National Network (RMN) Seal
+                </p>
+                <p className="caption-sm text-mute">{RMN_ORGANIZATION_NAME}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="body-sm mt-3 text-mute">
+          No official registrations published yet.
         </p>
-      ) : null}
-
-      <dl className="divide-y divide-hairline">
-        {credentials.map((credential, index) => (
-          <RecordRow
-            key={`credential-${index}`}
-            label="Credential"
-            value={[
-              CREDENTIAL_TYPE_LABELS[credential.credentialType],
-              credential.issuingOrganization,
-              credential.certificateNumber
-                ? `Cert. no. ${credential.certificateNumber}`
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' \u00b7 ')}
-          />
-        ))}
-        {affiliations.map((affiliation, index) => (
-          <RecordRow
-            key={`affiliation-${index}`}
-            label="FCA / Cooperative"
-            value={[affiliation.organizationName, affiliation.membershipId]
-              .filter(Boolean)
-              .join(' \u00b7 ')}
-          />
-        ))}
-        {endorsements.map((endorsement, index) => (
-          <RecordRow
-            key={`endorsement-${index}`}
-            label="LGU / MAO endorsement"
-            value={`${endorsement.issuingOffice}, ${endorsement.municipality} \u00b7 issued ${formatDateOnly(
-              endorsement.dateIssued
-            )}`}
-          />
-        ))}
-      </dl>
-    </div>
+      )}
+    </section>
   )
 }
 
-function VerificationCard({
-  profile,
-  credentials,
-  affiliations,
-  endorsements,
-  detailsError,
-}: {
-  profile: PublicFarmerProfile
-  credentials: PublicCredential[]
-  affiliations: PublicAffiliation[]
-  endorsements: PublicEndorsement[]
-  detailsError: string
-}) {
-  const isVerified = profile.verificationStatus === VERIFICATION_STATUSES.VERIFIED
-  const hasVerifiedDetails =
-    credentials.length > 0 || affiliations.length > 0 || endorsements.length > 0
-
+function CertificationsCard({ credentials }: { credentials: PublicCredential[] }) {
   return (
     <section className="border border-hairline bg-canvas p-5 md:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="heading-sm text-ink">Verification</h2>
-        <VerificationStatusBadge
-          status={profile.verificationStatus}
-          className="shrink-0"
-        />
-      </div>
-
-      {profile.verificationStatus === VERIFICATION_STATUSES.PENDING ? (
+      <h2 className="heading-sm text-ink">Certifications and accreditations</h2>
+      {credentials.length > 0 ? (
+        <ul className="mt-3 divide-y divide-hairline">
+          {credentials.map((credential) => (
+            <li key={credential.id} className="flex items-start gap-3 py-3">
+              <CertificateThumbnail
+                storagePath={credential.documentPath}
+                title={CREDENTIAL_TYPE_LABELS[credential.credentialType]}
+              />
+              <div className="min-w-0">
+                <p className="body-strong text-ink">
+                  {CREDENTIAL_TYPE_LABELS[credential.credentialType]}
+                </p>
+                <p className="body-sm text-body">{credential.issuingOrganization}</p>
+                {credential.certificateNumber ? (
+                  <p className="caption-sm text-mute">
+                    Certificate no. {credential.certificateNumber}
+                  </p>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
         <p className="body-sm mt-3 text-mute">
-          This farmer&apos;s documents are under review. The Verified Rice Farmer
-          badge appears once the review is complete.
+          No certifications published yet.
         </p>
-      ) : null}
+      )}
+    </section>
+  )
+}
 
-      {profile.verificationStatus === VERIFICATION_STATUSES.UNVERIFIED ? (
+function EndorsementsCard({
+  endorsements,
+  affiliations,
+}: {
+  endorsements: PublicEndorsement[]
+  affiliations: PublicAffiliation[]
+}) {
+  const hasEndorsements = endorsements.length > 0 || affiliations.length > 0
+  return (
+    <section className="border border-hairline bg-canvas p-5 md:p-6">
+      <h2 className="heading-sm text-ink">
+        Local government and cooperative endorsements
+      </h2>
+      {hasEndorsements ? (
+        <ul className="mt-3 divide-y divide-hairline">
+          {endorsements.map((endorsement) => (
+            <li key={endorsement.id} className="flex items-start gap-3 py-3">
+              <CertificateThumbnail
+                storagePath={endorsement.documentPath}
+                title={ENDORSEMENT_TYPE_LABELS[endorsement.endorsementType]}
+              />
+              <div className="min-w-0">
+                <p className="body-strong text-ink">
+                  {ENDORSEMENT_TYPE_LABELS[endorsement.endorsementType]}
+                </p>
+                <p className="body-sm text-body">{endorsement.issuingOffice}</p>
+                <p className="body-sm text-body">{endorsement.municipality}</p>
+                <p className="caption-sm text-mute">
+                  Issued {formatDateOnly(endorsement.dateIssued)}
+                </p>
+              </div>
+            </li>
+          ))}
+          {affiliations.map((affiliation) => (
+            <li key={affiliation.id} className="flex items-start gap-3 py-3">
+              <CertificateThumbnail
+                storagePath={affiliation.proofPath}
+                title={`${affiliation.organizationName} proof of affiliation`}
+              />
+              <div className="min-w-0">
+                <p className="body-strong text-ink">{affiliation.organizationName}</p>
+                <p className="caption-sm text-mute">
+                  FCA / Farmers&apos; Association / Cooperative membership
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
         <p className="body-sm mt-3 text-mute">
-          This farmer has not submitted verification documents yet.
+          No endorsements published yet.
         </p>
-      ) : null}
-
-      {isVerified ? (
-        <>
-          {profile.rsbsaNumber ? (
-            <dl className="mt-3 divide-y divide-hairline">
-              <RecordRow label="RSBSA number" value={profile.rsbsaNumber} />
-            </dl>
-          ) : null}
-          {hasVerifiedDetails || detailsError ? (
-            <VerifiedDetails
-              credentials={credentials}
-              affiliations={affiliations}
-              endorsements={endorsements}
-              detailsError={detailsError}
-            />
-          ) : (
-            <p className="body-sm mt-3 text-mute">
-              No credential details are published on this profile.
-            </p>
-          )}
-        </>
-      ) : null}
+      )}
     </section>
   )
 }
@@ -308,8 +349,8 @@ function FarmerProfilePage() {
       return (
         <div className="border border-hairline bg-surface-soft p-8 md:p-10">
           <p className="body-md max-w-xl text-body">
-            Sign in to view farmer profiles — their farm details, credentials, and
-            the Verified Rice Farmer badge.
+            Sign in to view farmer profiles — their registrations, certifications,
+            endorsements, and the Verified Rice Farmer badge.
           </p>
           <div className="mt-6 max-w-md">
             <Button
@@ -349,18 +390,34 @@ function FarmerProfilePage() {
         </div>
       )
     }
+
+    const seals = credentials.filter(
+      (credential) => credential.credentialType === CREDENTIAL_TYPES.RMN_SEAL
+    )
+    const certifications = credentials.filter(
+      (credential) => credential.credentialType !== CREDENTIAL_TYPES.RMN_SEAL
+    )
+
     return (
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <div className="space-y-4">
-          <IdentityBand profile={profile} avatarUrl={avatarUrl} avatarError={avatarError} />
-          <FarmInformationCard profile={profile} />
-          <VerificationCard
+          <IdentityBand
             profile={profile}
-            credentials={credentials}
-            affiliations={affiliations}
-            endorsements={endorsements}
-            detailsError={detailsError}
+            avatarUrl={avatarUrl}
+            avatarError={avatarError}
           />
+          <FarmInformationCard profile={profile} />
+          <RegistrationsCard profile={profile} seals={seals} />
+          <CertificationsCard credentials={certifications} />
+          <EndorsementsCard
+            endorsements={endorsements}
+            affiliations={affiliations}
+          />
+          {detailsError ? (
+            <p className="body-sm text-error" role="alert">
+              {detailsError}
+            </p>
+          ) : null}
           {profile.id === user.id ? (
             <div className="border border-hairline bg-surface-soft p-4">
               <p className="body-sm text-body">This is your public profile wall.</p>

@@ -5,11 +5,9 @@ import {
   createAffiliation,
   createCredential,
   createEndorsement,
-  createSupportingDocument,
   deleteAffiliation,
   deleteCredential,
   deleteEndorsement,
-  deleteSupportingDocument,
   fetchOwnVerificationRecords,
   saveRsbsaDetails,
 } from '../services/credentials'
@@ -17,7 +15,6 @@ import type {
   NewAffiliationInput,
   NewCredentialInput,
   NewEndorsementInput,
-  NewSupportingDocumentInput,
   OwnVerificationRecords,
   SaveRsbsaInput,
   VerificationRecordRef,
@@ -26,7 +23,7 @@ import { toVerificationStatus, VERIFICATION_STATUSES } from '../utils/verificati
 import type { VerificationStatus } from '../utils/verification'
 
 function emptyRecords(): OwnVerificationRecords {
-  return { credentials: [], affiliations: [], endorsements: [], documents: [] }
+  return { credentials: [], affiliations: [], endorsements: [] }
 }
 
 export interface UseVerificationRecordsResult {
@@ -46,8 +43,6 @@ export interface UseVerificationRecordsResult {
   removeAffiliation: (record: VerificationRecordRef) => Promise<void>
   addEndorsement: (input: NewEndorsementInput) => Promise<void>
   removeEndorsement: (record: VerificationRecordRef) => Promise<void>
-  addSupportingDocument: (input: NewSupportingDocumentInput) => Promise<void>
-  removeSupportingDocument: (record: VerificationRecordRef) => Promise<void>
 }
 
 // Action callbacks deliberately reject on failure: each section owns its
@@ -185,18 +180,6 @@ function useVerificationRecords(): UseVerificationRecordsResult {
     [remove]
   )
 
-  const addSupportingDocument = useCallback(
-    (input: NewSupportingDocumentInput) =>
-      run(() => createSupportingDocument(userId ?? '', input)),
-    [run, userId]
-  )
-
-  const removeSupportingDocument = useCallback(
-    (record: VerificationRecordRef) =>
-      remove(record, () => deleteSupportingDocument(record)),
-    [remove]
-  )
-
   return {
     verificationStatus,
     isLocked: verificationStatus === VERIFICATION_STATUSES.VERIFIED,
@@ -214,8 +197,6 @@ function useVerificationRecords(): UseVerificationRecordsResult {
     removeAffiliation,
     addEndorsement,
     removeEndorsement,
-    addSupportingDocument,
-    removeSupportingDocument,
   }
 }
 

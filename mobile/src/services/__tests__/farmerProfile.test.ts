@@ -29,7 +29,7 @@ const PROFILE_ROW = {
   farm_size_hectares: 2.5,
   years_farming_experience: 12,
   rice_varieties: ['NSIC Rc222', 'Dinorado'],
-  rsbsa_number: 'RSBSA-12-345678-9012',
+  rsbsa_document_path: 'u1/rsbsa.jpg',
   verification_status: 'verified',
   created_at: '2026-01-01T00:00:00Z',
   rating_avg: 4.5,
@@ -57,7 +57,7 @@ describe('fetchFarmerProfile', () => {
       farmSizeHectares: 2.5,
       yearsFarmingExperience: 12,
       riceVarieties: ['NSIC Rc222', 'Dinorado'],
-      rsbsaNumber: 'RSBSA-12-345678-9012',
+      rsbsaDocumentPath: 'u1/rsbsa.jpg',
       verificationStatus: 'verified',
       memberSince: '2026-01-01T00:00:00Z',
       ratingAvg: 4.5,
@@ -81,13 +81,15 @@ describe('fetchFarmerProfile', () => {
 })
 
 describe('fetchFarmerCredentials', () => {
-  it('maps credential metadata with a typed credential type', async () => {
+  it('maps credential metadata with the certificate path', async () => {
     supabase.rpc.mockResolvedValue({
       data: [
         {
-          credential_type: 'philrice_training',
-          issuing_organization: 'PhilRice',
+          id: 'c1',
+          credential_type: 'philgap',
+          issuing_organization: 'PhilGAP',
           certificate_number: 'CERT-1',
+          document_path: 'u1/cert.jpg',
           created_at: '2026-02-01T00:00:00Z',
         },
       ],
@@ -96,12 +98,34 @@ describe('fetchFarmerCredentials', () => {
 
     await expect(fetchFarmerCredentials('u1')).resolves.toEqual([
       {
-        credentialType: 'philrice_training',
-        issuingOrganization: 'PhilRice',
+        id: 'c1',
+        credentialType: 'philgap',
+        issuingOrganization: 'PhilGAP',
         certificateNumber: 'CERT-1',
+        documentPath: 'u1/cert.jpg',
         createdAt: '2026-02-01T00:00:00Z',
       },
     ])
+  })
+
+  it('falls back to "other" for unknown credential types', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: [
+        {
+          id: 'c1',
+          credential_type: 'mystery',
+          issuing_organization: null,
+          certificate_number: null,
+          document_path: null,
+          created_at: '2026-02-01T00:00:00Z',
+        },
+      ],
+      error: null,
+    })
+
+    const credentials = await fetchFarmerCredentials('u1')
+    expect(credentials[0].credentialType).toBe('other')
+    expect(credentials[0].documentPath).toBe('')
   })
 
   it('throws a friendly error when the RPC fails', async () => {
@@ -114,12 +138,13 @@ describe('fetchFarmerCredentials', () => {
 })
 
 describe('fetchFarmerAffiliations', () => {
-  it('maps affiliation rows', async () => {
+  it('maps affiliation rows without membership IDs', async () => {
     supabase.rpc.mockResolvedValue({
       data: [
         {
+          id: 'a1',
           organization_name: 'San Isidro Farmers Coop',
-          membership_id: 'M-100',
+          proof_path: 'u1/proof.jpg',
           created_at: '2026-03-01T00:00:00Z',
         },
       ],
@@ -128,8 +153,9 @@ describe('fetchFarmerAffiliations', () => {
 
     await expect(fetchFarmerAffiliations('u1')).resolves.toEqual([
       {
+        id: 'a1',
         organizationName: 'San Isidro Farmers Coop',
-        membershipId: 'M-100',
+        proofPath: 'u1/proof.jpg',
         createdAt: '2026-03-01T00:00:00Z',
       },
     ])
@@ -137,13 +163,16 @@ describe('fetchFarmerAffiliations', () => {
 })
 
 describe('fetchFarmerEndorsements', () => {
-  it('maps endorsement rows', async () => {
+  it('maps typed endorsement rows', async () => {
     supabase.rpc.mockResolvedValue({
       data: [
         {
+          id: 'e1',
+          endorsement_type: 'coop_recognition',
           municipality: 'Munoz',
-          issuing_office: 'Municipal Agriculture Office',
+          issuing_office: 'San Isidro Coop',
           date_issued: '2026-01-15',
+          document_path: 'u1/endorsement.jpg',
           created_at: '2026-03-01T00:00:00Z',
         },
       ],
@@ -152,9 +181,12 @@ describe('fetchFarmerEndorsements', () => {
 
     await expect(fetchFarmerEndorsements('u1')).resolves.toEqual([
       {
+        id: 'e1',
+        endorsementType: 'coop_recognition',
         municipality: 'Munoz',
-        issuingOffice: 'Municipal Agriculture Office',
+        issuingOffice: 'San Isidro Coop',
         dateIssued: '2026-01-15',
+        documentPath: 'u1/endorsement.jpg',
         createdAt: '2026-03-01T00:00:00Z',
       },
     ])

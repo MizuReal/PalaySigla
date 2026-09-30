@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Button from '../Button'
+import CertificateThumbnail from './CertificateThumbnail'
 import DocumentUploadField from './DocumentUploadField'
 import VerificationSectionShell from './VerificationSectionShell'
 import { FORM_FIELD_CLASSES, withFieldError } from '../../utils/formField'
@@ -106,8 +107,8 @@ function AffiliationSection({
 
   return (
     <VerificationSectionShell
-      title="FCA / Cooperative affiliation"
-      description="Your farmers' cooperative or association membership, with proof of affiliation."
+      title="FCA / Farmers' Association / Cooperative Membership"
+      description="Display your cooperative or farmers' association affiliation. Hide membership IDs and sensitive membership information before uploading."
       addLabel="Add affiliation"
       isLocked={isLocked}
       isAddOpen={isAddOpen}
@@ -126,19 +127,27 @@ function AffiliationSection({
               key={row.id}
               className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between"
             >
-              <div className="min-w-0">
-                <p className="body-strong text-ink">{row.organization_name}</p>
-                {row.membership_id ? (
-                  <p className="caption-sm text-mute">Membership ID {row.membership_id}</p>
-                ) : null}
-                <p className="caption-sm text-mute">Added {formatDate(row.created_at)}</p>
+              <div className="flex min-w-0 items-start gap-3">
+                <CertificateThumbnail
+                  storagePath={row.proof_path}
+                  title={`${row.organization_name} proof of affiliation`}
+                />
+                <div className="min-w-0">
+                  <p className="body-strong text-ink">{row.organization_name}</p>
+                  {row.membership_id ? (
+                    <p className="caption-sm text-mute">
+                      Membership ID {row.membership_id}
+                    </p>
+                  ) : null}
+                  <p className="caption-sm text-mute">Added {formatDate(row.created_at)}</p>
+                </div>
               </div>
               {!isLocked && (
                 <button
                   type="button"
                   onClick={() => void handleRemove(row)}
                   disabled={removingId === row.id}
-                  className="body-sm shrink-0 text-error transition-opacity hover:opacity-80 disabled:text-ash"
+                  className="body-sm shrink-0 self-start text-error transition-opacity hover:opacity-80 disabled:text-ash"
                 >
                   {removingId === row.id ? 'Removing\u2026' : 'Remove'}
                 </button>
@@ -199,7 +208,7 @@ function AffiliationSection({
           <DocumentUploadField
             id="affiliation-proof"
             label="Proof of affiliation"
-            hint="Membership certificate or cooperative registration document. JPEG or PNG, up to 10 MB."
+            hint="Hide membership IDs and other sensitive membership information before uploading. JPEG or PNG, up to 10 MB."
             fileName={staged?.name ?? ''}
             disabled={isSubmitting}
             error={errors.file}

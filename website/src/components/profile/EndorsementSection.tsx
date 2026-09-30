@@ -1,14 +1,21 @@
 import { useState } from 'react'
 import Button from '../Button'
+import CertificateThumbnail from './CertificateThumbnail'
 import DocumentUploadField from './DocumentUploadField'
 import VerificationSectionShell from './VerificationSectionShell'
 import { FORM_FIELD_CLASSES, withFieldError } from '../../utils/formField'
 import { formatDate, formatDateOnly } from '../../utils/format'
 import {
+  ENDORSEMENT_TYPES,
+  ENDORSEMENT_TYPE_LABELS,
+  toEndorsementType,
+} from '../../utils/verification'
+import {
   MAX_ISSUING_OFFICE_LENGTH,
   MAX_LOCATION_FIELD_LENGTH,
   validateDateIssued,
 } from '../../utils/verificationValidation'
+import type { EndorsementType } from '../../utils/verification'
 import type { NewEndorsementInput, VerificationRecordRef } from '../../services/credentials'
 import type { ProfileEndorsementRow } from '../../types/domain'
 
@@ -42,6 +49,9 @@ function EndorsementSection({
   onSaved,
 }: EndorsementSectionProps) {
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [endorsementType, setEndorsementType] = useState<EndorsementType>(
+    ENDORSEMENT_TYPES.BARANGAY_CERTIFICATION
+  )
   const [municipality, setMunicipality] = useState('')
   const [issuingOffice, setIssuingOffice] = useState('')
   const [dateIssued, setDateIssued] = useState('')
@@ -53,6 +63,7 @@ function EndorsementSection({
   const todayIso = new Date().toISOString().slice(0, 10)
 
   const resetForm = () => {
+    setEndorsementType(ENDORSEMENT_TYPES.BARANGAY_CERTIFICATION)
     setMunicipality('')
     setIssuingOffice('')
     setDateIssued('')
@@ -65,12 +76,12 @@ function EndorsementSection({
     const trimmedOffice = issuingOffice.trim()
     const nextErrors: FormErrors = {}
     if (!trimmedMunicipality) {
-      nextErrors.municipality = 'Enter the municipality.'
+      nextErrors.municipality = 'Enter the barangay or municipality.'
     } else if (trimmedMunicipality.length > MAX_LOCATION_FIELD_LENGTH) {
       nextErrors.municipality = `Keep this to ${MAX_LOCATION_FIELD_LENGTH} characters or fewer.`
     }
     if (!trimmedOffice) {
-      nextErrors.issuingOffice = 'Enter the issuing office.'
+      nextErrors.issuingOffice = 'Enter the issuing office or cooperative.'
     } else if (trimmedOffice.length > MAX_ISSUING_OFFICE_LENGTH) {
       nextErrors.issuingOffice = `Keep this to ${MAX_ISSUING_OFFICE_LENGTH} characters or fewer.`
     }
@@ -79,7 +90,7 @@ function EndorsementSection({
       nextErrors.dateIssued = dateError
     }
     if (!staged) {
-      nextErrors.file = 'Attach a photo of the endorsement or certification.'
+      nextErrors.file = 'Attach a photo of the certification.'
     }
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0 || !staged) {
@@ -90,6 +101,7 @@ function EndorsementSection({
     setActionError('')
     try {
       await addEndorsement({
+        endorsementType,
         municipality: trimmedMunicipality,
         issuingOffice: trimmedOffice,
         dateIssued,
@@ -119,8 +131,8 @@ function EndorsementSection({
 
   return (
     <VerificationSectionShell
-      title="LGU / MAO endorsement"
-      description="Certification or endorsement from your barangay, municipality, or Municipal Agriculture Office."
+      title="Local government and cooperative endorsements"
+      description="Barangay agricultural certification and cooperative recognition or officer certificates."
       addLabel="Add endorsement"
       isLocked={isLocked}
       isAddOpen={isAddOpen}
@@ -139,20 +151,29 @@ function EndorsementSection({
               key={row.id}
               className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between"
             >
-              <div className="min-w-0">
-                <p className="body-strong text-ink">{row.issuing_office}</p>
-                <p className="body-sm text-body">{row.municipality}</p>
-                <p className="caption-sm text-mute">
-                  Issued {formatDateOnly(row.date_issued)}
-                </p>
-                <p className="caption-sm text-mute">Added {formatDate(row.created_at)}</p>
+              <div className="flex min-w-0 items-start gap-3">
+                <CertificateThumbnail
+                  storagePath={row.document_path}
+                  title={ENDORSEMENT_TYPE_LABELS[toEndorsementType(row.endorsement_type)]}
+                />
+                <div className="min-w-0">
+                  <p className="body-strong text-ink">
+                    {ENDORSEMENT_TYPE_LABELS[toEndorsementType(row.endorsement_type)]}
+                  </p>
+                  <p className="body-sm text-body">{row.issuing_office}</p>
+                  <p className="body-sm text-body">{row.municipality}</p>
+                  <p className="caption-sm text-mute">
+                    Issued {formatDateOnly(row.date_issued)}
+                  </p>
+                  <p className="caption-sm text-mute">Added {formatDate(row.created_at)}</p>
+                </div>
               </div>
               {!isLocked && (
                 <button
                   type="button"
                   onClick={() => void handleRemove(row)}
                   disabled={removingId === row.id}
-                  className="body-sm shrink-0 text-error transition-opacity hover:opacity-80 disabled:text-ash"
+                  className="body-sm shrink-0 self-start text-error transition-opacity hover:opacity-80 disabled:text-ash"
                 >
                   {removingId === row.id ? 'Removing\u2026' : 'Remove'}
                 </button>
@@ -163,16 +184,34 @@ function EndorsementSection({
       }
     >
       <div className="grid gap-5 sm:grid-cols-3">
+        <div className="min-w-0 sm:col-span-3">
+          <label htmlFor="endorsement-type" className="caption-md text-ink">
+            Endorsement type
+          </label>
+          <select
+            id="endorsement-type"
+            value={endorsementType}
+            disabled={isSubmitting}
+            onChange={(event) => setEndorsementType(toEndorsementType(event.target.value))}
+            className={`mt-2 ${FORM_FIELD_CLASSES}`}
+          >
+            {Object.values(ENDORSEMENT_TYPES).map((type) => (
+              <option key={type} value={type}>
+                {ENDORSEMENT_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="min-w-0">
           <label htmlFor="endorsement-municipality" className="caption-md text-ink">
-            Municipality
+            Barangay / Municipality
           </label>
           <input
             id="endorsement-municipality"
             type="text"
             value={municipality}
             disabled={isSubmitting}
-            placeholder="Munoz"
+            placeholder="San Isidro, Munoz"
             onChange={(event) => {
               setMunicipality(event.target.value)
               setErrors((current) => ({ ...current, municipality: undefined }))
@@ -188,14 +227,14 @@ function EndorsementSection({
         </div>
         <div className="min-w-0">
           <label htmlFor="endorsement-office" className="caption-md text-ink">
-            Issuing office
+            Issuing office or cooperative
           </label>
           <input
             id="endorsement-office"
             type="text"
             value={issuingOffice}
             disabled={isSubmitting}
-            placeholder="Municipal Agriculture Office"
+            placeholder="Barangay Agriculture Office"
             onChange={(event) => {
               setIssuingOffice(event.target.value)
               setErrors((current) => ({ ...current, issuingOffice: undefined }))
@@ -235,8 +274,8 @@ function EndorsementSection({
         <div className="sm:col-span-3">
           <DocumentUploadField
             id="endorsement-document"
-            label="Endorsement document"
-            hint="Barangay endorsement or MAO certification. JPEG or PNG, up to 10 MB."
+            label="Certification document"
+            hint="Hide any sensitive personal information before uploading. JPEG or PNG, up to 10 MB."
             fileName={staged?.name ?? ''}
             disabled={isSubmitting}
             error={errors.file}

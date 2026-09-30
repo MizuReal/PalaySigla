@@ -16,9 +16,9 @@ import {
   createAffiliation,
   createCredential,
   createEndorsement,
-  createSupportingDocument,
   deleteCredential,
   fetchOwnVerificationRecords,
+  getCredentialDocumentUrl,
   getCredentialStoragePath,
   removeCredentialDocument,
   saveRsbsaDetails,
@@ -85,6 +85,38 @@ describe('removeCredentialDocument', () => {
   })
 })
 
+describe('getCredentialDocumentUrl', () => {
+  it('signs the object and caches the URL', async () => {
+    const bucket = createStorageBucketMock()
+    bucket.createSignedUrl.mockResolvedValue({
+      data: { signedUrl: 'https://signed.test/doc' },
+      error: null,
+    })
+    supabase.storage.from.mockReturnValue(bucket)
+
+    await expect(getCredentialDocumentUrl('cache-user/doc.jpg')).resolves.toBe(
+      'https://signed.test/doc'
+    )
+    await expect(getCredentialDocumentUrl('cache-user/doc.jpg')).resolves.toBe(
+      'https://signed.test/doc'
+    )
+
+    expect(supabase.storage.from).toHaveBeenCalledWith('credentials')
+    expect(bucket.createSignedUrl).toHaveBeenCalledTimes(1)
+    expect(bucket.createSignedUrl).toHaveBeenCalledWith('cache-user/doc.jpg', 60)
+  })
+
+  it('throws a friendly error when signing fails', async () => {
+    const bucket = createStorageBucketMock()
+    bucket.createSignedUrl.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    supabase.storage.from.mockReturnValue(bucket)
+
+    await expect(getCredentialDocumentUrl('error-user/doc.jpg')).rejects.toThrow(
+      'Could not load the document. Please try again.'
+    )
+  })
+})
+
 describe('createCredential', () => {
   it('uploads the document then inserts the record', async () => {
     const bucket = createStorageBucketMock()
@@ -93,8 +125,8 @@ describe('createCredential', () => {
     supabase.from.mockReturnValue(builder)
 
     await createCredential('u1', {
-      credentialType: 'philrice_training',
-      issuingOrganization: 'PhilRice',
+      credentialType: 'philgap',
+      issuingOrganization: 'PhilGAP',
       certificateNumber: 'CERT-1',
       file: EMPTY_FILE,
     })
@@ -103,8 +135,8 @@ describe('createCredential', () => {
     expect(supabase.from).toHaveBeenCalledWith('profile_credentials')
     expect(builder.insert).toHaveBeenCalledWith({
       user_id: 'u1',
-      credential_type: 'philrice_training',
-      issuing_organization: 'PhilRice',
+      credential_type: 'philgap',
+      issuing_organization: 'PhilGAP',
       certificate_number: 'CERT-1',
       document_path: uploadedPath,
     })
@@ -170,63 +202,46 @@ describe('createAffiliation', () => {
 })
 
 describe('createEndorsement', () => {
-  it('uploads the document then inserts the endorsement', async () => {
+  it('uploads the document then inserts the typed endorsement', async () => {
     const bucket = createStorageBucketMock()
     supabase.storage.from.mockReturnValue(bucket)
     const builder = createQueryBuilder({ error: null })
     supabase.from.mockReturnValue(builder)
 
     await createEndorsement('u1', {
+      endorsementType: 'barangay_certification',
       municipality: 'Munoz',
-      issuingOffice: 'MAO',
+      issuingOffice: 'Barangay Agriculture Office',
       dateIssued: '2026-01-15',
       file: EMPTY_FILE,
     })
 
     expect(builder.insert).toHaveBeenCalledWith({
       user_id: 'u1',
+      endorsement_type: 'barangay_certification',
       municipality: 'Munoz',
-      issuing_office: 'MAO',
+      issuing_office: 'Barangay Agriculture Office',
       date_issued: '2026-01-15',
       document_path: expect.stringMatching(/^u1\/.+\.jpg$/),
     })
   })
 })
 
-describe('createSupportingDocument', () => {
-  it('uploads the document then inserts the record', async () => {
-    const bucket = createStorageBucketMock()
-    supabase.storage.from.mockReturnValue(bucket)
-    const builder = createQueryBuilder({ error: null })
-    supabase.from.mockReturnValue(builder)
-
-    await createSupportingDocument('u1', { label: 'Farm photo', file: EMPTY_FILE })
-
-    expect(builder.insert).toHaveBeenCalledWith({
-      user_id: 'u1',
-      label: 'Farm photo',
-      document_path: expect.stringMatching(/^u1\/.+\.jpg$/),
-    })
-  })
-})
-
 describe('fetchOwnVerificationRecords', () => {
-  it('loads all four record types scoped to the owner', async () => {
+  it('loads credentials, affiliations, and endorsements scoped to the owner', async () => {
     const credentials = [{ id: 'c1' }]
     const affiliations = [{ id: 'a1' }]
     const endorsements = [{ id: 'e1' }]
-    const documents = [{ id: 'd1' }]
     const builders: Record<string, ReturnType<typeof createQueryBuilder>> = {
       profile_credentials: createQueryBuilder({ data: credentials, error: null }),
       profile_affiliations: createQueryBuilder({ data: affiliations, error: null }),
       profile_endorsements: createQueryBuilder({ data: endorsements, error: null }),
-      profile_documents: createQueryBuilder({ data: documents, error: null }),
     }
     supabase.from.mockImplementation((table: string) => builders[table])
 
     const records = await fetchOwnVerificationRecords('u1')
 
-    expect(records).toEqual({ credentials, affiliations, endorsements, documents })
+    expect(records).toEqual({ credentials, affiliations, endorsements })
     for (const builder of Object.values(builders)) {
       expect(builder.eq).toHaveBeenCalledWith('user_id', 'u1')
       expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false })
@@ -282,7 +297,7 @@ describe('deleteCredential', () => {
 })
 
 describe('saveRsbsaDetails', () => {
-  it('updates the profile with the number and existing document path', async () => {
+  it('updates the profile with the number and existing stub path', async () => {
     const builder = createQueryBuilder({ error: null })
     supabase.from.mockReturnValue(builder)
 
@@ -300,7 +315,7 @@ describe('saveRsbsaDetails', () => {
     expect(path).toBe('u1/old.jpg')
   })
 
-  it('uploads a replacement document and removes the previous object', async () => {
+  it('uploads a replacement stub and removes the previous object', async () => {
     const builder = createQueryBuilder({ error: null })
     supabase.from.mockReturnValue(builder)
     const bucket = createStorageBucketMock()

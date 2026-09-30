@@ -64,6 +64,7 @@ Current migrations:
 | `schemas/009_transactions.sql` | `transactions` durable record (listing/buyer/seller snapshots, `status`, dates), `sync_listing_transaction` definer trigger, participant RLS, backfill |
 | `schemas/010_reviews.sql` | `reviews` (public mutual reviews per sold transaction), party-only insert RLS, `sync_profile_rating` aggregate trigger, public-safe `user_rating(user_id)` RPC |
 | `schemas/011_farmer_verification.sql` | Farmer wall fields on `profiles` (location, farm size/experience, varieties, RSBSA, `verification_status`), column-level revokes for verification/rating columns, four verification record tables (credentials, affiliations, endorsements, documents) with owner RLS + verified-lock and a pending-verification trigger, private `credentials` bucket, authenticated avatar read policy, and the `farmer_profile` / `farmer_credentials` / `farmer_affiliations` / `farmer_endorsements` definer RPCs |
+| `schemas/012_profile_wall_certificates.sql` | Final wall taxonomy (`credential_type`: BPI Seed Grower / PhilGAP / SRP / RMN seal / Other; `profile_endorsements.endorsement_type`), public certificate storage policy via the `certificate_is_public` definer helper, avatar policy fixed on `profile_exists` (011's policy could not match other users because of owner-only RLS), and rebuilt wall RPCs that expose certificate paths but hide the typed RSBSA number and membership IDs |
 | `schemas/seed_demo_listings.sql` | Demo rows for local testing (idempotent inserts; safe to run anytime) |
 
 ## Row-level security model
@@ -76,10 +77,10 @@ there is no implicit public access.
 | `listings` | Everyone for `deleted_at IS NULL` rows (any status); owners also read their own rows including soft-deleted | Insert/update: owner (`user_id = auth.uid()`). No hard-delete policy — removals are soft deletes via `UPDATE`. |
 | `listing_images` | Everyone | Insert/update/delete: must own the parent listing |
 | `storage.objects` (`listings` bucket) | Everyone (object metadata) | Insert/update/delete: path must start with `auth.uid()::text/` |
-| `profiles` | Owner only (`auth.uid() = id`, `deleted_at IS NULL`) for direct reads; signed-in users read the wall subset through the `farmer_profile` definer RPC (phone never exposed) | Insert/update: owner. A row is created by trigger on `auth.users` insert; pre-existing users get one on their first profile save (upsert). `verification_status`, `verified_at`, `rating_avg`, and `rating_count` are revoked at the column level, so clients cannot self-verify or forge aggregates. |
-| `storage.objects` (`avatars` bucket) | Owner, **plus any signed-in user** when the object's owner has a non-deleted profile (wall avatars) | Insert/update/delete: path must start with `auth.uid()::text/` |
+| `profiles` | Owner only (`auth.uid() = id`, `deleted_at IS NULL`) for direct reads; signed-in users read the wall subset through the `farmer_profile` definer RPC (phone, typed RSBSA number, and membership IDs never exposed) | Insert/update: owner. A row is created by trigger on `auth.users` insert; pre-existing users get one on their first profile save (upsert). `verification_status`, `verified_at`, `rating_avg`, and `rating_count` are revoked at the column level, so clients cannot self-verify or forge aggregates. |
+| `storage.objects` (`avatars` bucket) | Owner, **plus any signed-in user** when the object's owner has a non-deleted profile (wall avatars; checked through the `profile_exists` definer helper, since the `profiles` policy is owner-only) | Insert/update/delete: path must start with `auth.uid()::text/` |
 | `profile_credentials` / `profile_affiliations` / `profile_endorsements` / `profile_documents` | Owner only | Insert/update/delete: owner, and blocked while the owner's profile is `verified` (evidence is locked after review). First insert flips `unverified → pending` through a definer trigger. |
-| `storage.objects` (`credentials` bucket) | Owner only | Insert/update/delete/select: path must start with `auth.uid()::text/` |
+| `storage.objects` (`credentials` bucket) | Owner for every path; **any signed-in user for public certificate paths** — `certificate_is_public` allows `profile_credentials.document_path`, `profile_affiliations.proof_path`, `profile_endorsements.document_path`, and `profiles.rsbsa_document_path` of non-deleted profiles. `profile_documents` paths are deliberately excluded and stay private. | Insert/update/delete: path must start with `auth.uid()::text/` |
 | `forum_posts` | Everyone for `deleted_at IS NULL` rows | Insert/update: owner (`user_id = auth.uid()`). No hard-delete policy — removals are soft deletes via `UPDATE`. |
 | `forum_comments` | Everyone for `deleted_at IS NULL` rows | Insert/update: owner. No hard-delete policy — removals are soft deletes via `UPDATE`. |
 | `forum_reactions` | Everyone (reaction rows/counts) | Insert/delete: owner. `forum_category_counts()` is `SECURITY INVOKER`, so the caller's row policy still applies. |
@@ -97,13 +98,18 @@ Consequences:
 - Owners see their own soft-deleted listings (with `sold_at` / `deleted_at`
   timestamps) in the profile **Selling history** tab; everyone else only ever
   reads non-deleted rows.
-- Profile rows and avatars are private to their owner; avatar photos are
-  served through the same signed-URL path as listing photos.
-- The farmer profile wall is a signed-in surface: it reads the `farmer_profile`
-  RPC plus the verified-only credential RPCs, and signs wall avatars through
-  the authenticated avatars read policy. Anonymous visitors only see the
-  sign-in prompt. Uploaded verification documents are never exposed to other
-  users — only their metadata (and only after verification).
+- Profile rows are private to their owner; avatar photos of non-deleted
+  profiles are readable by signed-in users so the wall can display them.
+- The farmer profile wall is a signed-in surface: it reads the
+  `farmer_profile` RPC plus the certificate/affiliation/endorsement RPCs, and
+  signs wall avatars and certificate images through the authenticated
+  policies. Anonymous visitors only see the sign-in prompt. The wall is not
+  gated on verification status — the badge is an independent trust signal.
+- Certificate images are public to signed-in users as soon as they are
+  uploaded (RSBSA stub, credentials, affiliation proofs, endorsements), but
+  the typed RSBSA number, membership IDs, and phone numbers are never exposed
+  by the wall RPCs. Supporting documents (`profile_documents`) stay private
+  and are no longer written by the app.
 - The backend already uses the service-role key for server-side JWT checks
   (`/api/chat`); the same key will let it read listing/profile objects later
   (e.g. for ML inference). It never leaves the server — see the key layout
@@ -117,8 +123,11 @@ Consequences:
   `forum` bucket; the storage select policy only signs URLs while the parent
   post is visible.
 - Verification documents go to `{user_id}/{unique}.jpg` in the private
-  `credentials` bucket; only the owner can read or write them (staff review
-  through the service role).
+  `credentials` bucket. Owners read and write their own files; any signed-in
+  user may sign the certificate paths listed by `certificate_is_public`
+  (RSBSA stub, credentials, affiliation proofs, endorsements). Supporting
+  documents and all other paths stay owner-only, and staff review through the
+  service role.
 - Images are served to clients through short-lived signed URLs
   (`createSignedUrl`, 60 s expiry; the frontend caches them ~45 s).
 - There is no public bucket.
@@ -128,11 +137,14 @@ Consequences:
 There is no reviewer role or admin UI yet; verification is a staff action in
 the Supabase dashboard/SQL editor. The flow:
 
-1. A farmer adds an RSBSA number, a credential, an affiliation, an
-   endorsement, or a supporting document. The first insert moves the profile
-   from `unverified` to `pending` (the trigger only ever sets `pending`).
+1. A farmer adds an RSBSA stub, RMN seal, certification, affiliation, or
+   endorsement. The first insert moves the profile from `unverified` to
+   `pending` (the trigger only ever sets `pending`).
 2. Review the uploaded files in **Storage → credentials** (they are stored
-   under the farmer's uid folder) alongside the profile's record rows.
+   under the farmer's uid folder) alongside the profile's record rows. Confirm
+   the farmer followed the on-screen notes: the RSBSA number should be covered
+   or blurred on the stub, and membership IDs / sensitive information hidden
+   in affiliation photos.
 3. Approve by running, in the SQL editor:
 
    ```sql
@@ -143,12 +155,14 @@ the Supabase dashboard/SQL editor. The flow:
 
    Or reject by setting `verification_status = 'unverified'` (the farmer can
    then correct and resubmit).
-4. The Verified Rice Farmer badge and the credential metadata then appear on
-   the farmer's wall (`/farmers/<user-id>`, signed-in). Changing a verified
-   profile back to `unverified` (or `pending`) unlocks the record cards for
-   corrections; re-verify once the corrected documents are in.
+4. The Verified Rice Farmer badge appears on the farmer's wall
+   (`/farmers/<user-id>`, signed-in). Certificate images and metadata are
+   already visible there as soon as they are uploaded — approval only grants
+   the badge. Changing a verified profile back to `unverified` (or `pending`)
+   unlocks the record cards for corrections; re-verify once the corrected
+   documents are in.
 
-After applying `011`, regenerate the typed schema and sync it to mobile (see
+After applying `012`, regenerate the typed schema and sync it to mobile (see
 `documentation/frontend.md`): the committed
 `website/src/types/database.ts` is hand-maintained until the migration is
 applied against the project, and the `mobile/src/types/database.ts` copy must
@@ -174,11 +188,16 @@ rejections for writes):
 - `SELECT` from `forum_images` returns rows only for visible posts.
 - Uploading to storage under a non-`auth.uid()` path is rejected.
 - `farmer_profile('<user-id>')` succeeds for an authenticated caller and is
-  rejected for anon; the result never contains `phone`.
+  rejected for anon; the result contains `rsbsa_document_path` but never
+  `rsbsa_number`, `phone`, or membership IDs.
 - An owner's own `UPDATE` that includes `verification_status` (or
   `verified_at`, `rating_avg`, `rating_count`) is rejected with a column
   permission error; updates to the other profile fields still succeed.
-- For a `pending`/`verified` profile, `farmer_credentials` /
-  `farmer_affiliations` / `farmer_endorsements` return rows only when the
-  profile is `verified`; a verified owner's credential insert/update/delete is
-  rejected by the locked-record policies.
+- `farmer_credentials` / `farmer_affiliations` / `farmer_endorsements` return
+  rows for any non-deleted profile (no verification gating), including
+  `document_path` / `proof_path`.
+- Signing a `profile_credentials.document_path` as a different signed-in user
+  succeeds (public certificate policy); signing a `profile_documents`
+  document path as a non-owner is denied.
+- A verified owner's credential insert/update/delete is rejected by the
+  locked-record policies.

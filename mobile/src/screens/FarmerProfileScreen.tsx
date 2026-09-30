@@ -1,6 +1,7 @@
 // Public farmer profile wall — the mobile port of /farmers/:userId. Signed-in
-// viewers see the identity band, farm information, verification badge and
-// credential metadata, and the farmer's public reviews.
+// viewers see the identity band, farming information, public registrations,
+// certifications, endorsements, and the farmer's public reviews. The Verified
+// badge is an independent trust signal; content is not gated on it.
 import {
   ActivityIndicator,
   Pressable,
@@ -12,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import Button from '../components/Button'
+import CertificateThumbnail from '../components/profile/CertificateThumbnail'
 import Icon from '../components/Icon'
 import Photo from '../components/Photo'
 import ReviewsCard from '../components/profile/ReviewsCard'
@@ -19,7 +21,13 @@ import VerificationStatusBadge from '../components/profile/VerificationStatusBad
 import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import useFarmerProfile from '../hooks/useFarmerProfile'
 import { formatDateOnly } from '../utils/format'
-import { CREDENTIAL_TYPE_LABELS, VERIFICATION_STATUSES } from '../utils/verification'
+import { getInitials } from '../utils/userProfile'
+import {
+  CREDENTIAL_TYPES,
+  CREDENTIAL_TYPE_LABELS,
+  ENDORSEMENT_TYPE_LABELS,
+  RMN_ORGANIZATION_NAME,
+} from '../utils/verification'
 import type {
   PublicAffiliation,
   PublicCredential,
@@ -59,7 +67,7 @@ function FarmCard({ profile }: { profile: PublicFarmerProfile }) {
     <View style={styles.card}>
       <Text style={[TYPE.headingSm, styles.cardTitle]}>Farming information</Text>
       {hasDetails ? (
-        <View style={styles.recordList}>
+        <View>
           {profile.farmSizeHectares !== null ? (
             <RecordRow
               label="Farm size"
@@ -100,98 +108,158 @@ function FarmCard({ profile }: { profile: PublicFarmerProfile }) {
   )
 }
 
-function VerificationCard({
+function RegistrationsCard({
   profile,
-  credentials,
-  affiliations,
-  endorsements,
-  detailsError,
+  seals,
 }: {
   profile: PublicFarmerProfile
-  credentials: PublicCredential[]
-  affiliations: PublicAffiliation[]
-  endorsements: PublicEndorsement[]
-  detailsError: string
+  seals: PublicCredential[]
 }) {
-  const isVerified = profile.verificationStatus === VERIFICATION_STATUSES.VERIFIED
-  const hasDetails =
-    credentials.length > 0 || affiliations.length > 0 || endorsements.length > 0
-
+  const hasRegistrations = Boolean(profile.rsbsaDocumentPath) || seals.length > 0
   return (
     <View style={styles.card}>
-      <View style={styles.verificationHeader}>
-        <Text style={[TYPE.headingSm, styles.cardTitle]}>Verification</Text>
-        <VerificationStatusBadge status={profile.verificationStatus} />
-      </View>
-
-      {profile.verificationStatus === VERIFICATION_STATUSES.PENDING ? (
-        <Text style={[TYPE.bodySm, styles.mutedCopy]}>
-          This farmer&apos;s documents are under review. The Verified Rice Farmer
-          badge appears once the review is complete.
-        </Text>
-      ) : null}
-
-      {profile.verificationStatus === VERIFICATION_STATUSES.UNVERIFIED ? (
-        <Text style={[TYPE.bodySm, styles.mutedCopy]}>
-          This farmer has not submitted verification documents yet.
-        </Text>
-      ) : null}
-
-      {isVerified ? (
-        <>
-          {profile.rsbsaNumber ? (
-            <View style={styles.recordList}>
-              <RecordRow label="RSBSA number" value={profile.rsbsaNumber} />
+      <Text style={[TYPE.headingSm, styles.cardTitle]}>
+        Official government registrations
+      </Text>
+      {hasRegistrations ? (
+        <View>
+          {profile.rsbsaDocumentPath ? (
+            <View style={styles.publicRow}>
+              <CertificateThumbnail
+                storagePath={profile.rsbsaDocumentPath}
+                title="RSBSA registration stub"
+              />
+              <View style={styles.publicRowBody}>
+                <Text style={[TYPE.bodyStrong, styles.publicRowTitle]}>
+                  RSBSA Control Number Stub
+                </Text>
+                <Text style={[TYPE.captionSm, styles.publicRowCaption]}>
+                  Public copy — the control number is hidden on the stub.
+                </Text>
+              </View>
             </View>
           ) : null}
-          {detailsError ? (
-            <Text accessibilityRole="alert" style={[TYPE.bodySm, styles.errorText]}>
-              {detailsError}
-            </Text>
-          ) : null}
-          {hasDetails ? (
-            <View style={styles.recordList}>
-              {credentials.map((credential, index) => (
-                <RecordRow
-                  key={`credential-${index}`}
-                  label="Credential"
-                  value={[
-                    CREDENTIAL_TYPE_LABELS[credential.credentialType],
-                    credential.issuingOrganization,
-                    credential.certificateNumber
-                      ? `Cert. no. ${credential.certificateNumber}`
-                      : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' \u00b7 ')}
-                />
-              ))}
-              {affiliations.map((affiliation, index) => (
-                <RecordRow
-                  key={`affiliation-${index}`}
-                  label="FCA / Cooperative"
-                  value={[affiliation.organizationName, affiliation.membershipId]
-                    .filter(Boolean)
-                    .join(' \u00b7 ')}
-                />
-              ))}
-              {endorsements.map((endorsement, index) => (
-                <RecordRow
-                  key={`endorsement-${index}`}
-                  label="LGU / MAO endorsement"
-                  value={`${endorsement.issuingOffice}, ${endorsement.municipality} \u00b7 issued ${formatDateOnly(
-                    endorsement.dateIssued
-                  )}`}
-                />
-              ))}
+          {seals.map((seal) => (
+            <View key={seal.id} style={styles.publicRow}>
+              <CertificateThumbnail storagePath={seal.documentPath} title="RMN seal" />
+              <View style={styles.publicRowBody}>
+                <Text style={[TYPE.bodyStrong, styles.publicRowTitle]}>
+                  Rice Farmers&apos; National Network (RMN) Seal
+                </Text>
+                <Text style={[TYPE.captionSm, styles.publicRowCaption]}>
+                  {RMN_ORGANIZATION_NAME}
+                </Text>
+              </View>
             </View>
-          ) : detailsError ? null : (
-            <Text style={[TYPE.bodySm, styles.mutedCopy]}>
-              No credential details are published on this profile.
-            </Text>
-          )}
-        </>
-      ) : null}
+          ))}
+        </View>
+      ) : (
+        <Text style={[TYPE.bodySm, styles.mutedCopy]}>
+          No official registrations published yet.
+        </Text>
+      )}
+    </View>
+  )
+}
+
+function CertificationsCard({ credentials }: { credentials: PublicCredential[] }) {
+  return (
+    <View style={styles.card}>
+      <Text style={[TYPE.headingSm, styles.cardTitle]}>
+        Certifications and accreditations
+      </Text>
+      {credentials.length > 0 ? (
+        <View>
+          {credentials.map((credential) => (
+            <View key={credential.id} style={styles.publicRow}>
+              <CertificateThumbnail
+                storagePath={credential.documentPath}
+                title={CREDENTIAL_TYPE_LABELS[credential.credentialType]}
+              />
+              <View style={styles.publicRowBody}>
+                <Text style={[TYPE.bodyStrong, styles.publicRowTitle]}>
+                  {CREDENTIAL_TYPE_LABELS[credential.credentialType]}
+                </Text>
+                <Text style={[TYPE.bodySm, styles.publicRowSub]}>
+                  {credential.issuingOrganization}
+                </Text>
+                {credential.certificateNumber ? (
+                  <Text style={[TYPE.captionSm, styles.publicRowCaption]}>
+                    Certificate no. {credential.certificateNumber}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={[TYPE.bodySm, styles.mutedCopy]}>
+          No certifications published yet.
+        </Text>
+      )}
+    </View>
+  )
+}
+
+function EndorsementsCard({
+  endorsements,
+  affiliations,
+}: {
+  endorsements: PublicEndorsement[]
+  affiliations: PublicAffiliation[]
+}) {
+  const hasEndorsements = endorsements.length > 0 || affiliations.length > 0
+  return (
+    <View style={styles.card}>
+      <Text style={[TYPE.headingSm, styles.cardTitle]}>
+        Local government and cooperative endorsements
+      </Text>
+      {hasEndorsements ? (
+        <View>
+          {endorsements.map((endorsement) => (
+            <View key={endorsement.id} style={styles.publicRow}>
+              <CertificateThumbnail
+                storagePath={endorsement.documentPath}
+                title={ENDORSEMENT_TYPE_LABELS[endorsement.endorsementType]}
+              />
+              <View style={styles.publicRowBody}>
+                <Text style={[TYPE.bodyStrong, styles.publicRowTitle]}>
+                  {ENDORSEMENT_TYPE_LABELS[endorsement.endorsementType]}
+                </Text>
+                <Text style={[TYPE.bodySm, styles.publicRowSub]}>
+                  {endorsement.issuingOffice}
+                </Text>
+                <Text style={[TYPE.bodySm, styles.publicRowSub]}>
+                  {endorsement.municipality}
+                </Text>
+                <Text style={[TYPE.captionSm, styles.publicRowCaption]}>
+                  Issued {formatDateOnly(endorsement.dateIssued)}
+                </Text>
+              </View>
+            </View>
+          ))}
+          {affiliations.map((affiliation) => (
+            <View key={affiliation.id} style={styles.publicRow}>
+              <CertificateThumbnail
+                storagePath={affiliation.proofPath}
+                title={`${affiliation.organizationName} proof of affiliation`}
+              />
+              <View style={styles.publicRowBody}>
+                <Text style={[TYPE.bodyStrong, styles.publicRowTitle]}>
+                  {affiliation.organizationName}
+                </Text>
+                <Text style={[TYPE.captionSm, styles.publicRowCaption]}>
+                  FCA / Farmers&apos; Association / Cooperative membership
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={[TYPE.bodySm, styles.mutedCopy]}>
+          No endorsements published yet.
+        </Text>
+      )}
     </View>
   )
 }
@@ -223,8 +291,8 @@ function FarmerProfileScreen({ route, navigation }: FarmerProfileScreenProps) {
       return (
         <View style={styles.centered}>
           <Text style={[TYPE.bodyMd, styles.centeredCopy]}>
-            Sign in to view farmer profiles — their farm details, credentials, and
-            the Verified Rice Farmer badge.
+            Sign in to view farmer profiles — their registrations, certifications,
+            endorsements, and the Verified Rice Farmer badge.
           </Text>
           <View style={styles.centeredAction}>
             <Button
@@ -267,20 +335,37 @@ function FarmerProfileScreen({ route, navigation }: FarmerProfileScreenProps) {
       )
     }
     const location = locationLabel(profile)
+    const seals = credentials.filter(
+      (credential) => credential.credentialType === CREDENTIAL_TYPES.RMN_SEAL
+    )
+    const certifications = credentials.filter(
+      (credential) => credential.credentialType !== CREDENTIAL_TYPES.RMN_SEAL
+    )
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
+          <View style={styles.identityHeader}>
+            <Text style={[TYPE.headingSm, styles.identityName]} numberOfLines={2}>
+              {profile.fullName || 'Farmer'}
+            </Text>
+            <VerificationStatusBadge status={profile.verificationStatus} />
+          </View>
           <View style={styles.identityRow}>
-            <Photo
-              uri={avatarUrl}
-              alt={`${profile.fullName || 'Farmer'} profile photo`}
-              fallbackLabel={profile.fullName || 'Farmer'}
-              style={styles.avatar}
-            />
+            {avatarUrl ? (
+              <Photo
+                uri={avatarUrl}
+                alt={`${profile.fullName || 'Farmer'} profile photo`}
+                fallbackLabel={profile.fullName || 'Farmer'}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={[TYPE.headingMd, styles.avatarInitials]}>
+                  {getInitials(profile.fullName)}
+                </Text>
+              </View>
+            )}
             <View style={styles.identityBody}>
-              <Text style={[TYPE.headingSm, styles.identityName]}>
-                {profile.fullName || 'Farmer'}
-              </Text>
               {location ? (
                 <View style={styles.locationRow}>
                   <Icon name="pin" size={14} color={COLORS.mute} />
@@ -304,13 +389,15 @@ function FarmerProfileScreen({ route, navigation }: FarmerProfileScreenProps) {
         </View>
 
         <FarmCard profile={profile} />
-        <VerificationCard
-          profile={profile}
-          credentials={credentials}
-          affiliations={affiliations}
-          endorsements={endorsements}
-          detailsError={detailsError}
-        />
+        <RegistrationsCard profile={profile} seals={seals} />
+        <CertificationsCard credentials={certifications} />
+        <EndorsementsCard endorsements={endorsements} affiliations={affiliations} />
+
+        {detailsError ? (
+          <Text accessibilityRole="alert" style={[TYPE.bodySm, styles.errorText]}>
+            {detailsError}
+          </Text>
+        ) : null}
 
         {profile.id === user.id ? (
           <View style={styles.ownerCard}>
@@ -407,23 +494,44 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: COLORS.ink,
   },
+  identityHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
+  identityName: {
+    flex: 1,
+    color: COLORS.ink,
+  },
   identityRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.lg,
+    marginTop: SPACING.md,
   },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: RADIUS.full,
   },
+  avatarFallback: {
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    color: COLORS.ink,
+  },
   identityBody: {
     flex: 1,
     minWidth: 0,
     gap: SPACING.xxs,
-  },
-  identityName: {
-    color: COLORS.ink,
   },
   identityMeta: {
     color: COLORS.mute,
@@ -433,18 +541,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.xs,
   },
-  recordList: {
-    marginTop: SPACING.md,
-  },
   recordRow: {
     paddingVertical: SPACING.sm,
     borderTopWidth: 1,
     borderTopColor: COLORS.hairline,
+    marginTop: SPACING.md,
   },
   recordRowStacked: {
     paddingVertical: SPACING.sm,
     borderTopWidth: 1,
     borderTopColor: COLORS.hairline,
+    marginTop: SPACING.md,
   },
   recordLabel: {
     color: COLORS.mute,
@@ -470,8 +577,28 @@ const styles = StyleSheet.create({
   varietyLabel: {
     color: COLORS.ink,
   },
-  verificationHeader: {
+  publicRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: SPACING.md,
+    paddingVertical: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.hairline,
+    marginTop: SPACING.md,
+  },
+  publicRowBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  publicRowTitle: {
+    color: COLORS.ink,
+  },
+  publicRowSub: {
+    color: COLORS.body,
+  },
+  publicRowCaption: {
+    color: COLORS.mute,
+    marginTop: SPACING.xxs,
   },
   mutedCopy: {
     color: COLORS.mute,

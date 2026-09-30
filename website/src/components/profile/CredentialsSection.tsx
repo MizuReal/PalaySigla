@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Button from '../Button'
+import CertificateThumbnail from './CertificateThumbnail'
 import DocumentUploadField from './DocumentUploadField'
 import VerificationSectionShell from './VerificationSectionShell'
 import { FORM_FIELD_CLASSES, withFieldError } from '../../utils/formField'
@@ -16,6 +17,12 @@ import {
 import type { CredentialType } from '../../utils/verification'
 import type { NewCredentialInput, VerificationRecordRef } from '../../services/credentials'
 import type { ProfileCredentialRow } from '../../types/domain'
+
+const CERTIFICATION_TYPES: readonly CredentialType[] = Object.freeze(
+  Object.values(CREDENTIAL_TYPES).filter(
+    (type) => type !== CREDENTIAL_TYPES.RMN_SEAL
+  )
+)
 
 interface StagedFile {
   blob: Blob
@@ -47,7 +54,7 @@ function CredentialsSection({
 }: CredentialsSectionProps) {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [credentialType, setCredentialType] = useState<CredentialType>(
-    CREDENTIAL_TYPES.PHILRICE_TRAINING
+    CREDENTIAL_TYPES.BPI_SEED_GROWER
   )
   const [organization, setOrganization] = useState('')
   const [certificateNumber, setCertificateNumber] = useState('')
@@ -57,7 +64,7 @@ function CredentialsSection({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const resetForm = () => {
-    setCredentialType(CREDENTIAL_TYPES.PHILRICE_TRAINING)
+    setCredentialType(CREDENTIAL_TYPES.BPI_SEED_GROWER)
     setOrganization('')
     setCertificateNumber('')
     setStaged(null)
@@ -95,9 +102,9 @@ function CredentialsSection({
       })
       resetForm()
       setIsAddOpen(false)
-      onSaved('Credential added.')
+      onSaved('Certification added.')
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not save the credential.')
+      setActionError(err instanceof Error ? err.message : 'Could not save the certification.')
     } finally {
       setIsSubmitting(false)
     }
@@ -107,19 +114,19 @@ function CredentialsSection({
     setActionError('')
     try {
       await removeCredential({ id: row.id, documentPath: row.document_path })
-      onSaved('Credential removed.')
+      onSaved('Certification removed.')
     } catch (err) {
       setActionError(
-        err instanceof Error ? err.message : 'Could not remove the credential.'
+        err instanceof Error ? err.message : 'Could not remove the certification.'
       )
     }
   }
 
   return (
     <VerificationSectionShell
-      title="PhilRice / BPI credentials"
-      description="Training certificates and seed grower certifications from PhilRice, BPI, or other agriculture programs."
-      addLabel="Add credential"
+      title="Certifications and accreditations"
+      description="PhilGAP, BPI seed grower, SRP verification, and other agriculture-related certifications."
+      addLabel="Add certification"
       isLocked={isLocked}
       isAddOpen={isAddOpen}
       onToggleAdd={() => {
@@ -129,7 +136,7 @@ function CredentialsSection({
       }}
       actionError={actionError}
       hasItems={credentials.length > 0}
-      emptyLabel="No credentials added yet."
+      emptyLabel="No certifications added yet."
       list={
         <ul className="divide-y divide-hairline border border-hairline">
           {credentials.map((row) => (
@@ -137,24 +144,30 @@ function CredentialsSection({
               key={row.id}
               className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between"
             >
-              <div className="min-w-0">
-                <p className="body-strong text-ink">
-                  {CREDENTIAL_TYPE_LABELS[toCredentialType(row.credential_type)]}
-                </p>
-                <p className="body-sm text-body">{row.issuing_organization}</p>
-                {row.certificate_number ? (
-                  <p className="caption-sm text-mute">
-                    Certificate no. {row.certificate_number}
+              <div className="flex min-w-0 items-start gap-3">
+                <CertificateThumbnail
+                  storagePath={row.document_path}
+                  title={CREDENTIAL_TYPE_LABELS[toCredentialType(row.credential_type)]}
+                />
+                <div className="min-w-0">
+                  <p className="body-strong text-ink">
+                    {CREDENTIAL_TYPE_LABELS[toCredentialType(row.credential_type)]}
                   </p>
-                ) : null}
-                <p className="caption-sm text-mute">Added {formatDate(row.created_at)}</p>
+                  <p className="body-sm text-body">{row.issuing_organization}</p>
+                  {row.certificate_number ? (
+                    <p className="caption-sm text-mute">
+                      Certificate no. {row.certificate_number}
+                    </p>
+                  ) : null}
+                  <p className="caption-sm text-mute">Added {formatDate(row.created_at)}</p>
+                </div>
               </div>
               {!isLocked && (
                 <button
                   type="button"
                   onClick={() => void handleRemove(row)}
                   disabled={removingId === row.id}
-                  className="body-sm shrink-0 text-error transition-opacity hover:opacity-80 disabled:text-ash"
+                  className="body-sm shrink-0 self-start text-error transition-opacity hover:opacity-80 disabled:text-ash"
                 >
                   {removingId === row.id ? 'Removing\u2026' : 'Remove'}
                 </button>
@@ -165,9 +178,9 @@ function CredentialsSection({
       }
     >
       <div className="grid gap-5 sm:grid-cols-2">
-        <div className="min-w-0">
+        <div className="min-w-0 sm:col-span-2">
           <label htmlFor="credential-type" className="caption-md text-ink">
-            Credential type
+            Certification type
           </label>
           <select
             id="credential-type"
@@ -176,7 +189,7 @@ function CredentialsSection({
             onChange={(event) => setCredentialType(toCredentialType(event.target.value))}
             className={`mt-2 ${FORM_FIELD_CLASSES}`}
           >
-            {Object.values(CREDENTIAL_TYPES).map((type) => (
+            {CERTIFICATION_TYPES.map((type) => (
               <option key={type} value={type}>
                 {CREDENTIAL_TYPE_LABELS[type]}
               </option>
@@ -192,7 +205,7 @@ function CredentialsSection({
             type="text"
             value={organization}
             disabled={isSubmitting}
-            placeholder="PhilRice"
+            placeholder="PhilGAP / BPI / PhilRice"
             onChange={(event) => {
               setOrganization(event.target.value)
               setErrors((current) => ({ ...current, organization: undefined }))
@@ -232,7 +245,7 @@ function CredentialsSection({
         <DocumentUploadField
           id="credential-document"
           label="Certificate photo"
-          hint="JPEG or PNG, up to 10 MB."
+          hint="Make sure the certificate details are readable. JPEG or PNG, up to 10 MB."
           fileName={staged?.name ?? ''}
           disabled={isSubmitting}
           error={errors.file}
@@ -250,7 +263,7 @@ function CredentialsSection({
           disabled={isSubmitting}
           className="justify-center"
         >
-          {isSubmitting ? 'Saving\u2026' : 'Save credential'}
+          {isSubmitting ? 'Saving\u2026' : 'Save certification'}
         </Button>
       </div>
     </VerificationSectionShell>

@@ -1,9 +1,10 @@
-// Verification record sections — RSBSA, PhilRice/BPI credentials, FCA/co-op
-// affiliations, LGU/MAO endorsements, and supporting documents. Each card owns
-// its add form; list state and mutations come from useVerificationRecords.
+// Verification record sections — RSBSA stub, RMN seal, certifications,
+// barangay/cooperative endorsements, and FCA/co-op affiliations. Each card
+// owns its add form; list state and mutations come from useVerificationRecords.
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import Button from '../Button'
+import CertificateThumbnail from './CertificateThumbnail'
 import DocumentPickerField from './DocumentPickerField'
 import VerificationSectionShell, {
   RemoveRecordButton,
@@ -12,11 +13,13 @@ import { formatDate, formatDateOnly } from '../../utils/format'
 import {
   CREDENTIAL_TYPES,
   CREDENTIAL_TYPE_LABELS,
+  ENDORSEMENT_TYPES,
+  ENDORSEMENT_TYPE_LABELS,
+  RMN_ORGANIZATION_NAME,
   toCredentialType,
 } from '../../utils/verification'
 import {
   MAX_CERTIFICATE_NUMBER_LENGTH,
-  MAX_DOCUMENT_LABEL_LENGTH,
   MAX_ISSUING_OFFICE_LENGTH,
   MAX_LOCATION_FIELD_LENGTH,
   MAX_MEMBERSHIP_ID_LENGTH,
@@ -24,23 +27,27 @@ import {
   validateDateIssued,
   validateRsbsa,
 } from '../../utils/verificationValidation'
-import type { CredentialType } from '../../utils/verification'
+import type { CredentialType, EndorsementType } from '../../utils/verification'
 import type {
   NewAffiliationInput,
   NewCredentialInput,
   NewEndorsementInput,
-  NewSupportingDocumentInput,
   SaveRsbsaInput,
   VerificationRecordRef,
 } from '../../services/credentials'
 import type {
   ProfileAffiliationRow,
   ProfileCredentialRow,
-  ProfileDocumentRow,
   ProfileEndorsementRow,
 } from '../../types/domain'
 import type { PreparedImage } from '../../utils/image'
 import { COLORS, RADIUS, SPACING, TOUCH_TARGET, TYPE } from '../../theme/designTokens'
+
+const CERTIFICATION_TYPES: readonly CredentialType[] = Object.freeze(
+  Object.values(CREDENTIAL_TYPES).filter(
+    (type) => type !== CREDENTIAL_TYPES.RMN_SEAL
+  )
+)
 
 interface SectionBaseProps {
   isLocked: boolean
@@ -50,41 +57,6 @@ interface SectionBaseProps {
 
 function errorMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback
-}
-
-function DateField({
-  value,
-  error,
-  disabled,
-  onChange,
-}: {
-  value: string
-  error?: string
-  disabled: boolean
-  onChange: (value: string) => void
-}) {
-  return (
-    <View>
-      <Text style={[TYPE.captionMd, styles.label]}>Date issued</Text>
-      <TextInput
-        style={[styles.input, error ? styles.inputError : null]}
-        value={value}
-        onChangeText={onChange}
-        editable={!disabled}
-        placeholder="YYYY-MM-DD"
-        placeholderTextColor={COLORS.ash}
-        accessibilityLabel="Date issued"
-        autoCorrect={false}
-      />
-      {error ? (
-        <Text accessibilityRole="alert" style={[TYPE.captionSm, styles.fieldError]}>
-          {error}
-        </Text>
-      ) : (
-        <Text style={[TYPE.captionSm, styles.hint]}>YYYY-MM-DD</Text>
-      )}
-    </View>
-  )
 }
 
 interface RsbsaCardProps {
@@ -136,9 +108,10 @@ export function RsbsaCard({
 
   return (
     <View style={styles.card}>
-      <Text style={[TYPE.headingSm, styles.title]}>RSBSA number</Text>
+      <Text style={[TYPE.headingSm, styles.title]}>RSBSA Control Number Stub</Text>
       <Text style={[TYPE.bodySm, styles.description]}>
-        Used for farmer identification, verification, and your profile wall.
+        Upload a photo of your RSBSA registration stub. The stub appears on your
+        public profile wall with the number hidden.
       </Text>
 
       {isLocked ? (
@@ -174,15 +147,15 @@ export function RsbsaCard({
             </Text>
           ) : (
             <Text style={[TYPE.captionSm, styles.hint]}>
-              Example: RSBSA-12-345678-9012
+              Used for verification and never shown on your public profile.
             </Text>
           )}
 
           <DocumentPickerField
-            label="RSBSA certificate/card (optional)"
-            hint="Photos only, JPEG or PNG, up to 10 MB."
+            label="RSBSA stub photo"
+            hint="Cover or blur the RSBSA number before uploading. The official DA/MAO stamp or logo may remain visible."
             selected={image !== null}
-            existingLabel={rsbsaDocumentPath ? 'RSBSA document on file' : ''}
+            existingLabel={rsbsaDocumentPath ? 'RSBSA stub on file' : ''}
             disabled={isSaving}
             onPick={setImage}
             onClear={() => setImage(null)}
@@ -206,7 +179,134 @@ export function RsbsaCard({
           </View>
         </>
       )}
+
+      {rsbsaDocumentPath ? (
+        <View style={styles.currentRow}>
+          <CertificateThumbnail storagePath={rsbsaDocumentPath} title="RSBSA stub" />
+          <Text style={[TYPE.captionSm, styles.hint]}>
+            View the stub currently on file.
+          </Text>
+        </View>
+      ) : null}
     </View>
+  )
+}
+
+interface RmnSealCardProps extends SectionBaseProps {
+  seals: ProfileCredentialRow[]
+  addCredential: (input: NewCredentialInput) => Promise<void>
+  removeCredential: (record: VerificationRecordRef) => Promise<void>
+}
+
+export function RmnSealCard({
+  isLocked,
+  seals,
+  removingId,
+  addCredential,
+  removeCredential,
+  onSaved,
+}: RmnSealCardProps) {
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [image, setImage] = useState<PreparedImage | null>(null)
+  const [fileError, setFileError] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!image) {
+      setFileError('Attach a photo of the RMN seal or membership proof.')
+      return
+    }
+    setIsSubmitting(true)
+    setActionError('')
+    try {
+      await addCredential({
+        credentialType: CREDENTIAL_TYPES.RMN_SEAL,
+        issuingOrganization: RMN_ORGANIZATION_NAME,
+        certificateNumber: null,
+        image,
+      })
+      setImage(null)
+      setIsAddOpen(false)
+      onSaved('RMN seal added.')
+    } catch (err) {
+      setActionError(errorMessage(err, 'Could not save the RMN seal.'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRemove = async (row: ProfileCredentialRow) => {
+    setActionError('')
+    try {
+      await removeCredential({ id: row.id, documentPath: row.document_path })
+      onSaved('RMN seal removed.')
+    } catch (err) {
+      setActionError(errorMessage(err, 'Could not remove the RMN seal.'))
+    }
+  }
+
+  return (
+    <VerificationSectionShell
+      title="Rice Farmers' National Network (RMN) Seal"
+      description="Display your RMN seal if you are a member of the network."
+      addLabel="Add RMN seal"
+      isLocked={isLocked}
+      isAddOpen={isAddOpen}
+      onToggleAdd={() => {
+        setActionError('')
+        setIsAddOpen((current) => !current)
+        setImage(null)
+        setFileError('')
+      }}
+      actionError={actionError}
+      hasItems={seals.length > 0}
+      emptyLabel="No RMN seal added yet."
+      list={
+        <View style={styles.list}>
+          {seals.map((row, index) => (
+            <View key={row.id} style={[styles.row, index > 0 && styles.rowDivider]}>
+              <View style={styles.rowContent}>
+                <CertificateThumbnail storagePath={row.document_path} title="RMN seal" />
+                <View style={styles.rowBody}>
+                  <Text style={[TYPE.bodyStrong, styles.rowTitle]}>
+                    {RMN_ORGANIZATION_NAME}
+                  </Text>
+                  <Text style={[TYPE.captionSm, styles.rowCaption]}>
+                    Added {formatDate(row.created_at)}
+                  </Text>
+                </View>
+              </View>
+              <RemoveRecordButton
+                isRemoving={removingId === row.id}
+                disabled={isLocked}
+                onPress={() => void handleRemove(row)}
+              />
+            </View>
+          ))}
+        </View>
+      }
+    >
+      <DocumentPickerField
+        label="RMN seal or membership proof"
+        hint="JPEG or PNG, up to 10 MB."
+        selected={image !== null}
+        disabled={isSubmitting}
+        error={fileError}
+        onPick={(picked) => {
+          setImage(picked)
+          setFileError('')
+        }}
+        onClear={() => setImage(null)}
+      />
+      <View style={styles.formFooter}>
+        <Button
+          label={isSubmitting ? 'Saving…' : 'Save RMN seal'}
+          onPress={() => void handleSubmit()}
+          disabled={isSubmitting}
+        />
+      </View>
+    </VerificationSectionShell>
   )
 }
 
@@ -226,7 +326,7 @@ export function CredentialsCard({
 }: CredentialsCardProps) {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [credentialType, setCredentialType] = useState<CredentialType>(
-    CREDENTIAL_TYPES.PHILRICE_TRAINING
+    CREDENTIAL_TYPES.BPI_SEED_GROWER
   )
   const [organization, setOrganization] = useState('')
   const [certificateNumber, setCertificateNumber] = useState('')
@@ -240,7 +340,7 @@ export function CredentialsCard({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const resetForm = () => {
-    setCredentialType(CREDENTIAL_TYPES.PHILRICE_TRAINING)
+    setCredentialType(CREDENTIAL_TYPES.BPI_SEED_GROWER)
     setOrganization('')
     setCertificateNumber('')
     setImage(null)
@@ -277,9 +377,9 @@ export function CredentialsCard({
       })
       resetForm()
       setIsAddOpen(false)
-      onSaved('Credential added.')
+      onSaved('Certification added.')
     } catch (err) {
-      setActionError(errorMessage(err, 'Could not save the credential.'))
+      setActionError(errorMessage(err, 'Could not save the certification.'))
     } finally {
       setIsSubmitting(false)
     }
@@ -289,17 +389,17 @@ export function CredentialsCard({
     setActionError('')
     try {
       await removeCredential({ id: row.id, documentPath: row.document_path })
-      onSaved('Credential removed.')
+      onSaved('Certification removed.')
     } catch (err) {
-      setActionError(errorMessage(err, 'Could not remove the credential.'))
+      setActionError(errorMessage(err, 'Could not remove the certification.'))
     }
   }
 
   return (
     <VerificationSectionShell
-      title="PhilRice / BPI credentials"
-      description="Training certificates and seed grower certifications from PhilRice, BPI, or other agriculture programs."
-      addLabel="Add credential"
+      title="Certifications and accreditations"
+      description="PhilGAP, BPI seed grower, SRP verification, and other agriculture-related certifications."
+      addLabel="Add certification"
       isLocked={isLocked}
       isAddOpen={isAddOpen}
       onToggleAdd={() => {
@@ -309,27 +409,32 @@ export function CredentialsCard({
       }}
       actionError={actionError}
       hasItems={credentials.length > 0}
-      emptyLabel="No credentials added yet."
+      emptyLabel="No certifications added yet."
       list={
         <View style={styles.list}>
           {credentials.map((row, index) => (
-            <View
-              key={row.id}
-              style={[styles.row, index > 0 && styles.rowDivider]}
-            >
-              <View style={styles.rowBody}>
-                <Text style={[TYPE.bodyStrong, styles.rowTitle]}>
-                  {CREDENTIAL_TYPE_LABELS[toCredentialType(row.credential_type)]}
-                </Text>
-                <Text style={[TYPE.bodySm, styles.rowSub]}>{row.issuing_organization}</Text>
-                {row.certificate_number ? (
-                  <Text style={[TYPE.captionSm, styles.rowCaption]}>
-                    Certificate no. {row.certificate_number}
+            <View key={row.id} style={[styles.row, index > 0 && styles.rowDivider]}>
+              <View style={styles.rowContent}>
+                <CertificateThumbnail
+                  storagePath={row.document_path}
+                  title={CREDENTIAL_TYPE_LABELS[toCredentialType(row.credential_type)]}
+                />
+                <View style={styles.rowBody}>
+                  <Text style={[TYPE.bodyStrong, styles.rowTitle]}>
+                    {CREDENTIAL_TYPE_LABELS[toCredentialType(row.credential_type)]}
                   </Text>
-                ) : null}
-                <Text style={[TYPE.captionSm, styles.rowCaption]}>
-                  Added {formatDate(row.created_at)}
-                </Text>
+                  <Text style={[TYPE.bodySm, styles.rowSub]}>
+                    {row.issuing_organization}
+                  </Text>
+                  {row.certificate_number ? (
+                    <Text style={[TYPE.captionSm, styles.rowCaption]}>
+                      Certificate no. {row.certificate_number}
+                    </Text>
+                  ) : null}
+                  <Text style={[TYPE.captionSm, styles.rowCaption]}>
+                    Added {formatDate(row.created_at)}
+                  </Text>
+                </View>
               </View>
               <RemoveRecordButton
                 isRemoving={removingId === row.id}
@@ -341,9 +446,9 @@ export function CredentialsCard({
         </View>
       }
     >
-      <Text style={[TYPE.captionMd, styles.label]}>Credential type</Text>
+      <Text style={[TYPE.captionMd, styles.label]}>Certification type</Text>
       <View style={styles.pillRow}>
-        {Object.values(CREDENTIAL_TYPES).map((type) => {
+        {CERTIFICATION_TYPES.map((type) => {
           const active = credentialType === type
           return (
             <Pressable
@@ -372,7 +477,7 @@ export function CredentialsCard({
           setOrganization(value)
           setErrors((current) => ({ ...current, organization: undefined }))
         }}
-        placeholder="PhilRice"
+        placeholder="PhilGAP / BPI / PhilRice"
         placeholderTextColor={COLORS.ash}
         accessibilityLabel="Issuing organization"
         autoCorrect={false}
@@ -404,7 +509,7 @@ export function CredentialsCard({
 
       <DocumentPickerField
         label="Certificate photo"
-        hint="JPEG or PNG, up to 10 MB."
+        hint="Make sure the certificate details are readable. JPEG or PNG, up to 10 MB."
         selected={image !== null}
         disabled={isSubmitting}
         error={errors.file}
@@ -417,7 +522,7 @@ export function CredentialsCard({
 
       <View style={styles.formFooter}>
         <Button
-          label={isSubmitting ? 'Saving…' : 'Save credential'}
+          label={isSubmitting ? 'Saving…' : 'Save certification'}
           onPress={() => void handleSubmit()}
           disabled={isSubmitting}
         />
@@ -508,8 +613,8 @@ export function AffiliationsCard({
 
   return (
     <VerificationSectionShell
-      title="FCA / Cooperative affiliation"
-      description="Your farmers' cooperative or association membership, with proof of affiliation."
+      title="FCA / Farmers' Association / Cooperative Membership"
+      description="Display your cooperative or farmers' association affiliation. Hide membership IDs and sensitive membership information before uploading."
       addLabel="Add affiliation"
       isLocked={isLocked}
       isAddOpen={isAddOpen}
@@ -525,18 +630,24 @@ export function AffiliationsCard({
         <View style={styles.list}>
           {affiliations.map((row, index) => (
             <View key={row.id} style={[styles.row, index > 0 && styles.rowDivider]}>
-              <View style={styles.rowBody}>
-                <Text style={[TYPE.bodyStrong, styles.rowTitle]}>
-                  {row.organization_name}
-                </Text>
-                {row.membership_id ? (
-                  <Text style={[TYPE.captionSm, styles.rowCaption]}>
-                    Membership ID {row.membership_id}
+              <View style={styles.rowContent}>
+                <CertificateThumbnail
+                  storagePath={row.proof_path}
+                  title={`${row.organization_name} proof of affiliation`}
+                />
+                <View style={styles.rowBody}>
+                  <Text style={[TYPE.bodyStrong, styles.rowTitle]}>
+                    {row.organization_name}
                   </Text>
-                ) : null}
-                <Text style={[TYPE.captionSm, styles.rowCaption]}>
-                  Added {formatDate(row.created_at)}
-                </Text>
+                  {row.membership_id ? (
+                    <Text style={[TYPE.captionSm, styles.rowCaption]}>
+                      Membership ID {row.membership_id}
+                    </Text>
+                  ) : null}
+                  <Text style={[TYPE.captionSm, styles.rowCaption]}>
+                    Added {formatDate(row.created_at)}
+                  </Text>
+                </View>
               </View>
               <RemoveRecordButton
                 isRemoving={removingId === row.id}
@@ -588,7 +699,7 @@ export function AffiliationsCard({
 
       <DocumentPickerField
         label="Proof of affiliation"
-        hint="Membership certificate or cooperative registration document. JPEG or PNG, up to 10 MB."
+        hint="Hide membership IDs and other sensitive membership information before uploading. JPEG or PNG, up to 10 MB."
         selected={image !== null}
         disabled={isSubmitting}
         error={errors.file}
@@ -625,6 +736,9 @@ export function EndorsementsCard({
   onSaved,
 }: EndorsementsCardProps) {
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [endorsementType, setEndorsementType] = useState<EndorsementType>(
+    ENDORSEMENT_TYPES.BARANGAY_CERTIFICATION
+  )
   const [municipality, setMunicipality] = useState('')
   const [issuingOffice, setIssuingOffice] = useState('')
   const [dateIssued, setDateIssued] = useState('')
@@ -641,6 +755,7 @@ export function EndorsementsCard({
   const todayIso = new Date().toISOString().slice(0, 10)
 
   const resetForm = () => {
+    setEndorsementType(ENDORSEMENT_TYPES.BARANGAY_CERTIFICATION)
     setMunicipality('')
     setIssuingOffice('')
     setDateIssued('')
@@ -653,12 +768,12 @@ export function EndorsementsCard({
     const trimmedOffice = issuingOffice.trim()
     const nextErrors: typeof errors = {}
     if (!trimmedMunicipality) {
-      nextErrors.municipality = 'Enter the municipality.'
+      nextErrors.municipality = 'Enter the barangay or municipality.'
     } else if (trimmedMunicipality.length > MAX_LOCATION_FIELD_LENGTH) {
       nextErrors.municipality = `Keep this to ${MAX_LOCATION_FIELD_LENGTH} characters or fewer.`
     }
     if (!trimmedOffice) {
-      nextErrors.issuingOffice = 'Enter the issuing office.'
+      nextErrors.issuingOffice = 'Enter the issuing office or cooperative.'
     } else if (trimmedOffice.length > MAX_ISSUING_OFFICE_LENGTH) {
       nextErrors.issuingOffice = `Keep this to ${MAX_ISSUING_OFFICE_LENGTH} characters or fewer.`
     }
@@ -667,7 +782,7 @@ export function EndorsementsCard({
       nextErrors.dateIssued = dateError
     }
     if (!image) {
-      nextErrors.file = 'Attach a photo of the endorsement or certification.'
+      nextErrors.file = 'Attach a photo of the certification.'
     }
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0 || !image) {
@@ -677,6 +792,7 @@ export function EndorsementsCard({
     setActionError('')
     try {
       await addEndorsement({
+        endorsementType,
         municipality: trimmedMunicipality,
         issuingOffice: trimmedOffice,
         dateIssued,
@@ -704,8 +820,8 @@ export function EndorsementsCard({
 
   return (
     <VerificationSectionShell
-      title="LGU / MAO endorsement"
-      description="Certification or endorsement from your barangay, municipality, or Municipal Agriculture Office."
+      title="Local government and cooperative endorsements"
+      description="Barangay agricultural certification and cooperative recognition or officer certificates."
       addLabel="Add endorsement"
       isLocked={isLocked}
       isAddOpen={isAddOpen}
@@ -721,17 +837,30 @@ export function EndorsementsCard({
         <View style={styles.list}>
           {endorsements.map((row, index) => (
             <View key={row.id} style={[styles.row, index > 0 && styles.rowDivider]}>
-              <View style={styles.rowBody}>
-                <Text style={[TYPE.bodyStrong, styles.rowTitle]}>
-                  {row.issuing_office}
-                </Text>
-                <Text style={[TYPE.bodySm, styles.rowSub]}>{row.municipality}</Text>
-                <Text style={[TYPE.captionSm, styles.rowCaption]}>
-                  Issued {formatDateOnly(row.date_issued)}
-                </Text>
-                <Text style={[TYPE.captionSm, styles.rowCaption]}>
-                  Added {formatDate(row.created_at)}
-                </Text>
+              <View style={styles.rowContent}>
+                <CertificateThumbnail
+                  storagePath={row.document_path}
+                  title={
+                    row.endorsement_type === ENDORSEMENT_TYPES.COOP_RECOGNITION
+                      ? ENDORSEMENT_TYPE_LABELS[ENDORSEMENT_TYPES.COOP_RECOGNITION]
+                      : ENDORSEMENT_TYPE_LABELS[ENDORSEMENT_TYPES.BARANGAY_CERTIFICATION]
+                  }
+                />
+                <View style={styles.rowBody}>
+                  <Text style={[TYPE.bodyStrong, styles.rowTitle]}>
+                    {row.endorsement_type === ENDORSEMENT_TYPES.COOP_RECOGNITION
+                      ? ENDORSEMENT_TYPE_LABELS[ENDORSEMENT_TYPES.COOP_RECOGNITION]
+                      : ENDORSEMENT_TYPE_LABELS[ENDORSEMENT_TYPES.BARANGAY_CERTIFICATION]}
+                  </Text>
+                  <Text style={[TYPE.bodySm, styles.rowSub]}>{row.issuing_office}</Text>
+                  <Text style={[TYPE.bodySm, styles.rowSub]}>{row.municipality}</Text>
+                  <Text style={[TYPE.captionSm, styles.rowCaption]}>
+                    Issued {formatDateOnly(row.date_issued)}
+                  </Text>
+                  <Text style={[TYPE.captionSm, styles.rowCaption]}>
+                    Added {formatDate(row.created_at)}
+                  </Text>
+                </View>
               </View>
               <RemoveRecordButton
                 isRemoving={removingId === row.id}
@@ -743,7 +872,30 @@ export function EndorsementsCard({
         </View>
       }
     >
-      <Text style={[TYPE.captionMd, styles.label]}>Municipality</Text>
+      <Text style={[TYPE.captionMd, styles.label]}>Endorsement type</Text>
+      <View style={styles.pillRow}>
+        {Object.values(ENDORSEMENT_TYPES).map((type) => {
+          const active = endorsementType === type
+          return (
+            <Pressable
+              key={type}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              disabled={isSubmitting}
+              onPress={() => setEndorsementType(type)}
+              style={[styles.pill, active && styles.pillActive]}
+            >
+              <Text
+                style={[TYPE.buttonSm, styles.pillLabel, active && styles.pillLabelActive]}
+              >
+                {ENDORSEMENT_TYPE_LABELS[type]}
+              </Text>
+            </Pressable>
+          )
+        })}
+      </View>
+
+      <Text style={[TYPE.captionMd, styles.label]}>Barangay / Municipality</Text>
       <TextInput
         style={[styles.input, errors.municipality ? styles.inputError : null]}
         value={municipality}
@@ -751,9 +903,9 @@ export function EndorsementsCard({
           setMunicipality(value)
           setErrors((current) => ({ ...current, municipality: undefined }))
         }}
-        placeholder="Munoz"
+        placeholder="San Isidro, Munoz"
         placeholderTextColor={COLORS.ash}
-        accessibilityLabel="Municipality"
+        accessibilityLabel="Barangay or municipality"
         autoCorrect={false}
       />
       {errors.municipality ? (
@@ -762,7 +914,7 @@ export function EndorsementsCard({
         </Text>
       ) : null}
 
-      <Text style={[TYPE.captionMd, styles.label]}>Issuing office</Text>
+      <Text style={[TYPE.captionMd, styles.label]}>Issuing office or cooperative</Text>
       <TextInput
         style={[styles.input, errors.issuingOffice ? styles.inputError : null]}
         value={issuingOffice}
@@ -770,9 +922,9 @@ export function EndorsementsCard({
           setIssuingOffice(value)
           setErrors((current) => ({ ...current, issuingOffice: undefined }))
         }}
-        placeholder="Municipal Agriculture Office"
+        placeholder="Barangay Agriculture Office"
         placeholderTextColor={COLORS.ash}
-        accessibilityLabel="Issuing office"
+        accessibilityLabel="Issuing office or cooperative"
         autoCorrect={false}
       />
       {errors.issuingOffice ? (
@@ -781,19 +933,31 @@ export function EndorsementsCard({
         </Text>
       ) : null}
 
-      <DateField
+      <Text style={[TYPE.captionMd, styles.label]}>Date issued</Text>
+      <TextInput
+        style={[styles.input, errors.dateIssued ? styles.inputError : null]}
         value={dateIssued}
-        error={errors.dateIssued}
-        disabled={isSubmitting}
-        onChange={(value) => {
+        onChangeText={(value) => {
           setDateIssued(value)
           setErrors((current) => ({ ...current, dateIssued: undefined }))
         }}
+        editable={!isSubmitting}
+        placeholder="YYYY-MM-DD"
+        placeholderTextColor={COLORS.ash}
+        accessibilityLabel="Date issued"
+        autoCorrect={false}
       />
+      {errors.dateIssued ? (
+        <Text accessibilityRole="alert" style={[TYPE.captionSm, styles.fieldError]}>
+          {errors.dateIssued}
+        </Text>
+      ) : (
+        <Text style={[TYPE.captionSm, styles.hint]}>YYYY-MM-DD</Text>
+      )}
 
       <DocumentPickerField
-        label="Endorsement document"
-        hint="Barangay endorsement or MAO certification. JPEG or PNG, up to 10 MB."
+        label="Certification document"
+        hint="Hide any sensitive personal information before uploading. JPEG or PNG, up to 10 MB."
         selected={image !== null}
         disabled={isSubmitting}
         error={errors.file}
@@ -807,150 +971,6 @@ export function EndorsementsCard({
       <View style={styles.formFooter}>
         <Button
           label={isSubmitting ? 'Saving…' : 'Save endorsement'}
-          onPress={() => void handleSubmit()}
-          disabled={isSubmitting}
-        />
-      </View>
-    </VerificationSectionShell>
-  )
-}
-
-interface SupportingDocumentsCardProps extends SectionBaseProps {
-  documents: ProfileDocumentRow[]
-  addSupportingDocument: (input: NewSupportingDocumentInput) => Promise<void>
-  removeSupportingDocument: (record: VerificationRecordRef) => Promise<void>
-}
-
-export function SupportingDocumentsCard({
-  isLocked,
-  documents,
-  removingId,
-  addSupportingDocument,
-  removeSupportingDocument,
-  onSaved,
-}: SupportingDocumentsCardProps) {
-  const [isAddOpen, setIsAddOpen] = useState(false)
-  const [label, setLabel] = useState('')
-  const [image, setImage] = useState<PreparedImage | null>(null)
-  const [errors, setErrors] = useState<{ label?: string; file?: string }>({})
-  const [actionError, setActionError] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const resetForm = () => {
-    setLabel('')
-    setImage(null)
-    setErrors({})
-  }
-
-  const handleSubmit = async () => {
-    const trimmedLabel = label.trim()
-    const nextErrors: typeof errors = {}
-    if (!trimmedLabel) {
-      nextErrors.label = 'Describe the document.'
-    } else if (trimmedLabel.length > MAX_DOCUMENT_LABEL_LENGTH) {
-      nextErrors.label = `Keep this to ${MAX_DOCUMENT_LABEL_LENGTH} characters or fewer.`
-    }
-    if (!image) {
-      nextErrors.file = 'Attach a photo of the document.'
-    }
-    setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0 || !image) {
-      return
-    }
-    setIsSubmitting(true)
-    setActionError('')
-    try {
-      await addSupportingDocument({ label: trimmedLabel, image })
-      resetForm()
-      setIsAddOpen(false)
-      onSaved('Document added.')
-    } catch (err) {
-      setActionError(errorMessage(err, 'Could not save the document.'))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleRemove = async (row: ProfileDocumentRow) => {
-    setActionError('')
-    try {
-      await removeSupportingDocument({ id: row.id, documentPath: row.document_path })
-      onSaved('Document removed.')
-    } catch (err) {
-      setActionError(errorMessage(err, 'Could not remove the document.'))
-    }
-  }
-
-  return (
-    <VerificationSectionShell
-      title="Supporting documents"
-      description="Farmer ID, registration papers, farm ownership or tenancy documents, farm photos, and anything else that supports your verification."
-      addLabel="Add document"
-      isLocked={isLocked}
-      isAddOpen={isAddOpen}
-      onToggleAdd={() => {
-        setActionError('')
-        setIsAddOpen((current) => !current)
-        resetForm()
-      }}
-      actionError={actionError}
-      hasItems={documents.length > 0}
-      emptyLabel="No supporting documents added yet."
-      list={
-        <View style={styles.list}>
-          {documents.map((row, index) => (
-            <View key={row.id} style={[styles.row, index > 0 && styles.rowDivider]}>
-              <View style={styles.rowBody}>
-                <Text style={[TYPE.bodyStrong, styles.rowTitle]}>{row.label}</Text>
-                <Text style={[TYPE.captionSm, styles.rowCaption]}>
-                  Added {formatDate(row.created_at)}
-                </Text>
-              </View>
-              <RemoveRecordButton
-                isRemoving={removingId === row.id}
-                disabled={isLocked}
-                onPress={() => void handleRemove(row)}
-              />
-            </View>
-          ))}
-        </View>
-      }
-    >
-      <Text style={[TYPE.captionMd, styles.label]}>Document label</Text>
-      <TextInput
-        style={[styles.input, errors.label ? styles.inputError : null]}
-        value={label}
-        onChangeText={(value) => {
-          setLabel(value)
-          setErrors((current) => ({ ...current, label: undefined }))
-        }}
-        placeholder="Farm ownership document"
-        placeholderTextColor={COLORS.ash}
-        accessibilityLabel="Document label"
-        autoCorrect={false}
-      />
-      {errors.label ? (
-        <Text accessibilityRole="alert" style={[TYPE.captionSm, styles.fieldError]}>
-          {errors.label}
-        </Text>
-      ) : null}
-
-      <DocumentPickerField
-        label="Document photo"
-        hint="JPEG or PNG, up to 10 MB."
-        selected={image !== null}
-        disabled={isSubmitting}
-        error={errors.file}
-        onPick={(picked) => {
-          setImage(picked)
-          setErrors((current) => ({ ...current, file: undefined }))
-        }}
-        onClear={() => setImage(null)}
-      />
-
-      <View style={styles.formFooter}>
-        <Button
-          label={isSubmitting ? 'Saving…' : 'Save document'}
           onPress={() => void handleSubmit()}
           disabled={isSubmitting}
         />
@@ -1010,6 +1030,12 @@ const styles = StyleSheet.create({
     color: COLORS.mute,
     marginTop: SPACING.xs,
   },
+  currentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    marginTop: SPACING.md,
+  },
   footer: {
     marginTop: SPACING.xl,
     gap: SPACING.sm,
@@ -1060,6 +1086,13 @@ const styles = StyleSheet.create({
   rowDivider: {
     borderTopWidth: 1,
     borderTopColor: COLORS.hairline,
+  },
+  rowContent: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.md,
   },
   rowBody: {
     flex: 1,

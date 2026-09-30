@@ -24,7 +24,6 @@ export type ProfileRow = Tables<'profiles'>
 export type ProfileCredentialRow = Tables<'profile_credentials'>
 export type ProfileAffiliationRow = Tables<'profile_affiliations'>
 export type ProfileEndorsementRow = Tables<'profile_endorsements'>
-export type ProfileDocumentRow = Tables<'profile_documents'>
 export type ForumPostRow = Omit<ForumPostBaseRow, 'category'> & {
   category: ForumCategory
 }

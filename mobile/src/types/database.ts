@@ -461,6 +461,7 @@ export type Database = {
           created_at: string
           date_issued: string
           document_path: string
+          endorsement_type: string
           id: string
           issuing_office: string
           municipality: string
@@ -471,6 +472,7 @@ export type Database = {
           created_at?: string
           date_issued: string
           document_path: string
+          endorsement_type?: string
           id?: string
           issuing_office: string
           municipality: string
@@ -481,6 +483,7 @@ export type Database = {
           created_at?: string
           date_issued?: string
           document_path?: string
+          endorsement_type?: string
           id?: string
           issuing_office?: string
           municipality?: string
@@ -673,8 +676,9 @@ export type Database = {
         Args: { p_user: string }
         Returns: {
           created_at: string
-          membership_id: string
+          id: string
           organization_name: string
+          proof_path: string
         }[]
       }
       farmer_credentials: {
@@ -683,6 +687,8 @@ export type Database = {
           certificate_number: string
           created_at: string
           credential_type: string
+          document_path: string
+          id: string
           issuing_organization: string
         }[]
       }
@@ -691,6 +697,9 @@ export type Database = {
         Returns: {
           created_at: string
           date_issued: string
+          document_path: string
+          endorsement_type: string
+          id: string
           issuing_office: string
           municipality: string
         }[]
@@ -709,7 +718,7 @@ export type Database = {
           rating_avg: number
           rating_count: number
           rice_varieties: string[]
-          rsbsa_number: string
+          rsbsa_document_path: string
           verification_status: string
           years_farming_experience: number
         }[]

@@ -12,7 +12,6 @@ import type {
   PublicFarmerProfile,
 } from '../services/farmerProfile'
 import { getAvatarUrl } from '../services/profile'
-import { VERIFICATION_STATUSES } from '../utils/verification'
 
 export interface UseFarmerProfileResult {
   profile: PublicFarmerProfile | null
@@ -81,26 +80,26 @@ function useFarmerProfile(userId: string | null): UseFarmerProfileResult {
             }
           }
         }
-        if (fetched.verificationStatus === VERIFICATION_STATUSES.VERIFIED) {
-          try {
-            const [nextCredentials, nextAffiliations, nextEndorsements] = await Promise.all([
-              fetchFarmerCredentials(userId),
-              fetchFarmerAffiliations(userId),
-              fetchFarmerEndorsements(userId),
-            ])
-            if (!isCancelled) {
-              setCredentials(nextCredentials)
-              setAffiliations(nextAffiliations)
-              setEndorsements(nextEndorsements)
-            }
-          } catch (err) {
-            if (!isCancelled) {
-              setDetailsError(
-                err instanceof Error
-                  ? err.message
-                  : 'Could not load the verification records.'
-              )
-            }
+        // certificates and endorsements are public regardless of verification
+        // status; the badge is an independent trust signal
+        try {
+          const [nextCredentials, nextAffiliations, nextEndorsements] = await Promise.all([
+            fetchFarmerCredentials(userId),
+            fetchFarmerAffiliations(userId),
+            fetchFarmerEndorsements(userId),
+          ])
+          if (!isCancelled) {
+            setCredentials(nextCredentials)
+            setAffiliations(nextAffiliations)
+            setEndorsements(nextEndorsements)
+          }
+        } catch (err) {
+          if (!isCancelled) {
+            setDetailsError(
+              err instanceof Error
+                ? err.message
+                : 'Could not load the certificates and endorsements.'
+            )
           }
         }
       } catch (err) {

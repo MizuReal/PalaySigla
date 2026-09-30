@@ -38,7 +38,7 @@ const VERIFIED_PROFILE: PublicFarmerProfile = {
   farmSizeHectares: 2.5,
   yearsFarmingExperience: 12,
   riceVarieties: ['Dinorado'],
-  rsbsaNumber: 'RSBSA-12-345678-9012',
+  rsbsaDocumentPath: 'u1/rsbsa.jpg',
   verificationStatus: 'verified',
   memberSince: '2026-01-01T00:00:00Z',
   ratingAvg: 4.5,
@@ -54,13 +54,15 @@ beforeEach(() => {
 })
 
 describe('useFarmerProfile', () => {
-  it('loads a verified profile with its avatar and verification records', async () => {
+  it('loads a profile with its avatar and public certificates', async () => {
     fetchFarmerProfileMock.mockResolvedValue(VERIFIED_PROFILE)
     fetchFarmerCredentialsMock.mockResolvedValue([
       {
-        credentialType: 'philrice_training',
-        issuingOrganization: 'PhilRice',
+        id: 'c1',
+        credentialType: 'philgap',
+        issuingOrganization: 'PhilGAP',
         certificateNumber: 'CERT-1',
+        documentPath: 'u1/cert.jpg',
         createdAt: '2026-02-01T00:00:00Z',
       },
     ])
@@ -76,19 +78,20 @@ describe('useFarmerProfile', () => {
     expect(result.current.detailsError).toBe('')
   })
 
-  it('skips the verification RPCs for an unverified profile', async () => {
+  it('still loads certificates for a profile that is not verified', async () => {
     fetchFarmerProfileMock.mockResolvedValue({
       ...VERIFIED_PROFILE,
       verificationStatus: 'pending',
       avatarPath: '',
     })
+    fetchFarmerCredentialsMock.mockResolvedValue([])
 
     const { result } = renderHook(() => useFarmerProfile('u1'))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-    expect(fetchFarmerCredentials).not.toHaveBeenCalled()
-    expect(fetchFarmerAffiliations).not.toHaveBeenCalled()
-    expect(fetchFarmerEndorsements).not.toHaveBeenCalled()
+    expect(fetchFarmerCredentials).toHaveBeenCalledWith('u1')
+    expect(fetchFarmerAffiliations).toHaveBeenCalledWith('u1')
+    expect(fetchFarmerEndorsements).toHaveBeenCalledWith('u1')
     expect(getAvatarUrl).not.toHaveBeenCalled()
     expect(result.current.credentials).toEqual([])
   })
@@ -117,7 +120,7 @@ describe('useFarmerProfile', () => {
     expect(result.current.profile).toBeNull()
   })
 
-  it('keeps the wall usable when only the verification records fail', async () => {
+  it('keeps the wall usable when only the certificate lists fail', async () => {
     fetchFarmerProfileMock.mockResolvedValue(VERIFIED_PROFILE)
     fetchFarmerCredentialsMock.mockRejectedValue(
       new Error('Could not load this farmer\u2019s credentials.')

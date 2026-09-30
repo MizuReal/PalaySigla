@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Button from '../Button'
+import CertificateThumbnail from './CertificateThumbnail'
 import DocumentUploadField from './DocumentUploadField'
 import { SectionError } from './VerificationSectionShell'
 import { FORM_FIELD_CLASSES, withFieldError } from '../../utils/formField'
@@ -7,7 +8,10 @@ import { validateRsbsa } from '../../utils/verificationValidation'
 import type { SaveRsbsaInput } from '../../services/credentials'
 
 const RSBSA_REQUIRED_ERROR = 'Enter your RSBSA number.'
-const RSBSA_NUMBER_HINT = 'Example: RSBSA-12-345678-9012'
+const RSBSA_NUMBER_HINT =
+  'Example: RSBSA-12-345678-9012. Used for verification and never shown on your public profile.'
+const RSBSA_STUB_NOTE =
+  'For your privacy, cover or blur the RSBSA number before uploading. The official DA/MAO stamp or logo may remain visible.'
 
 interface StagedFile {
   blob: Blob
@@ -65,9 +69,10 @@ function RsbsaSection({
 
   return (
     <section className="border border-hairline bg-canvas p-5 md:p-6">
-      <h3 className="heading-sm text-ink">RSBSA number</h3>
+      <h3 className="heading-sm text-ink">RSBSA Control Number Stub</h3>
       <p className="body-sm mt-1 text-mute">
-        Used for farmer identification, verification, and your profile wall.
+        Upload a photo of your RSBSA registration stub. The stub appears on your
+        public profile wall with the number hidden.
       </p>
 
       {isLocked && (
@@ -111,14 +116,24 @@ function RsbsaSection({
         </div>
         <DocumentUploadField
           id="rsbsa-document"
-          label="RSBSA certificate/card (optional)"
-          hint="Photos only, JPEG or PNG, up to 10 MB."
-          fileName={staged?.name ?? (rsbsaDocumentPath ? 'RSBSA document on file' : '')}
+          label="RSBSA stub photo"
+          hint={RSBSA_STUB_NOTE}
+          fileName={staged?.name ?? (rsbsaDocumentPath ? 'RSBSA stub on file' : '')}
           disabled={isLocked || isSaving}
           onPick={(blob, name) => setStaged({ blob, name })}
           onClear={() => setStaged(null)}
         />
       </div>
+
+      {rsbsaDocumentPath ? (
+        <p className="caption-sm mt-3 flex items-center gap-3 text-mute">
+          <CertificateThumbnail
+            storagePath={rsbsaDocumentPath}
+            title="RSBSA stub"
+          />
+          <span>View the stub currently on file.</span>
+        </p>
+      ) : null}
 
       {actionError ? (
         <div className="mt-4">

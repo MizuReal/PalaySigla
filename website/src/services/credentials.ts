@@ -1,11 +1,11 @@
 import { supabase } from './supabaseClient'
+import { getSignedImageUrl } from './signedUrlCache'
 import type {
   ProfileAffiliationRow,
   ProfileCredentialRow,
-  ProfileDocumentRow,
   ProfileEndorsementRow,
 } from '../types/domain'
-import type { CredentialType } from '../utils/verification'
+import type { CredentialType, EndorsementType } from '../utils/verification'
 
 export const CREDENTIAL_BUCKET = 'credentials'
 export const MAX_CREDENTIAL_DIMENSION = 1600
@@ -17,7 +17,6 @@ export interface OwnVerificationRecords {
   credentials: ProfileCredentialRow[]
   affiliations: ProfileAffiliationRow[]
   endorsements: ProfileEndorsementRow[]
-  documents: ProfileDocumentRow[]
 }
 
 export interface VerificationRecordRef {
@@ -39,14 +38,10 @@ export interface NewAffiliationInput {
 }
 
 export interface NewEndorsementInput {
+  endorsementType: EndorsementType
   municipality: string
   issuingOffice: string
   dateIssued: string
-  file: Blob | File
-}
-
-export interface NewSupportingDocumentInput {
-  label: string
   file: Blob | File
 }
 
@@ -85,6 +80,16 @@ export async function removeCredentialDocument(storagePath: string): Promise<voi
   }
 }
 
+// Owner documents and wall certificates both sign through the shared cache;
+// the storage policies decide who can actually sign which path.
+export async function getCredentialDocumentUrl(storagePath: string): Promise<string> {
+  return getSignedImageUrl(
+    CREDENTIAL_BUCKET,
+    storagePath,
+    'Could not load the document. Please try again.'
+  )
+}
+
 // A row insert that fails after its document upload must not leave the file
 // behind. The cleanup is limited to the just-uploaded path, and a cleanup
 // failure is surfaced in the error message instead of hidden.
@@ -108,7 +113,7 @@ function recordFailure(message: string, cleaned: boolean): Error {
 export async function fetchOwnVerificationRecords(
   userId: string
 ): Promise<OwnVerificationRecords> {
-  const [credentials, affiliations, endorsements, documents] = await Promise.all([
+  const [credentials, affiliations, endorsements] = await Promise.all([
     supabase
       .from('profile_credentials')
       .select('*')
@@ -124,14 +129,8 @@ export async function fetchOwnVerificationRecords(
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('profile_documents')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false }),
   ])
-  const failed =
-    credentials.error ?? affiliations.error ?? endorsements.error ?? documents.error
+  const failed = credentials.error ?? affiliations.error ?? endorsements.error
   if (failed) {
     throw new Error('Could not load your verification records. Please try again.')
   }
@@ -139,7 +138,6 @@ export async function fetchOwnVerificationRecords(
     credentials: credentials.data ?? [],
     affiliations: affiliations.data ?? [],
     endorsements: endorsements.data ?? [],
-    documents: documents.data ?? [],
   }
 }
 
@@ -211,11 +209,12 @@ export async function deleteAffiliation(record: VerificationRecordRef): Promise<
 
 export async function createEndorsement(
   userId: string,
-  { municipality, issuingOffice, dateIssued, file }: NewEndorsementInput
+  { endorsementType, municipality, issuingOffice, dateIssued, file }: NewEndorsementInput
 ): Promise<void> {
   const documentPath = await uploadCredentialDocument(userId, file)
   const { error } = await supabase.from('profile_endorsements').insert({
     user_id: userId,
+    endorsement_type: endorsementType,
     municipality,
     issuing_office: issuingOffice,
     date_issued: dateIssued,
@@ -240,36 +239,6 @@ export async function deleteEndorsement(record: VerificationRecordRef): Promise<
   } catch {
     throw new Error(
       'The endorsement was removed, but its uploaded file could not be deleted. Please try again.'
-    )
-  }
-}
-
-export async function createSupportingDocument(
-  userId: string,
-  { label, file }: NewSupportingDocumentInput
-): Promise<void> {
-  const documentPath = await uploadCredentialDocument(userId, file)
-  const { error } = await supabase.from('profile_documents').insert({
-    user_id: userId,
-    label,
-    document_path: documentPath,
-  })
-  if (error) {
-    const cleaned = await cleanupUploadedDocument(documentPath)
-    throw recordFailure('Could not save the document. Please try again.', cleaned)
-  }
-}
-
-export async function deleteSupportingDocument(record: VerificationRecordRef): Promise<void> {
-  const { error } = await supabase.from('profile_documents').delete().eq('id', record.id)
-  if (error) {
-    throw new Error('Could not remove the document. Please try again.')
-  }
-  try {
-    await removeCredentialDocument(record.documentPath)
-  } catch {
-    throw new Error(
-      'The document was removed, but its uploaded file could not be deleted. Please try again.'
     )
   }
 }

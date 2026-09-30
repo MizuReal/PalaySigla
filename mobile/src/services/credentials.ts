@@ -2,15 +2,15 @@
 // website/src/services/credentials.ts. Uploads carry the compressed image's
 // base64 payload (RN-safe) instead of a web File/Blob.
 import { supabase } from './supabaseClient'
+import { getSignedImageUrl } from './signedUrlCache'
 import { decodePreparedImage } from '../utils/image'
 import type { PreparedImage } from '../utils/image'
 import type {
   ProfileAffiliationRow,
   ProfileCredentialRow,
-  ProfileDocumentRow,
   ProfileEndorsementRow,
 } from '../types/domain'
-import type { CredentialType } from '../utils/verification'
+import type { CredentialType, EndorsementType } from '../utils/verification'
 
 export const CREDENTIAL_BUCKET = 'credentials'
 export const MAX_CREDENTIAL_DIMENSION = 1600
@@ -22,7 +22,6 @@ export interface OwnVerificationRecords {
   credentials: ProfileCredentialRow[]
   affiliations: ProfileAffiliationRow[]
   endorsements: ProfileEndorsementRow[]
-  documents: ProfileDocumentRow[]
 }
 
 export interface VerificationRecordRef {
@@ -44,14 +43,10 @@ export interface NewAffiliationInput {
 }
 
 export interface NewEndorsementInput {
+  endorsementType: EndorsementType
   municipality: string
   issuingOffice: string
   dateIssued: string
-  image: PreparedImage
-}
-
-export interface NewSupportingDocumentInput {
-  label: string
   image: PreparedImage
 }
 
@@ -92,6 +87,16 @@ export async function removeCredentialDocument(storagePath: string): Promise<voi
   }
 }
 
+// Owner documents and wall certificates both sign through the shared cache;
+// the storage policies decide who can actually sign which path.
+export async function getCredentialDocumentUrl(storagePath: string): Promise<string> {
+  return getSignedImageUrl(
+    CREDENTIAL_BUCKET,
+    storagePath,
+    'Could not load the document. Please try again.'
+  )
+}
+
 // A row insert that fails after its document upload must not leave the file
 // behind. The cleanup is limited to the just-uploaded path, and a cleanup
 // failure is surfaced in the error message instead of hidden.
@@ -115,7 +120,7 @@ function recordFailure(message: string, cleaned: boolean): Error {
 export async function fetchOwnVerificationRecords(
   userId: string
 ): Promise<OwnVerificationRecords> {
-  const [credentials, affiliations, endorsements, documents] = await Promise.all([
+  const [credentials, affiliations, endorsements] = await Promise.all([
     supabase
       .from('profile_credentials')
       .select('*')
@@ -131,14 +136,8 @@ export async function fetchOwnVerificationRecords(
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('profile_documents')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false }),
   ])
-  const failed =
-    credentials.error ?? affiliations.error ?? endorsements.error ?? documents.error
+  const failed = credentials.error ?? affiliations.error ?? endorsements.error
   if (failed) {
     throw new Error('Could not load your verification records. Please try again.')
   }
@@ -146,7 +145,6 @@ export async function fetchOwnVerificationRecords(
     credentials: credentials.data ?? [],
     affiliations: affiliations.data ?? [],
     endorsements: endorsements.data ?? [],
-    documents: documents.data ?? [],
   }
 }
 
@@ -218,11 +216,12 @@ export async function deleteAffiliation(record: VerificationRecordRef): Promise<
 
 export async function createEndorsement(
   userId: string,
-  { municipality, issuingOffice, dateIssued, image }: NewEndorsementInput
+  { endorsementType, municipality, issuingOffice, dateIssued, image }: NewEndorsementInput
 ): Promise<void> {
   const documentPath = await uploadCredentialDocument(userId, image)
   const { error } = await supabase.from('profile_endorsements').insert({
     user_id: userId,
+    endorsement_type: endorsementType,
     municipality,
     issuing_office: issuingOffice,
     date_issued: dateIssued,
@@ -251,38 +250,8 @@ export async function deleteEndorsement(record: VerificationRecordRef): Promise<
   }
 }
 
-export async function createSupportingDocument(
-  userId: string,
-  { label, image }: NewSupportingDocumentInput
-): Promise<void> {
-  const documentPath = await uploadCredentialDocument(userId, image)
-  const { error } = await supabase.from('profile_documents').insert({
-    user_id: userId,
-    label,
-    document_path: documentPath,
-  })
-  if (error) {
-    const cleaned = await cleanupUploadedDocument(documentPath)
-    throw recordFailure('Could not save the document. Please try again.', cleaned)
-  }
-}
-
-export async function deleteSupportingDocument(record: VerificationRecordRef): Promise<void> {
-  const { error } = await supabase.from('profile_documents').delete().eq('id', record.id)
-  if (error) {
-    throw new Error('Could not remove the document. Please try again.')
-  }
-  try {
-    await removeCredentialDocument(record.documentPath)
-  } catch {
-    throw new Error(
-      'The document was removed, but its uploaded file could not be deleted. Please try again.'
-    )
-  }
-}
-
-// RSBSA lives on the profiles row; when a replacement document is uploaded the
-// old object is cleaned up after the row already points at the new file, so a
+// RSBSA lives on the profiles row; when a replacement stub is uploaded the old
+// object is cleaned up after the row already points at the new file, so a
 // cleanup failure never leaves the profile pointing at a deleted document.
 export async function saveRsbsaDetails(
   userId: string,

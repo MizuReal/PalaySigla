@@ -2,22 +2,23 @@ import Button from '../Button'
 import AffiliationSection from './AffiliationSection'
 import CredentialsSection from './CredentialsSection'
 import EndorsementSection from './EndorsementSection'
+import FarmerDetailsForm from './FarmerDetailsForm'
+import RmnSealCard from './RmnSealCard'
 import RsbsaSection from './RsbsaSection'
-import SupportingDocumentsSection from './SupportingDocumentsSection'
 import VerificationStatusBadge from './VerificationStatusBadge'
 import { useAuth } from '../../context/authContext'
 import { TOAST_VARIANTS, useToast } from '../../context/toastContext'
 import useVerificationRecords from '../../hooks/useVerificationRecords'
-import { VERIFICATION_STATUSES } from '../../utils/verification'
+import { CREDENTIAL_TYPES, toCredentialType, VERIFICATION_STATUSES } from '../../utils/verification'
 import type { VerificationStatus } from '../../utils/verification'
 
 const STATUS_EXPLANATIONS: Record<VerificationStatus, string> = {
   [VERIFICATION_STATUSES.UNVERIFIED]:
-    'Add at least one credential or supporting document to start the verification process.',
+    'Add at least one certificate or registration to start the verification process. Uploaded files already appear on your public profile wall.',
   [VERIFICATION_STATUSES.PENDING]:
     'Your documents are in. Our team reviews every submission before granting the Verified Rice Farmer badge.',
   [VERIFICATION_STATUSES.VERIFIED]:
-    'Your documents were reviewed and approved. The badge appears on your profile wall.',
+    'Your documents were reviewed and approved. The Verified Rice Farmer badge appears on your profile wall.',
 }
 
 function FarmerVerificationPanel() {
@@ -40,8 +41,6 @@ function FarmerVerificationPanel() {
     removeAffiliation,
     addEndorsement,
     removeEndorsement,
-    addSupportingDocument,
-    removeSupportingDocument,
   } = useVerificationRecords()
 
   const notify = (message: string) => {
@@ -76,6 +75,13 @@ function FarmerVerificationPanel() {
     )
   }
 
+  const seals = records.credentials.filter(
+    (credential) => toCredentialType(credential.credential_type) === CREDENTIAL_TYPES.RMN_SEAL
+  )
+  const certifications = records.credentials.filter(
+    (credential) => toCredentialType(credential.credential_type) !== CREDENTIAL_TYPES.RMN_SEAL
+  )
+
   return (
     <div className="space-y-4">
       <section className="border border-hairline bg-canvas p-5 md:p-6">
@@ -101,49 +107,60 @@ function FarmerVerificationPanel() {
         ) : null}
       </section>
 
-      <RsbsaSection
-        isLocked={isLocked}
-        rsbsaNumber={rsbsaNumber}
-        rsbsaDocumentPath={rsbsaDocumentPath}
-        saveRsbsa={saveRsbsa}
-        onSaved={notify}
-      />
+      <FarmerDetailsForm />
 
-      <CredentialsSection
-        isLocked={isLocked}
-        credentials={records.credentials}
-        removingId={removingId}
-        addCredential={addCredential}
-        removeCredential={removeCredential}
-        onSaved={notify}
-      />
+      <div className="space-y-4">
+        <h2 className="heading-md text-ink">Official government registrations</h2>
+        <RsbsaSection
+          isLocked={isLocked}
+          rsbsaNumber={rsbsaNumber}
+          rsbsaDocumentPath={rsbsaDocumentPath}
+          saveRsbsa={saveRsbsa}
+          onSaved={notify}
+        />
+        <RmnSealCard
+          isLocked={isLocked}
+          seals={seals}
+          removingId={removingId}
+          addCredential={addCredential}
+          removeCredential={removeCredential}
+          onSaved={notify}
+        />
+      </div>
 
-      <AffiliationSection
-        isLocked={isLocked}
-        affiliations={records.affiliations}
-        removingId={removingId}
-        addAffiliation={addAffiliation}
-        removeAffiliation={removeAffiliation}
-        onSaved={notify}
-      />
+      <div className="space-y-4">
+        <h2 className="heading-md text-ink">Certifications and accreditations</h2>
+        <CredentialsSection
+          isLocked={isLocked}
+          credentials={certifications}
+          removingId={removingId}
+          addCredential={addCredential}
+          removeCredential={removeCredential}
+          onSaved={notify}
+        />
+      </div>
 
-      <EndorsementSection
-        isLocked={isLocked}
-        endorsements={records.endorsements}
-        removingId={removingId}
-        addEndorsement={addEndorsement}
-        removeEndorsement={removeEndorsement}
-        onSaved={notify}
-      />
-
-      <SupportingDocumentsSection
-        isLocked={isLocked}
-        documents={records.documents}
-        removingId={removingId}
-        addSupportingDocument={addSupportingDocument}
-        removeSupportingDocument={removeSupportingDocument}
-        onSaved={notify}
-      />
+      <div className="space-y-4">
+        <h2 className="heading-md text-ink">
+          Local government and cooperative endorsements
+        </h2>
+        <EndorsementSection
+          isLocked={isLocked}
+          endorsements={records.endorsements}
+          removingId={removingId}
+          addEndorsement={addEndorsement}
+          removeEndorsement={removeEndorsement}
+          onSaved={notify}
+        />
+        <AffiliationSection
+          isLocked={isLocked}
+          affiliations={records.affiliations}
+          removingId={removingId}
+          addAffiliation={addAffiliation}
+          removeAffiliation={removeAffiliation}
+          onSaved={notify}
+        />
+      </div>
     </div>
   )
 }
