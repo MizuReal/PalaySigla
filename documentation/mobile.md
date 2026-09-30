@@ -1,16 +1,18 @@
 # Mobile (React Native)
 
-Expo SDK 57 (managed workflow) + React Navigation v7 + TypeScript (`strict`),
-migrating from JavaScript phase by phase. Ships the **light-only landing screen**, the tab shell, the
-**marketplace** — browse feed, 3-step posting wizard (photo + map pin),
-listing detail with owner actions (reserve / mark sold / release / remove), and the
-**location picker** — the live **Community forum** (feed, categories,
-threads, comments, hearts, photos), **marketplace messaging** (listing-scoped
-buyer/seller chat with live delivery and unread badges), **full
+Expo SDK 57 (managed workflow) + React Navigation v7 + TypeScript (`strict`).
+Ships the **light-only landing screen**, the tab shell, the **marketplace** —
+browse feed, 3-step posting wizard (photo + map pin), listing detail with
+owner actions (reserve / mark sold / release / remove), and the **location
+picker** — the live **Community forum** (feed, categories, threads, comments,
+hearts, photos), **marketplace messaging** (listing-scoped buyer/seller chat
+with live delivery and unread badges), **mutual reviews**, **full
 email/password auth** (login / register / forgot password with in-app
-email-link returns), toast notifications, the **Selling history** profile tab,
-and the **Palay Assistant chat** (root-level bottom sheet over the tabs); the
-scanning flow arrives in a later phase.
+email-link returns), toast notifications, the **profile surfaces** (Account /
+Farmer profile / Selling history / Purchases), the signed-in **farmer profile
+wall** with credential management, the **credentials nudge**, and the **Palay
+Assistant chat** (root-level bottom sheet over the tabs); the scanning flow
+arrives in a later phase.
 
 ## Requirements
 
@@ -75,51 +77,67 @@ src/
 ├── components/             BrandBar, Section, SectionHeader, Icon (react-native-svg port of the web icon set),
 │   │                       Button, FeatureNotice, TabScreen, AppTabBar (custom bottom tab bar), Photo,
 │   │                       AuthModal (multi-view auth dialog), Toast (root toast panel),
-│   │                       AuthToasts (sign-in / sign-out announcements), FullPageMessage +
-│   │                       RootErrorFallback (error / not-found shell)
+│   │                       AuthToasts (sign-in / sign-out announcements), ProfileNudgeModal (credentials nudge),
+│   │                       FullPageMessage + RootErrorFallback (error / not-found shell)
 │   ├── chat/               ChatLauncher (floating button over the tabs), ChatModal (root bottom-sheet overlay)
 │   ├── marketplace/        ListingCard, ListingCardSkeleton, ListingFilters, ListingFeed (marketplace browse UI),
 │   │                       MapPicker + mapConfig/mapHtml (WebView Leaflet location picker + detail map),
 │   │                       ListingLocationMap (read-only detail map), PostListingImageUploader (camera/library photo step)
-│   ├── profile/            AvatarEditor + ProfileDetailsForm + ReviewsCard (Account tab),
-│   │                       SellingHistoryPanel + SellingHistoryRow (Selling history tab)
+│   ├── profile/            AvatarEditor + ProfileDetailsForm + ReviewsCard + ReviewItem + StarRatingInput (Account tab),
+│   │                       SellingHistoryPanel + SellingHistoryRow (Selling history tab),
+│   │                       PurchasesPanel (Purchases tab),
+│   │                       FarmerProfilePanel + FarmerDetailsCard + VerificationSections +
+│   │                       VerificationSectionShell + VerificationStatusBadge + DocumentPickerField (Farmer
+│   │                       profile tab), CertificateThumbnail + DocumentPreviewModal (wall previews)
 │   ├── forum/              ForumPostCard(+Skeleton), ForumPostImage, AuthorBadge, HeartButton,
 │   │                       ReplyButton, ForumToolbar (search + create + category chips),
 │   │                       ForumImageUploader, CommentComposer, CommentItem, DeleteInlineConfirm (community UI)
 │   ├── messages/           ConversationList + ConversationListItem (inbox), MessageThread + MessageBubble +
-│   │                       MessageComposer (listing-scoped buyer/seller chat)
+│   │                       MessageComposer + ListingContextBar + MessageSuggestions (listing-scoped chat)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
 ├── context/                authContext + AuthProvider (session + overlays), toastContext + ToastProvider
 │   │                       (root toast layer, under the modal overlays), messagingContext + MessagingProvider
 │   │                       (inbox Realtime subscription + unread badge)
 ├── screens/                LandingScreen (intro), MainTabs, Marketplace (feed), ListingDetail (root-stack push),
 │   │                       PostListing (3-step wizard), Messages + Conversation (root-stack pushes),
-│   │                       ForumThread + ForumPostEditor (root-stack pushes),
-│   │                       Community (forum feed), NotFound (unknown-address fallback), Scan/Settings tab screens
+│   │                       ReviewForm (root-stack push), ForumThread + ForumPostEditor (root-stack pushes),
+│   │                       FarmerProfile (farmer wall push), Community (forum feed),
+│   │                       NotFound (unknown-address fallback), Scan/Settings tab screens
 ├── services/               supabaseClient (AsyncStorage session persistence), auth
 │   │                       (sign-in/up/out, reset, deep-link hand-off), chatbot (sendChatMessage), listings
 │   │                       (browse + create/upload/soft-delete/status/my-listings), geocode (place search +
 │   │                       reverse geocoding through the backend), signedUrlCache (shared 60s/45s cache),
 │   │                       forum (posts/comments/reactions/images + category counts),
 │   │                       messaging (conversations/messages + Realtime subscriptions),
+│   │                       transactions (durable purchases + listing transition record), reviews (mutual
+│   │                       ratings + public aggregates), farmerProfile (wall RPCs), credentials (own
+│   │                       verification records + document uploads),
 │   │                       profile (fetch/upsert/name sync + avatar upload/remove/URLs)
 ├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
 │   │                       useImagePicker (camera/library + permissions + compression), usePostListing,
 │   │                       useListingActions (reserve / mark sold / release / remove), useMyListings,
-│   │                       useListingConversations (buyer picker candidates),
+│   │                       useListingConversations (buyer picker candidates), useListingTransaction,
+│   │                       useMyPurchases, useReviewForm, useMyReviewedTransactionIds, useUserReviews, useUserRating,
 │   │                       useForumPosts, useForumPost, useForumComments, useForumPostEditor,
 │   │                       useForumCategoryCounts, useForumImagePicker, useForumImageUrl,
-│   │                       useConversations, useConversation, useStartConversation, useUnreadMessageCount,
-│   │                       useProfile (account details + staged avatar),
+│   │                       useConversations, useConversation, useStartConversation, useConversationListing,
+│   │                       useUnreadMessageCount, useProfile (account details + staged avatar),
+│   │                       useFarmerProfile (farmer wall), useFarmerDetails (farm info form),
+│   │                       useVerificationRecords (own credential/affiliation/endorsement rows),
 │   │                       usePalayAssistant (chat state + history), usePulseOpacity
-├── types/                  database.ts (generated Supabase types; copy of the website file) + api.ts (backend contracts)
+├── types/                  database.ts (generated Supabase types; copy of the website file), api.ts (backend
+│   │                       contracts), domain.ts (row/domain shapes), navigation.ts (stack + tab param lists)
 ├── utils/                  format.ts — listing label maps, PHP price, date + relative-time formatters;
 │   │                       validation.ts — NAME/EMAIL_PATTERN ports; userProfile.ts — display-name
 │   │                       resolution + initials; authUrlHint.ts — auth return-URL builder/parser;
 │   │                       image.ts — validate/compress/decode photo bytes; listingValidation.ts — wizard
 │   │                       step gate; listingEvents.ts — listings-changed broadcast;
-│   │                       forumCategories.ts + forumValidation.ts + forumEvents.ts — forum vocabulary/gate/events;
-│   │                       profileValidation.ts — PH phone formats + E.164 normalization
+│   │                       forumCategories.ts + forumValidation.ts + forumEvents.ts + forumIcons.ts — forum
+│   │                       vocabulary/gate/events; badwords.ts — EN/FIL whole-word filter;
+│   │                       profileValidation.ts — PH phone formats + E.164 normalization;
+│   │                       verification.ts + verificationValidation.ts + riceVarieties.ts — farmer taxonomy,
+│   │                       form gates, variety vocabulary; profileNudge.ts — per-user nudge dismissal;
+│   │                       messageSuggestions.ts, reviewEvents.ts
 └── data/                   paddySlides.ts — landing slide content, mirrored from website/src/data
 ```
 
@@ -289,8 +307,9 @@ this" for the buyer, "Sold to …" for the seller — with its own review CTA.
 
 ### Profile management (current)
 
-The Settings **Account** tab is the profile surface (`hooks/useProfile.ts` +
-`services/profile.ts`, the web profile page trimmed to its Account tab):
+Signed-in Settings is the profile surface (`hooks/useProfile.ts` +
+`services/profile.ts`) with a 44px pill row — Account / Farmer profile /
+Selling history / Purchases:
 
 - **Avatar** — `AvatarEditor` shows the saved photo (signed URL) or the
   initials monogram, with "Change photo" (library picker → validate →
@@ -304,9 +323,68 @@ The Settings **Account** tab is the profile surface (`hooks/useProfile.ts` +
   photo, upserts the `profiles` row, and — when the name changed — syncs
   `user_metadata.full_name` so the rest of the app reflects it; success shows
   a toast, failures render inline.
-- **Ratings & reviews** — the read-only `ReviewsCard` placeholder
-  (stars from `profiles.rating_avg/count`, "Reviews open with the next
-  release."); review submission is deferred (needs a schema migration).
+- **Ratings & reviews** — the `ReviewsCard` lists the aggregate stars and the
+  public received reviews (`hooks/useUserReviews.ts`); review submission
+  lives on the Purchases and Selling history rows and in the conversation
+  thread through the root-stack `ReviewForm` screen.
+
+### Farmer profile & verification (current)
+
+The Settings **Farmer profile** tab
+(`components/profile/FarmerProfilePanel.tsx`, `hooks/useFarmerDetails.ts`,
+`hooks/useVerificationRecords.ts`, `services/credentials.ts`) is the wall
+editor:
+
+- **Status card** — the shared `VerificationStatusBadge` (Unverified /
+  Pending Verification / Verified Rice Farmer) with a "View my public
+  profile" action that pushes `FarmerProfile`.
+- **Farm information** — `FarmerDetailsCard`: barangay / municipality /
+  province, farm size (hectares), years of experience, a variety toggle-chip
+  wrap plus a free-text "Other" field, one primary Save with a dirty cue and
+  an inline error banner.
+- **Taxonomy cards** — `VerificationSections.tsx`: the RSBSA stub (typed
+  number kept off the wall, "cover or blur the RSBSA number" note, optional
+  stub upload), the image-only RMN seal, certifications (BPI Accredited Seed
+  Grower / PhilGAP / SRP Verification / Other + issuing organization +
+  optional certificate number + photo), endorsements (Barangay Agricultural
+  Certification / Cooperative Recognition + issuing office, municipality,
+  `YYYY-MM-DD` issue date + photo), and FCA / association / cooperative
+  memberships (organization name, stored-but-private membership ID, proof).
+  Rows are led by a 64px `CertificateThumbnail` that opens the native
+  `DocumentPreviewModal`, with inline errors and a destructive Remove; a
+  verified profile shows the lock notice and hides add/remove.
+- **Documents** — `DocumentPickerField` (explicit camera-permission handling
+  with denied / blocked copy plus a library option, JPEG/PNG re-encoded to
+  ≤ 1600px with EXIF stripped) uploads to the private `credentials` bucket.
+  The tab opens directly when reached with the `?tab=farmer` route param
+  equivalent (`{ screen: 'Settings', params: { tab: 'farmer' } }`).
+
+### Farmer profile wall (current)
+
+`FarmerProfileScreen` is a root-stack push (`FarmerProfile: { userId }`)
+above the tab bar. Its body reuses the web wall at phone scale — the identity
+card (80px avatar via the signed-URL cache or monogram fallback, name, `pin` +
+location line, member since, verification badge), the Farming information
+card with hairline variety chips, then the three public taxonomy cards
+(Official government registrations, Certifications and accreditations, Local
+government and cooperative endorsements) whose rows open the native preview
+modal. The shared `Ratings & reviews` card is bound to the wall's user id, and
+an owner-only "This is your public profile wall" panel switches to the
+Settings Farmer profile tab. No verification gating and no sensitive
+identifiers (typed RSBSA number, membership IDs, phone) are rendered;
+signed-out visitors get the sign-in gate and a missing account gets the
+neutral not-found copy. Backed by `hooks/useFarmerProfile.ts` +
+`services/farmerProfile.ts` (the four wall RPCs), with certificate thumbnails
+signed through `services/credentials.ts` + `services/signedUrlCache.ts`. The
+listing detail seller card pushes this screen.
+
+### Credentials nudge (current)
+
+The root-level `ProfileNudgeModal` (`utils/profileNudge.ts`) fires once per
+account after the register flow completes — both the immediate-session case
+and the email-verified "Continue" card. The dismissal is stored per user in
+AsyncStorage under `palaysigla:credentials-nudge:<userId>`; "Go to my profile"
+switches to Settings with the Farmer profile tab selected, "Later" dismisses.
 
 ### Toast notifications (current)
 
@@ -487,9 +565,10 @@ password-reset links return into the app via its URL scheme:
 - Tab content is honest, designed placeholder panels (`FeatureNotice`):
   each states what the phase will bring — no fake data, no dead controls.
   Marketplace (browse + posting + owner actions), Community (forum), and
-  Settings (account + Selling history) are live; the scanning flow replaces
-  the remaining panel in a later phase. The assistant launcher floats over all
-  tabs and the auth dialog overlays everything when open.
+  Settings (Account / Farmer profile / Selling history / Purchases) are live;
+  the scanning flow replaces the remaining panel in a later phase. The
+  assistant launcher floats over all tabs and the auth dialog overlays
+  everything when open.
 - Landing CTA buttons, nav auth links, and the early-access form stay absent:
   sign-in lives behind the assistant launcher and the Settings tab.
 

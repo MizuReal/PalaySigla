@@ -2,7 +2,8 @@
 
 FastAPI backend for PalaySigla — Nominatim geocoding proxy, the Palay
 Assistant chat endpoint (Groq-hosted LLM, server-side Supabase JWT auth), and
-a health check. ML inference is planned but not yet implemented.
+a health check. Deploys on Render from `render.yaml`. ML inference is planned
+but not yet implemented.
 
 Setup, env vars, tests, and API details: see
 [`documentation/backend.md`](../documentation/backend.md) and

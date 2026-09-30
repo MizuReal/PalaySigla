@@ -1,6 +1,8 @@
 # Website
 
-React web app for PalaySigla (landing page, auth, marketplace).
+React web app for PalaySigla — landing page, auth, marketplace, community
+forum, messages, profile with selling history/purchases/reviews, and the
+farmer verification wall.
 
 Setup, env vars, scripts, and source-layout notes: see
 [`documentation/frontend.md`](../documentation/frontend.md).

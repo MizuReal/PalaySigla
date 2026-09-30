@@ -33,6 +33,34 @@ works without them). To exercise authenticated chat locally, set
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `GROQ_CHATBOT_API_KEY`;
 the `Chatbot` constructor refuses to start without the Groq key.
 
+## Deployment (Render)
+
+`render.yaml` at the repository root is a Render Blueprint for the backend
+service:
+
+| Setting | Value |
+|---|---|
+| Service | `palaysigla-backend` (web service, Python) |
+| Root directory | `backend` |
+| Region / plan | `singapore` / `free` |
+| Branch | `main` — auto-deploy on commit |
+| Build command | `pip install -r requirements.txt` |
+| Start command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Health check | `/health` |
+| Python version | `PYTHON_VERSION=3.14.3` |
+
+Create the service through **New → Blueprint** pointed at this repository;
+Render reads `render.yaml` and provisions it. The configuration values are
+declared with `sync: false`, so they are supplied in the Render dashboard
+(or prompted on first deploy) and never committed:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` (`SUPABASE_SECRET_KEY` is accepted as an alias)
+- `GROQ_CHATBOT_API_KEY`
+- `CORS_ORIGINS` — comma-separated allowlist; must include the deployed
+  website origin. Wildcard `*` is forbidden in production.
+- `CONTACT_EMAIL` — used in the Nominatim `User-Agent`.
+
 ## Scripts
 
 | Command | What |

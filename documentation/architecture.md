@@ -4,13 +4,13 @@
 
 | Layer | Technology |
 |---|---|---|
-| Website | React 19, react-router v7, Tailwind CSS v4, Leaflet (react-leaflet v5), TypeScript (strict) |
-| Backend | FastAPI (async), httpx, pydantic-settings |
+| Website | React 19, react-router v7, Tailwind CSS v4, Leaflet (react-leaflet v5), TanStack Table v9, TypeScript (strict) |
+| Backend | FastAPI (async), httpx, pydantic-settings — deployed on Render (`render.yaml`) |
 | Database + Auth + Storage | Supabase (PostgreSQL, email/password auth, private buckets) |
 | Realtime | Supabase Realtime (Postgres Changes over WebSocket) for marketplace messaging |
 | Geocoding | Nominatim / OpenStreetMap, proxied through the backend |
 | Palay Assistant | Groq-hosted `openai/gpt-oss-20b` (chat-completions), proxied through the backend |
-| Mobile | Expo SDK 57 (React Native), React Navigation v7, TypeScript (strict), Inter typeface — intro landing + bottom-tab shell + marketplace browse + full email/password auth + Palay Assistant shipped |
+| Mobile | Expo SDK 57 (React Native), React Navigation v7, TypeScript (strict), Inter typeface, WebView Leaflet, Supabase Realtime — landing + tab shell, marketplace, forum, messaging, profile + verification wall, Palay Assistant shipped |
 
 **Key rules:** the backend is the sole gateway to external APIs. The frontend
 never calls Nominatim, Groq, or any third-party service directly — everything
@@ -335,6 +335,117 @@ Notes:
   inactive/deleted listing, reading a thread you are not in, and editing or
   deleting a message.
 
+## Community forum
+
+A signed-in-to-post community board built entirely on Postgres + RLS — no
+bespoke service. `004`–`006` add `forum_posts`, `forum_comments` (flat, one
+level), `forum_reactions` (exactly one heart per user per target), and
+`forum_images` (up to four photos per post).
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as ForumPage / ForumThreadModal
+    participant H as useForumPosts / useForumPost
+    participant S as services/forum.ts
+    participant SB as Supabase (RLS)
+    participant ST as Storage (forum bucket)
+
+    U->>F: category / search / page
+    F->>H: useForumPosts({category, search, page})
+    H->>S: fetchForumPosts + fetchMyPostHeartIds
+    S->>SB: visible posts (+ image rows, reaction ids, counts)
+    SB-->>S: rows + exact count
+    H->>S: getForumImageUrl(path) per photo
+    S->>ST: createSignedUrl (cached 45 s)
+    ST-->>F: signed URL
+    U->>F: hearts a post / opens the thread
+    F->>S: setForumPostHeart(postId, userId, liked)
+    S->>SB: insert/delete forum_reactions row
+    SB-->>SB: trigger maintains heart_count
+```
+
+Notes:
+
+- **Categories.** Seven CHECK-constrained categories (`general`, `planting`,
+  `pests`, `harvesting`, `storage`, `quality`, `market`); counts come from
+  `forum_category_counts()`, a `SECURITY INVOKER` RPC, so the caller's row
+  policies still apply. A count failure renders an inline retry, never a
+  silent zero.
+- **Authorship snapshots.** `author_name` is copied onto posts and comments
+  because `profiles` is owner-read-only under RLS (same reason listings carry
+  `seller_name`).
+- **Visibility and deletion.** Readers only see `deleted_at IS NULL` rows;
+  owners read their own soft-deleted posts and edit only their own content.
+  Counter triggers follow visible comments and reactions; `edited_at` is set
+  by content edits only, never by counter bumps.
+- **Hearts.** `forum_reactions` carries a unique partial index per target and
+  a trigger maintains `heart_count`; clients toggle optimistically with
+  rollback on failure.
+- **Photos.** Private `forum` bucket at `{user_id}/{post_id}/{position}.jpg`;
+  the storage select policy only signs URLs while the parent post is visible.
+- **No Realtime.** Forum mutations broadcast on a client-local event bus
+  (`utils/forumEvents.ts`) that refreshes the feed, counts, and thread in the
+  same client; other devices pick changes up on their next fetch.
+- **Badword filter.** Title, body, and comment text pass a client-side
+  whole-word filter (English + Filipino/Tagalog, case- and
+  obfuscation-tolerant) that blocks submit before the insert.
+
+## Farmer verification & profile wall
+
+A trust layer over `profiles`: farmers publish farm details and credential
+documents, staff verify them manually, and every signed-in user can read a
+sanitized wall at `/farmers/:userId` (web) / the `FarmerProfile` stack push
+(mobile). Shipped by `011` + `012`.
+
+- **Owner surface** (`/profile?tab=farmer` web, Settings → Farmer profile
+  mobile): farm information (barangay / municipality / province, farm size,
+  years, rice varieties) plus three record taxonomies —
+  **Official government registrations** (RSBSA Control Number Stub with the
+  typed number kept off the wall, RMN Seal image-only), **Certifications and
+  accreditations** (BPI Accredited Seed Grower, PhilGAP, SRP Verification,
+  Other — issuing organization + optional certificate number + photo), and
+  **Local government and cooperative endorsements** (Barangay Agricultural
+  Certification / Cooperative Recognition with office, municipality, issue
+  date, photo; FCA / association / cooperative memberships with a
+  stored-but-private membership ID).
+- **Records.** Each row lives in `profile_credentials`,
+  `profile_affiliations`, or `profile_endorsements`, with its document in the
+  private `credentials` bucket at `{user_id}/{uuid}.jpg` (JPEG re-encoded
+  client-side to ≤ 1600 px, EXIF stripped). The first insert flips the
+  profile `unverified → pending` through a definer trigger; owners may
+  add/remove only while the profile is not `verified` (verified-lock
+  policies). `profile_documents` remains in the schema but the app no longer
+  writes it.
+- **Wall read path.** `profiles` stays owner-only under RLS, so the wall reads
+  a sanitized projection through four `SECURITY DEFINER` RPCs granted to
+  `authenticated` only: `farmer_profile`, `farmer_credentials`,
+  `farmer_affiliations`, `farmer_endorsements`. Phone, typed RSBSA number,
+  and membership IDs are stripped by the RPCs and never reach a client.
+- **Certificate images.** `012` adds the `certificate_is_public` definer
+  helper to the `credentials` bucket select policy, so signed-in users can
+  sign credential / affiliation / endorsement documents and the RSBSA stub
+  listed on the wall; all other paths (including `profile_documents`) stay
+  owner-only.
+- **Verification badge.** `verification_status` is an independent trust
+  signal, not a visibility gate. There is no reviewer role or admin UI yet —
+  staff approve with a SQL update (see `setup-supabase.md`). Clients cannot
+  self-verify or forge aggregates: `verification_status`, `verified_at`,
+  `rating_avg`, and `rating_count` are revoked at the column level.
+- **Nudge.** After signup completes — an immediate session or an
+  email-verified return — both apps fire a once-per-account credentials nudge
+  that deep-links to the farmer tab (dismissal stored per user in
+  `localStorage` on web, `AsyncStorage` on mobile).
+
+```mermaid
+flowchart LR
+    W[FarmerProfilePage / FarmerProfileScreen] -->|authenticated RPC| R[farmer_profile / farmer_credentials / farmer_affiliations / farmer_endorsements]
+    R -->|projection strips phone, RSBSA number, membership IDs| P[(profiles + verification tables)]
+    W -->|signed URL request| C{certificate_is_public?}
+    C -->|yes| S[credentials bucket object]
+    C -->|no| X[denied]
+```
+
 ## Geocoding proxy
 
 ```mermaid
@@ -371,8 +482,9 @@ per-class confidence with a `needs_review` flag) is documented in
 ├── website/          React web app (services, context, hooks, components, pages)
 ├── backend/          FastAPI app (app/, tests/, pyproject.toml)
 ├── schemas/          Supabase SQL migrations + seed scripts
-├── mobile/           React Native app (Expo) — landing + tab shell + marketplace browse + auth + assistant
+├── mobile/           React Native app (Expo) — landing + tab shell + marketplace + forum + messaging + profile/verification + assistant
 ├── documentation/    These docs
+├── render.yaml       Render blueprint for the backend service
 ├── AGENTS.md         Engineering rules
 └── DESIGN.md         Design system
 ```

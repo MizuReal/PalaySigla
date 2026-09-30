@@ -1,7 +1,7 @@
 # Website (Frontend)
 
 React 19 + Vite + Tailwind CSS v4 + react-router v7. TypeScript (`strict`),
-migrating from JavaScript phase by phase.
+`src` is `.ts`/`.tsx` only.
 
 ## Requirements
 
@@ -58,15 +58,29 @@ Vitest + jsdom + React Testing Library, configured in `vitest.config.js`.
 
 ```
 src/
-├── services/     All Supabase + backend calls (nothing calls supabase.auth/from/storage outside here)
-├── context/      AuthProvider, ToastProvider (+ their context/hook modules)
-├── hooks/        useListings, usePostListing, useListingDetail, useProfile, useAvatar
-├── components/   Modal, AuthModal, AuthToasts, Toast, Button, Icon, chat/ChatWidget,
-│                 marketplace/*, profile/*, site/* (nav, footer, landing sections, error pages)
-├── pages/        Home (marketing), MarketplacePage, ProfilePage, NotFoundPage, RouteErrorPage
+├── services/     All Supabase + backend calls (nothing calls supabase.auth/from/storage outside here):
+│                 supabaseClient, signedUrlCache, auth, profile, listings, geocode, transactions,
+│                 reviews, messaging, forum, farmerProfile, credentials, chatbot
+├── context/      AuthProvider, ToastProvider, MessagingProvider (+ their context/hook modules)
+├── hooks/        Listings (useListings, usePostListing, useListingDetail, useListingConversations,
+│                 useListingTransaction, useMyListings, useMyPurchases), profile (useProfile,
+│                 useAvatar, useReviewForm, useMyReviewedTransactionIds, useUserRating,
+│                 useUserReviews), messaging (useConversations, useConversation,
+│                 useStartConversation, useConversationListing, useUnreadMessageCount),
+│                 forum (useForumPosts, useForumPost, useForumComments, useForumPostEditor,
+│                 useForumCategoryCounts), verification (useFarmerProfile, useFarmerDetails,
+│                 useVerificationRecords)
+├── components/   Modal, AuthModal, AuthToasts, ProfileNudgeModal, Toast, Button, Icon,
+│                 DataTable, chat/ChatWidget, marketplace/*, forum/*, messages/*,
+│                 profile/* (account, history, reviews, verification sections), site/*
+├── pages/        Home (marketing), MarketplacePage, ForumPage, MessagesPage, ProfilePage,
+│                 FarmerProfilePage, NotFoundPage, RouteErrorPage
 ├── data/         media.ts (hero video URL), paddySlides.ts (landing slides)
-├── types/        database.ts (generated Supabase types) + api.ts (backend contracts)
-└── utils/        validation patterns, image compression, formatting, auth URL hints
+├── types/        database.ts (generated Supabase types), api.ts (backend contracts), domain.ts
+└── utils/        validation patterns, image compression, formatting, auth URL hints, PH phone
+                  normalization, profile-tab ids, history table config, forum vocabulary/
+                  validation/events, listing validation/events, verification vocabulary/
+                  validation, rice varieties, message suggestions, review events, badwords
 ```
 
 ### Types
@@ -96,7 +110,8 @@ generated.
 | `/marketplace` | `MarketplacePage` | Browse + post |
 | `/forum` | `ForumPage` | Community feed + thread |
 | `/messages` · `/messages/:conversationId` | `MessagesPage` | Auth-gated marketplace inbox + thread |
-| `/profile` | `ProfilePage` | Auth-gated; sign-in pitch when signed out |
+| `/profile` | `ProfilePage` | Auth-gated; sign-in pitch when signed out. Tabs via `?tab=account\|farmer\|listings\|purchases` |
+| `/farmers/:userId` | `FarmerProfilePage` | Signed-in farmer profile wall (certificates, endorsements); sign-in pitch when signed out |
 | `*` | `NotFoundPage` | Full-page 404 with navigation actions |
 | root `errorElement` | `RouteErrorPage` | Full-page route-error fallback with reload |
 
@@ -104,9 +119,10 @@ There is no shared layout route: each page renders its own `PrimaryNav` +
 `<main>` + `Footer`. `NotFoundPage` / `RouteErrorPage` render bare
 `FullPageMessage`s. Mounted globally in `App.tsx` outside the router (so they
 survive route errors and appear on every page): `AuthModal`, `AuthToasts`,
-and `ChatWidget`. `AuthProvider` and `MessagingProvider` wrap the router;
-`MessagingProvider` owns the inbox Realtime subscription and the unread
-badge total.
+`ProfileNudgeModal`, and `ChatWidget`. `AuthProvider` and `MessagingProvider`
+wrap the router; `MessagingProvider` owns the inbox Realtime subscription and
+the unread badge total. `ProfileNudgeModal` fires once per account after
+signup / email verification and deep-links to `/profile?tab=farmer`.
 
 > **Known stub.** The navbar's "Analysis" link points to
 > `/rice-husk-analysis`, which has no registered route yet — navigating there
@@ -182,6 +198,31 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   unread badge.
 - Everything goes through `services/listings.ts` and `services/geocode.ts`.
 
+### Community forum
+
+- **Feed:** `/forum` — a content-first single-column feed of hairline
+  discussion cards (author line, category tag, title, excerpt, 4:3 first
+  photo, heart + comment actions). A sticky toolbar carries the debounced
+  search, a category dropdown (All + the seven categories with counts from
+  `forum_category_counts()`), and an auth-gated "Start a discussion" CTA.
+  10 posts per page with load-more; filter/search changes remount the keyed
+  feed and reset pagination.
+- **Thread:** `ForumThreadModal` — the post (title, body, 4:3 photos, heart,
+  owner Edit/Delete via the inline two-tap confirm) over an oldest-first
+  comment list with load-more and a composer. Signed-out actions open the
+  auth modal.
+- **Editor:** `PostEditorModal` — title, category pills, body, and up to four
+  photos through `ForumImageUploader`; create-then-upload rolls back on
+  failure, edits update in place.
+- **Hearts:** `HeartButton` is optimistic (±1, clamped) with rollback and an
+  inline error, on posts and comments.
+- **Moderation:** title, body, and comment text pass a client-side whole-word
+  badword filter (English + Filipino/Tagalog). Mutations broadcast on
+  `utils/forumEvents.ts`, so the feed and counts refresh behind the thread.
+- Everything goes through `services/forum.ts`; photos live in the private
+  `forum` bucket and are served via signed URLs only while the parent post is
+  visible.
+
 ### Messaging
 
 - **`/messages`** — inbox of the signed-in user's listing conversations
@@ -215,16 +256,26 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
 ### Profile
 
 - **`/profile`** — signed-out visitors get a sign-in pitch panel; signed-in
-  users manage their photo, display name, and PH contact number.
+  users manage their photo, display name, PH contact number, marketplace
+  history, reviews, and farmer credentials.
 - **Header:** a compact hairline band (eyebrow + title, no lead copy) with the
   tab pills right-aligned on desktop; `/profile` (Account),
-  `/profile?tab=listings` (Selling history), and `/profile?tab=purchases`
-  (Purchases); signed-out visitors see no tabs.
+  `/profile?tab=farmer` (Farmer profile), `/profile?tab=listings` (Selling
+  history), and `/profile?tab=purchases` (Purchases); signed-out visitors see
+  no tabs.
 - **Account tab:** a horizontal identity band (avatar, name/email/member-since,
   rating stat, photo actions) above a `minmax(0,1fr) + 360px` desktop grid —
   `ProfileDetailsForm` (name + phone side by side, dirty-state cue) and
   `ReviewsCard` (aggregate stars, five-row star distribution, received
   reviews).
+- **Farmer profile tab:** the verification-status card (with a "View my public
+  profile" action) above `FarmerDetailsForm` (barangay / municipality /
+  province, farm size, years, `VarietyMultiSelect` with a free-text "Other")
+  and the credential taxonomies — `RsbsaSection`, `CredentialsSection`,
+  `AffiliationSection`, `EndorsementSection` — each a hairline panel with its
+  own add toggle, `DocumentUploadField`, per-row 64 px thumbnail, inline
+  errors, and a verified-lock notice. See
+  [Farmer profile wall and verification](#farmer-profile-wall-and-verification).
 - **Selling history:** a server-paged/sorted history table (TanStack Table v9
   with manual sorting + pagination) filtered All / Active / Reserved / Sold /
   Deleted — Listing (thumbnail + title + category), status chip, price, listed
@@ -261,6 +312,38 @@ dropdown anchors to the on-page `#features` / `#how-it-works` / `#audience` /
   URL is fetched via `services/profile.ts#getOwnAvatarUrl` (~60 s per-user
   cache) through `hooks/useAvatar.ts`.
 - Everything goes through `services/profile.ts`.
+
+### Farmer profile wall and verification
+
+- **`/farmers/:userId`** — the signed-in wall
+  (`pages/FarmerProfilePage.tsx`): identity card (80 px avatar, name,
+  location, member-since, verification badge), the Farming information card
+  (farm size, years, variety chips), and the three public certificate cards
+  — **Official government registrations** (RSBSA Control Number Stub, RMN
+  Seal), **Certifications and accreditations** (BPI Seed Grower, PhilGAP,
+  SRP, Other), and **Local government and cooperative endorsements**
+  (Barangay Agricultural Certification / Cooperative Recognition plus
+  memberships). Rows are led by a 64 px `CertificateThumbnail` that opens the
+  shared `DocumentPreviewModal`; empty sections show "Nothing published
+  yet". Content is **not** gated on verification; sensitive identifiers
+  (typed RSBSA number, membership IDs, phone) never render. Signed-out
+  visitors get a sign-in pitch; an unknown user gets the neutral not-found
+  copy. The marketplace `ListingDetailModal` seller card links here.
+- **Read path:** `services/farmerProfile.ts` calls the four
+  `SECURITY DEFINER` RPCs (`farmer_profile`, `farmer_credentials`,
+  `farmer_affiliations`, `farmer_endorsements`) with the caller's session;
+  `hooks/useFarmerProfile.ts` orchestrates the wall load, and certificate
+  thumbnails sign through `services/credentials.ts` +
+  `services/signedUrlCache.ts`.
+- **Owner writes:** `services/credentials.ts` (create/delete credential,
+  affiliation, and endorsement; RSBSA save; uploads to the private
+  `credentials` bucket) driven by `hooks/useVerificationRecords.ts` and
+  `hooks/useFarmerDetails.ts`. The shared `Ratings & reviews` card is bound
+  to the wall user id.
+- **Nudge:** `ProfileNudgeModal` fires once per account after signup or email
+  verification (event from `AuthModal` / `AuthToasts`), dismisses per user in
+  `localStorage` (`utils/profileNudge.ts`), and deep-links to
+  `/profile?tab=farmer`.
 
 ## Conventions
 
