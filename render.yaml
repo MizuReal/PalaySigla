@@ -19,6 +19,10 @@ services:
         sync: false
       - key: GROQ_CHATBOT_API_KEY
         sync: false
+      - key: SCAN_DIGIT_MODEL_PATH
+        sync: false
+      - key: SCAN_DIGIT_MODEL_SHA256
+        sync: false
       - key: CORS_ORIGINS
         sync: false
       - key: CONTACT_EMAIL

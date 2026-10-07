@@ -1,7 +1,10 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DEFAULT_OCR_TEMPLATES_DIR_NAME = "ocr_templates"
 
 
 class Settings(BaseSettings):
@@ -42,9 +45,28 @@ class Settings(BaseSettings):
     chat_rate_limit_max_requests: int = 6
     chat_rate_limit_window_seconds: int = 60
 
+    # Scan OCR: sheet spec + handwritten-digit classifier. The model path must
+    # point at a trained scan_digit.onnx; boot fails fast when it is missing.
+    ocr_templates_dir: str = ""
+    scan_digit_model_path: str = ""
+    scan_digit_model_sha256: str = ""
+    scan_digit_confidence_threshold: float = Field(default=0.80, ge=0.0, le=1.0)
+    scan_ratio_mismatch_tolerance: float = Field(default=0.05, ge=0.0)
+    scan_max_image_bytes: int = Field(default=10 * 1024 * 1024, ge=1024)
+    scan_inference_max_workers: int = Field(default=2, ge=1, le=8)
+    scan_rate_limit_max_requests: int = 10
+    scan_rate_limit_window_seconds: int = 60
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def ocr_templates_path(self) -> Path:
+        if self.ocr_templates_dir:
+            return Path(self.ocr_templates_dir)
+        # backend/app/core/config.py -> repo root
+        return Path(__file__).resolve().parents[3] / DEFAULT_OCR_TEMPLATES_DIR_NAME
 
     @property
     def nominatim_user_agent(self) -> str:

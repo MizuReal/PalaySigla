@@ -31,3 +31,29 @@ export interface GeocodeResult {
 export type GeocodeSearchResponse = ApiEnvelope<GeocodeResult[]>
 
 export type GeocodeReverseResponse = ApiEnvelope<GeocodeResult>
+
+export interface ScanDigit {
+  index: number
+  digit: number | null
+  confidence: number
+  is_blank: boolean
+  rect: number[]
+}
+
+export interface ScanFieldResult {
+  key: string
+  label: string
+  unit: string
+  value: number | null
+  needs_review: boolean
+  confidence: number
+  digits: ScanDigit[]
+}
+
+export interface ScanData {
+  computed_ratio: number | null
+  overall_needs_review: boolean
+  fields: ScanFieldResult[]
+}
+
+export type ScanResponse = ApiEnvelope<ScanData>

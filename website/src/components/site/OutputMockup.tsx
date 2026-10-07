@@ -1,3 +1,4 @@
+import Button from '../Button'
 import Icon from '../Icon'
 import Photo from '../Photo'
 import Section from '../Section'
@@ -59,6 +60,21 @@ function OutputMockup() {
               </li>
             ))}
           </ul>
+          <div className="mt-6 border border-hairline bg-surface-soft p-4">
+            <p className="body-strong text-ink">Scanning a paper record?</p>
+            <p className="body-sm mt-1 text-mute">
+              Print the PalaySigla scan sheet, write each measurement in its
+              cell, then capture it with the mobile app.
+            </p>
+            <Button
+              variant="outline"
+              href="/palaysigla-scan-sheet.pdf"
+              download
+              className="mt-3"
+            >
+              Download the scan sheet
+            </Button>
+          </div>
           <p className="caption-sm mt-6 text-mute">
             Sample result for illustration. Every scan is stored in your
             record.

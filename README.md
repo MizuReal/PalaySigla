@@ -23,12 +23,15 @@ questions in English and Tagalog.
   and purchases data tables, received reviews, and a farmer-verification
   tab), the signed-in **farmer profile wall** (`/farmers/:userId`) with
   credentials, certifications, and endorsements, the Palay Assistant chat
-  widget, and full-page 404 / error states.
+  widget, a build-time-generated printable **scan sheet** download, and
+  full-page 404 / error states.
 - **Backend** (FastAPI): Nominatim geocoding proxy with throttling, caching,
-  and per-IP rate limits — the only sanctioned path for geocoding — plus the
+  and per-IP rate limits — the only sanctioned path for geocoding — the
   Palay Assistant chat endpoint (Groq-hosted `openai/gpt-oss-20b` behind a
-  two-stage topic guard) secured by server-side Supabase JWT validation.
-  Deploys to Render via `render.yaml`.
+  two-stage topic guard), and the **scan-sheet OCR** endpoint (OpenCV
+  registration + a small ONNX handwritten-digit CNN with per-field
+  confidence), all secured by server-side Supabase JWT validation. Deploys to
+  Render via `render.yaml`.
 - **Schema**: `schemas/*.sql` migrations (`001`–`012`): marketplace listings
   and images, profiles, selling history, forum posts/comments/reactions/
   images, listing-scoped messaging, durable transactions, mutual reviews,
@@ -38,17 +41,19 @@ questions in English and Tagalog.
   with a "Get started" handoff into a bottom-tab shell — Marketplace (live
   browse feed, 3-step posting wizard with photo + map pin, listing detail
   with owner actions), Community (live forum: feed, categories, threads,
-  comments, hearts, photos), Scan (raised center action; designed
-  placeholder), Settings (Account / Farmer profile / Selling history /
-  Purchases), and a fifth session action (Login while signed out / Logout
-  while signed in) that keeps the bar at five even cells — full email/password
-  auth with in-app email-link returns, the signed-in farmer profile wall, the
-  Palay Assistant bottom-sheet chat over the tabs, and the credentials nudge —
-  all rendered from the DESIGN.md token set via
-  `mobile/src/theme/designTokens.ts`.
+  comments, hearts, photos), Scan (live sheet OCR: print the generated sheet,
+  photograph it, review the six extracted values), Settings (Account /
+  Farmer profile / Selling history / Purchases), and a fifth session action
+  (Login while signed out / Logout while signed in) that keeps the bar at
+  five even cells — full email/password auth with in-app email-link returns,
+  the signed-in farmer profile wall, the Palay Assistant bottom-sheet chat
+  over the tabs, and the credentials nudge — all rendered from the DESIGN.md
+  token set via `mobile/src/theme/designTokens.ts`.
 
-ML inference (quality, mold, grade, variety from photos) is planned but not
-yet implemented — no model artifacts or inference endpoints exist.
+The four assessment outputs (quality, mold, grade, variety) remain planned —
+no assessment model artifacts or endpoints exist. Scan-sheet OCR, which feeds
+them the six paper measurements, is implemented (see
+`documentation/architecture.md`).
 
 ## Repository layout
 
@@ -56,6 +61,7 @@ yet implemented — no model artifacts or inference endpoints exist.
 website/          React web app
 backend/          FastAPI app (deployed on Render)
 schemas/          Supabase SQL migrations + seed scripts
+ocr_templates/    Shared scan-sheet spec (website PDF + backend OCR geometry)
 mobile/           React Native app (Expo)
 documentation/    Architecture, API, Supabase, and per-app docs
 render.yaml       Render blueprint for the backend service
@@ -77,8 +83,10 @@ DESIGN.md         Design system
    ```
    Geocoding works out of the box; for the assistant, fill
    `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `GROQ_CHATBOT_API_KEY`
-   in `backend/.env` (see `documentation/backend.md`, which also covers the
-   Render deployment).
+   in `backend/.env`. For scanning, train the digit model once
+   (`.venv/bin/python scripts/train_digit_model.py --output models/scan_digit.onnx`)
+   and set `SCAN_DIGIT_MODEL_PATH` (see `documentation/backend.md`, which also
+   covers the Render deployment).
 3. **Website** — `cd website`, `npm install`, copy `.env.example` to `.env`
    and fill in `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
    `VITE_AUTH_REDIRECT_URL`, `VITE_API_URL`, then `npm run dev`.

@@ -2,3 +2,7 @@ pytest>=8
 pytest-asyncio>=0.24
 ruff>=0.6
 black>=24
+# Training only: scripts/train_digit_model.py (never shipped to production).
+torch>=2.4
+torchvision>=0.19
+onnx>=1.16

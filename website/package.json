@@ -8,7 +8,9 @@
   },
   "scripts": {
     "dev": "vite",
+    "predev": "node scripts/generateScanSheet.mjs",
     "build": "vite build",
+    "prebuild": "node scripts/generateScanSheet.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -20,6 +22,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-table": "^9.2.4",
     "leaflet": "^1.9.4",
+    "pdf-lib": "^1.17.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-leaflet": "^5.0.0",

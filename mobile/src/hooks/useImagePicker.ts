@@ -38,30 +38,41 @@ export interface UseImagePickerResult {
   openSettings: () => Promise<void>
 }
 
-function useImagePicker(): UseImagePickerResult {
+// Options are positional primitives so the hook callbacks keep stable
+// dependencies; callers with defaults (the listing wizard) pass nothing.
+function useImagePicker(
+  maxDimension?: number,
+  quality?: number
+): UseImagePickerResult {
   const [image, setImage] = useState<PreparedImage | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
   const [canOpenSettings, setCanOpenSettings] = useState(false)
 
-  const processAsset = useCallback(async (asset: ImagePicker.ImagePickerAsset) => {
-    const validationError = validateImageAsset(asset)
-    if (validationError) {
-      setError(validationError)
-      return
-    }
-    setIsProcessing(true)
-    setError('')
-    try {
-      const prepared = await compressImage(asset)
-      setImage(prepared)
-      setCanOpenSettings(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : PROCESS_FAILED_MESSAGE)
-    } finally {
-      setIsProcessing(false)
-    }
-  }, [])
+  const processAsset = useCallback(
+    async (asset: ImagePicker.ImagePickerAsset) => {
+      const validationError = validateImageAsset(asset)
+      if (validationError) {
+        setError(validationError)
+        return
+      }
+      setIsProcessing(true)
+      setError('')
+      try {
+        const prepared =
+          maxDimension === undefined && quality === undefined
+            ? await compressImage(asset)
+            : await compressImage(asset, maxDimension, quality)
+        setImage(prepared)
+        setCanOpenSettings(false)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : PROCESS_FAILED_MESSAGE)
+      } finally {
+        setIsProcessing(false)
+      }
+    },
+    [maxDimension, quality]
+  )
 
   const handleResult = useCallback(
     async (result: ImagePicker.ImagePickerResult) => {

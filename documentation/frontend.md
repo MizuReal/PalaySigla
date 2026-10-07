@@ -39,6 +39,12 @@ npm run dev            # http://localhost:5173
 | `npm run test:watch` | Vitest in watch mode |
 | `npm run typecheck` | TypeScript check (`tsc --noEmit`) |
 
+`predev` / `prebuild` run `scripts/generateScanSheet.mjs` first, which renders
+`public/palaysigla-scan-sheet.pdf` (gitignored) from
+`ocr_templates/scan-sheet-v1.json` with pdf-lib. The backend loads the same
+spec for its crop geometry, so the printable sheet and the recognizer can
+never drift apart.
+
 ## Testing
 
 Vitest + jsdom + React Testing Library, configured in `vitest.config.js`.
@@ -48,6 +54,9 @@ Vitest + jsdom + React Testing Library, configured in `vitest.config.js`.
   listing hooks.
 - `src/test/supabaseMock.ts` provides the chainable Supabase client, query-builder, and
   storage-bucket doubles used by the service tests.
+- `scripts/__tests__/scanSheetPdf.test.mjs` renders the sheet PDF (valid prefix, A4
+  page size, deterministic bytes, all spec rects in bounds); `vitest.config.js` includes
+  `scripts/**/*.test.mjs` alongside `src/**/*.test.{ts,tsx}`.
 - `.env.test` (committed, fake values only) supplies the `VITE_*` keys the suite needs —
   real secrets stay in the gitignored `.env`, and the suite passes without one.
 - TypeScript checks run via `npm run typecheck` (`tsconfig.json`: `strict` + the modern
@@ -81,6 +90,8 @@ src/
                   normalization, profile-tab ids, history table config, forum vocabulary/
                   validation/events, listing validation/events, verification vocabulary/
                   validation, rice varieties, message suggestions, review events, badwords
+scripts/          scanSheetPdf.mjs (pdf-lib renderer), generateScanSheet.mjs (predev/prebuild),
+                  __tests__/scanSheetPdf.test.mjs
 ```
 
 ### Types
@@ -169,7 +180,11 @@ route:
 
 `/` composes `HeroCarousel` (background `rice_field.mp4` video from
 `data/media.ts`), `OutputMockup`, `FeatureGrid`, `HowItWorks`,
-`AudienceSection`, and `CtaStrip` inside `PrimaryNav`/`Footer`. Note:
+`AudienceSection`, and `CtaStrip` inside `PrimaryNav`/`Footer`. The sample-scan
+mockup carries a "Scanning a paper record?" card with a `{component.button-outline}`
+**Download the scan sheet** action (`/palaysigla-scan-sheet.pdf`, rendered at
+build time from the shared spec) so farmers can print the form before
+capturing it in the mobile app. Note:
 `data/media.ts` hardcodes a public Supabase storage URL for the hero video —
 a known deviation from the project's no-hardcoded-URLs / private-buckets
 rules, flagged here because docs describe what exists. The navbar's "More"

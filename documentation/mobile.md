@@ -10,9 +10,9 @@ with live delivery and unread badges), **mutual reviews**, **full
 email/password auth** (login / register / forgot password with in-app
 email-link returns), toast notifications, the **profile surfaces** (Account /
 Farmer profile / Selling history / Purchases), the signed-in **farmer profile
-wall** with credential management, the **credentials nudge**, and the **Palay
-Assistant chat** (root-level bottom sheet over the tabs); the scanning flow
-arrives in a later phase.
+wall** with credential management, the **credentials nudge**, the **Palay
+Assistant chat** (root-level bottom sheet over the tabs), and the **scan-sheet
+OCR flow** (print the sheet, photograph it, review the six extracted values).
 
 ## Requirements
 
@@ -35,7 +35,8 @@ npx expo start         # press a / i, or scan the QR code with Expo Go
 | `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL (Project Settings → API) |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase **anon public** key — never the service-role key |
 | `EXPO_PUBLIC_AUTH_REDIRECT_URL` | Optional fixed target for verification / password-reset email links. **Leave empty** so links return to the app's own deep link (`palaysigla://auth/callback`, `Linking.createURL` at runtime). See the ACTION REQUIRED marker in `setup-supabase.md` |
-| `EXPO_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — used by the Palay Assistant (`services/chatbot.ts`) and the location picker's geocoding (`services/geocode.ts`); future API calls too |
+| `EXPO_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:8000`) — used by the Palay Assistant (`services/chatbot.ts`), the location picker's geocoding (`services/geocode.ts`), and scan uploads (`services/scan.ts`) |
+| `EXPO_PUBLIC_WEB_URL` | Public website origin (e.g. `https://palaysigla.example`) — the Scan tab links to `${EXPO_PUBLIC_WEB_URL}/palaysigla-scan-sheet.pdf`; when unset the print action is hidden rather than broken |
 
 `.env` is gitignored; `.env.example` documents every key with empty values.
 Only `EXPO_PUBLIC_*` variables reach client code.
@@ -94,6 +95,8 @@ src/
 │   │                       ForumImageUploader, CommentComposer, CommentItem, DeleteInlineConfirm (community UI)
 │   ├── messages/           ConversationList + ConversationListItem (inbox), MessageThread + MessageBubble +
 │   │                       MessageComposer + ListingContextBar + MessageSuggestions (listing-scoped chat)
+│   ├── scan/               ScanCapturePanel (instructions + capture actions), ScanResultsCard (editable
+│   │                       results + review banner), ScanFieldRow (value input + confidence bar + chip)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
 ├── context/                authContext + AuthProvider (session + overlays), toastContext + ToastProvider
 │   │                       (root toast layer, under the modal overlays), messagingContext + MessagingProvider
@@ -102,7 +105,7 @@ src/
 │   │                       PostListing (3-step wizard), Messages + Conversation (root-stack pushes),
 │   │                       ReviewForm (root-stack push), ForumThread + ForumPostEditor (root-stack pushes),
 │   │                       FarmerProfile (farmer wall push), Community (forum feed),
-│   │                       NotFound (unknown-address fallback), Scan/Settings tab screens
+│   │                       NotFound (unknown-address fallback), Scan (sheet capture + OCR review), Settings tab screen
 ├── services/               supabaseClient (AsyncStorage session persistence), auth
 │   │                       (sign-in/up/out, reset, deep-link hand-off), chatbot (sendChatMessage), listings
 │   │                       (browse + create/upload/soft-delete/status/my-listings), geocode (place search +
@@ -112,7 +115,8 @@ src/
 │   │                       transactions (durable purchases + listing transition record), reviews (mutual
 │   │                       ratings + public aggregates), farmerProfile (wall RPCs), credentials (own
 │   │                       verification records + document uploads),
-│   │                       profile (fetch/upsert/name sync + avatar upload/remove/URLs)
+│   │                       profile (fetch/upsert/name sync + avatar upload/remove/URLs),
+│   │                       scan (multipart POST /api/scan/ocr + envelope error mapping)
 ├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
 │   │                       useImagePicker (camera/library + permissions + compression), usePostListing,
 │   │                       useListingActions (reserve / mark sold / release / remove), useMyListings,
@@ -124,7 +128,8 @@ src/
 │   │                       useUnreadMessageCount, useProfile (account details + staged avatar),
 │   │                       useFarmerProfile (farmer wall), useFarmerDetails (farm info form),
 │   │                       useVerificationRecords (own credential/affiliation/endorsement rows),
-│   │                       usePalayAssistant (chat state + history), usePulseOpacity
+│   │                       usePalayAssistant (chat state + history), usePulseOpacity,
+│   │                       useScanCapture (scan capture → upload → editable review state)
 ├── types/                  database.ts (generated Supabase types; copy of the website file), api.ts (backend
 │   │                       contracts), domain.ts (row/domain shapes), navigation.ts (stack + tab param lists)
 ├── utils/                  format.ts — listing label maps, PHP price, date + relative-time formatters;
@@ -511,6 +516,37 @@ server-side JWT check), with mobile-specific presentation:
 - History is device- and account-local (AsyncStorage) — it does not sync to
   the website, which keeps its own localStorage copy.
 
+### Scan sheet OCR (current)
+
+The **Scan** tab turns a photographed paper form into the six measurements.
+Backed by `services/scan.ts`, `hooks/useScanCapture.ts`, and the backend's
+`POST /api/scan/ocr` (`ocr_templates/scan-sheet-v1.json` is the shared
+geometry):
+
+- **Instructions + print.** `ScanCapturePanel` states the three steps (print
+  the sheet, write one digit per cell, keep the four corner marks visible)
+  over real actions: Take photo, Choose from library, and — when
+  `EXPO_PUBLIC_WEB_URL` is set — Print the scan sheet, which opens the
+  website-rendered PDF through `Linking`.
+- **Auth gate.** Capture is signed-in only (the endpoint validates the
+  Supabase JWT); signed-out taps open the auth dialog in Login mode like the
+  other gated actions.
+- **Capture.** `useImagePicker` runs with the scan compression options
+  (`MAX_SCAN_DIMENSION` 2400 px, quality 0.9) so digit cells stay legible; the
+  same explicit camera-permission handling and Android pending-result recovery
+  as the listing wizard apply.
+- **Upload + review.** The compressed JPEG posts as multipart form data with
+  the session token. Failures show the backend's retake guidance inline with a
+  Try again action; success renders `ScanResultsCard` — each field with an
+  editable decimal input (`decimal-pad`, local draft preserving half-typed
+  values), its confidence bar, and a `Review` chip on flagged fields. The
+  overall banner flips to "Some values need your review…" when any field needs
+  attention, and editing length/width recomputes the displayed
+  `Length ÷ width` ratio and re-flags the ratio cell when it drifts past
+  tolerance. "Scan another sheet" resets the flow.
+- **No persistence yet.** Values are a review model only; saving arrives with
+  the assessment phase.
+
 ### Sign-in & accounts (auth phase)
 
 Accounts are created **in the app** (full parity with the website auth
@@ -562,13 +598,11 @@ password-reset links return into the app via its URL scheme:
 - **Login / Logout never navigates** — Login opens the auth dialog; Logout
   confirms via a native alert, performs a real session `signOut()` (closing
   any open overlay first), then resets the root stack to the Landing intro.
-- Tab content is honest, designed placeholder panels (`FeatureNotice`):
-  each states what the phase will bring — no fake data, no dead controls.
-  Marketplace (browse + posting + owner actions), Community (forum), and
-  Settings (Account / Farmer profile / Selling history / Purchases) are live;
-  the scanning flow replaces the remaining panel in a later phase. The
-  assistant launcher floats over all tabs and the auth dialog overlays
-  everything when open.
+- Tab content is live: Marketplace (browse + posting + owner actions),
+  Community (forum), Scan (sheet capture + OCR review), and Settings
+  (Account / Farmer profile / Selling history / Purchases). The assistant
+  launcher floats over all tabs and the auth dialog overlays everything when
+  open.
 - Landing CTA buttons, nav auth links, and the early-access form stay absent:
   sign-in lives behind the assistant launcher and the Settings tab.
 

@@ -31,3 +31,6 @@ supabase/.temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Generated scan sheet (rendered by scripts/generateScanSheet.mjs)
+public/palaysigla-scan-sheet.pdf

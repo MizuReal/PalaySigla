@@ -1,3 +1,7 @@
+from collections.abc import AsyncIterator
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,7 +10,11 @@ from pydantic import BaseModel
 
 from app.api.chat import router as chat_router
 from app.api.geocode import router as geocode_router
+from app.api.scan import router as scan_router
 from app.core.config import get_settings
+from app.ml.scan.digits import DigitClassifier, OnnxDigitClassifier
+from app.ml.scan.spec import load_scan_sheet_spec
+from app.services.scan import ScanService
 
 
 class HealthResponse(BaseModel):
@@ -34,9 +42,34 @@ def _error_payload(status_code: int, detail: object) -> dict:
     }
 
 
-def create_app() -> FastAPI:
+def create_app(scan_engine: DigitClassifier | None = None) -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title=settings.app_name, version=settings.app_version)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        # OCR artifacts load exactly once at startup; a missing spec or model
+        # fails the boot instead of surfacing as a per-request surprise.
+        spec = load_scan_sheet_spec(settings.ocr_templates_path)
+        engine = (
+            scan_engine
+            if scan_engine is not None
+            else OnnxDigitClassifier(
+                settings.scan_digit_model_path, settings.scan_digit_model_sha256
+            )
+        )
+        executor = ThreadPoolExecutor(max_workers=settings.scan_inference_max_workers)
+        app.state.scan_service = ScanService(
+            spec=spec,
+            classifier=engine,
+            executor=executor,
+            settings=settings,
+        )
+        try:
+            yield
+        finally:
+            executor.shutdown(wait=False)
+
+    app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,
@@ -75,6 +108,7 @@ def create_app() -> FastAPI:
 
     app.include_router(geocode_router)
     app.include_router(chat_router)
+    app.include_router(scan_router)
     return app
 
 

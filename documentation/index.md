@@ -36,13 +36,16 @@ and how to run it.
   profile / Selling history / Purchases tabs with TanStack data tables), the
   signed-in **farmer profile wall** (`/farmers/:userId`) with credentials,
   certifications, and endorsements, a **Palay Assistant** floating chat
-  widget (signed-in, per-user history), the credentials nudge modal, and
+  widget (signed-in, per-user history), the credentials nudge modal, a
+  build-time-generated printable **scan sheet** download on the homepage, and
   full-page 404 / route-error states.
 - **Backend** (FastAPI): Nominatim geocoding proxy — the only sanctioned path
-  for geocoding requests, with throttling, caching, and rate limits — plus the
+  for geocoding requests, with throttling, caching, and rate limits — the
   **Palay Assistant** chat endpoint (Groq-hosted `openai/gpt-oss-20b` behind
-  a two-stage topic guard) with server-side Supabase JWT validation. Ships a
-  Render blueprint (`render.yaml`).
+  a two-stage topic guard) with server-side Supabase JWT validation, and the
+  **scan-sheet OCR** endpoint (OpenCV registration + a small ONNX digit CNN,
+  per-field confidence and `needs_review`). Ships a Render blueprint
+  (`render.yaml`).
 - **Schema**: `listings`, `listing_images`, `profiles`, `forum_posts` /
   `forum_comments` / `forum_reactions` / `forum_images`, `conversations` /
   `messages`, `transactions`, `reviews`, and the verification tables
@@ -54,16 +57,18 @@ and how to run it.
   handing off into a bottom-tab shell — Marketplace (live browse feed, 3-step
   posting wizard with photo + map pin, listing detail with owner actions),
   Community (live forum: feed, categories, threads, comments, hearts,
-  photos), Scan (raised center action; designed placeholder), Settings
-  (Account / Farmer profile / Selling history / Purchases), and a fifth
-  session action cell (Login signed-out / Logout signed-in) keeping the bar at
-  five even cells — full email/password auth with in-app email-link returns,
-  toast notifications, the signed-in **farmer profile wall** push, the
-  **Palay Assistant** bottom-sheet chat (root-level overlay over the tabs),
-  and the credentials nudge modal — all rendered from the DESIGN.md token set
-  via `mobile/src/theme/designTokens.ts`. The Scan panel is a designed
-  placeholder; scanning arrives in a later phase. A full-page message shell
+  photos), Scan (live sheet OCR: print the generated sheet, photograph it,
+  review the six extracted values with confidence and review flags),
+  Settings (Account / Farmer profile / Selling history / Purchases), and a
+  fifth session action cell (Login signed-out / Logout signed-in) keeping the
+  bar at five even cells — full email/password auth with in-app email-link
+  returns, toast notifications, the signed-in **farmer profile wall** push,
+  the **Palay Assistant** bottom-sheet chat (root-level overlay over the
+  tabs), and the credentials nudge modal — all rendered from the DESIGN.md
+  token set via `mobile/src/theme/designTokens.ts`. A full-page message shell
   covers render errors (root error boundary) and unknown addresses.
 
-ML inference (quality, mold, grade, variety from photos) is planned and not
-yet implemented — no model artifacts or inference endpoints exist.
+The four assessment outputs (quality, mold, grade, variety) remain planned —
+no assessment model artifacts or endpoints exist. The scan-sheet OCR path
+that feeds them its six paper measurements is implemented (see
+[architecture.md](architecture.md#scan-sheet-ocr-handwritten-values)).

@@ -1,7 +1,8 @@
 # HTTP API
 
-The backend serves the geocoding proxy and the Palay Assistant chat endpoint,
-plus the health check. All responses use the project-wide envelope format.
+The backend serves the geocoding proxy, the Palay Assistant chat endpoint, the
+scan-sheet OCR endpoint, plus the health check. All responses use the
+project-wide envelope format.
 
 ## Envelope
 
@@ -21,14 +22,14 @@ Error codes map to HTTP status:
 
 | HTTP | Code | When |
 |---|---|---|
-| 400 | `BAD_REQUEST` | Malformed request |
-| 401 | `ERROR` | Missing or invalid session (`/api/chat`). No 401-specific code exists; unmapped statuses fall back to `ERROR`. |
+| 400 | `BAD_REQUEST` | Malformed request, unsupported/oversized/corrupt scan image |
+| 401 | `ERROR` | Missing or invalid session (`/api/chat`, `/api/scan/ocr`). No 401-specific code exists; unmapped statuses fall back to `ERROR`. |
 | 404 | `NOT_FOUND` | Resource missing (e.g. reverse geocode with no result) |
-| 422 | `VALIDATION_ERROR` | Invalid query parameters or request body |
+| 422 | `VALIDATION_ERROR` | Invalid query parameters or body; scan sheet or corner marks not found in the photo |
 | 429 | `RATE_LIMITED` | Per-IP rate limit exceeded, or Groq is busy |
-| 500 | `ERROR` | Unhandled server error |
+| 500 | `ERROR` | Unhandled server error (e.g. digit inference failure) |
 | 502 | `UPSTREAM_ERROR` | Nominatim or Groq unreachable / errored |
-| 503 | `ERROR` | Backend auth service not configured, or Supabase unreachable (`/api/chat`) |
+| 503 | `ERROR` | Backend auth service not configured, or Supabase unreachable (`/api/chat`, `/api/scan/ocr`) |
 
 Any status code without a row in the table above also yields the generic
 `ERROR` code.
@@ -132,6 +133,68 @@ Error responses (all in the envelope):
 Out-of-scope questions never reach the model: a canned refusal
 ("Paumanhin — I only help with paddy/rice topics …") is returned instead.
 
+### `POST /api/scan/ocr`
+
+Reads the six handwritten measurements off a photographed PalaySigla scan
+sheet. **Requires authentication** (same `Authorization: Bearer
+<access-token>` rule as `/api/chat`) and is the only path to the digit model.
+
+Body: `multipart/form-data` with a single `file` field — a JPEG or PNG photo
+of the filled sheet, at most 10 MB. The photo is warped to a canonical A4
+frame using the four printed corner marks, each digit cell is classified, and
+the values are range-checked.
+
+```json
+{
+  "data": {
+    "computed_ratio": 3.0427,
+    "overall_needs_review": false,
+    "fields": [
+      {
+        "key": "grain_length",
+        "label": "Grain length",
+        "unit": "mm",
+        "value": 7.12,
+        "needs_review": false,
+        "confidence": 0.97,
+        "digits": [
+          {
+            "index": 0,
+            "digit": 7,
+            "confidence": 0.99,
+            "is_blank": false,
+            "rect": [0.21, 0.33, 0.04, 0.02]
+          }
+        ]
+      }
+    ]
+  },
+  "error": null
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `fields[].key` | `grain_length`, `grain_width`, `length_width_ratio`, `moisture_content`, `temperature`, `humidity` |
+| `fields[].value` | Parsed number, or `null` when a required digit cell was blank |
+| `fields[].needs_review` | Blank cell, below-threshold confidence, out-of-range value, or a ratio that disagrees with length ÷ width |
+| `fields[].confidence` | Lowest per-digit confidence (0.0 when any required cell is blank) |
+| `fields[].digits[].rect` | Cell bounds in the original photo, normalized `[x, y, w, h]` |
+| `computed_ratio` | `grain_length ÷ grain_width` when both were read |
+
+Error responses:
+
+- `400 BAD_REQUEST` — not a JPEG/PNG, empty, corrupt, or larger than 10 MB.
+- `422 VALIDATION_ERROR` — the page or its four corner marks were not found
+  (the message includes retake guidance).
+- `429 RATE_LIMITED` — per-IP scan limit (10 requests / 60 s by default).
+- `503 ERROR` — auth backend unconfigured/unreachable.
+
+The printable sheet itself is not an API asset: the website renders
+`website/public/palaysigla-scan-sheet.pdf` at build time from
+`ocr_templates/scan-sheet-v1.json`, the same spec the backend loads for
+cropping.
+
 ## Rate limits and caching
 
 - **Per-IP (geocode):** 10 requests per 10 seconds per client IP
@@ -140,6 +203,10 @@ Out-of-scope questions never reach the model: a canned refusal
 - **Per-IP (chat):** 6 requests per 60 seconds per client IP
   (`CHAT_RATE_LIMIT_MAX_REQUESTS` / `CHAT_RATE_LIMIT_WINDOW_SECONDS`) —
   stricter because every call is a metered LLM request. Exceeding it returns
+  `429 RATE_LIMITED`.
+- **Per-IP (scan):** 10 requests per 60 seconds per client IP
+  (`SCAN_RATE_LIMIT_MAX_REQUESTS` / `SCAN_RATE_LIMIT_WINDOW_SECONDS`) — OCR is
+  CPU-bound, so it is rate-limited tighter than geocode. Exceeding it returns
   `429 RATE_LIMITED`.
 - **Nominatim:** the service enforces a hard 1 request/second throttle
   (`GEOCODE_MIN_INTERVAL_SECONDS`) and always sends

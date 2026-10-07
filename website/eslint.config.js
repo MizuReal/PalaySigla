@@ -10,10 +10,10 @@ const REACT_CONFIGS = [reactHooks.configs.flat.recommended, reactRefresh.configs
 export default defineConfig([
   globalIgnores(['dist', 'src/types/database.ts']),
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,mjs}'],
     extends: [js.configs.recommended, ...REACT_CONFIGS],
     languageOptions: {
-      globals: globals.browser,
+      globals: { ...globals.browser, ...globals.node },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },

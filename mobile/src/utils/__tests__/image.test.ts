@@ -21,6 +21,8 @@ import {
   decodePreparedImage,
   MAX_AVATAR_DIMENSION,
   MAX_IMAGE_BYTES,
+  MAX_SCAN_DIMENSION,
+  SCAN_JPEG_QUALITY,
   validateImageAsset,
 } from '../image'
 import type { PickedImageAsset, PreparedImage } from '../image'
@@ -115,6 +117,21 @@ describe('compressImage', () => {
     await compressImage({ ...ASSET, width: 2000, height: 3000 }, MAX_AVATAR_DIMENSION)
 
     expect(mockResize).toHaveBeenCalledWith({ width: null, height: MAX_AVATAR_DIMENSION })
+  })
+
+  it('keeps scan captures at the higher scan resolution and quality', async () => {
+    await compressImage(
+      { ...ASSET, width: 3000, height: 2000 },
+      MAX_SCAN_DIMENSION,
+      SCAN_JPEG_QUALITY
+    )
+
+    expect(mockResize).toHaveBeenCalledWith({ width: MAX_SCAN_DIMENSION, height: null })
+    expect(mockSaveAsync).toHaveBeenCalledWith({
+      format: 'jpeg',
+      compress: SCAN_JPEG_QUALITY,
+      base64: true,
+    })
   })
 
   it('re-encodes without resizing when the photo already fits', async () => {

@@ -22,6 +22,7 @@ interface ButtonProps {
   type?: 'submit' | 'button' | 'reset'
   onClick?: MouseEventHandler<HTMLButtonElement>
   disabled?: boolean
+  download?: boolean
   className?: string
   children: ReactNode
 }
@@ -33,6 +34,7 @@ function Button({
   type,
   onClick,
   disabled = false,
+  download = false,
   className = '',
   children,
 }: ButtonProps) {
@@ -61,7 +63,7 @@ function Button({
   }
 
   return (
-    <a href={href} className={classes}>
+    <a href={href} className={classes} download={download}>
       {children}
       {trailingIcon}
     </a>
