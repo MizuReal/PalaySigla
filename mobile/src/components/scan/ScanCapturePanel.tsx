@@ -6,9 +6,9 @@ import Button from '../Button'
 import { COLORS, GUTTER, SPACING, TOUCH_TARGET, TYPE } from '../../theme/designTokens'
 
 const STEPS = [
-  'Print the scan sheet and write one digit per cell with a dark pen.',
-  'Lay it flat, fill the frame, and keep all four corner marks visible.',
-  'Take the photo — the six values come back for your review.',
+  'Print the scan sheet and cut one card along the dashed line.',
+  'Write one digit per cell with a dark pen — use the printed decimal.',
+  'Photograph the card so all four corner marks are visible.',
 ]
 
 interface ScanCapturePanelProps {
@@ -55,7 +55,7 @@ function ScanCapturePanel({
       <Text style={[TYPE.captionMd, styles.eyebrow]}>Scan</Text>
       <Text style={[TYPE.displayLg, styles.title]}>Photograph a filled sheet</Text>
       <Text style={[TYPE.bodyMd, styles.sub]}>
-        One photo of the PalaySigla scan sheet returns all six measurements at
+        One photo of a PalaySigla scan card returns all six measurements at
         once — read from the handwritten digit cells.
       </Text>
       <View style={styles.card}>

@@ -1,9 +1,10 @@
-"""Scan-sheet template spec.
+"""Scan-card template spec.
 
 Loads ``ocr_templates/scan-sheet-v1.json`` — the shared contract between the
 printable PDF (rendered by the website) and this recognizer. Every geometric
-value is normalized to the page (``[x, y, w, h]`` with a top-left origin), so
-the same numbers drive PDF points and canonical pixels.
+value is normalized to the card (``[x, y, w, h]`` with a top-left origin), so
+the same numbers drive PDF points and canonical pixels. The spec also carries
+the A4 tiling used by the website; the recognizer ignores it.
 """
 
 from __future__ import annotations
@@ -16,9 +17,9 @@ Rect = tuple[float, float, float, float]
 
 SCAN_SPEC_FILENAME = "scan-sheet-v1.json"
 
-# Canonical warp target: A4 portrait at ~254 dpi. A 15 mm digit cell renders
-# ~150 px wide here, which is comfortably more than any model input needs.
-CANONICAL_WIDTH_PX = 2100
+# Canonical warp target for one card: 1600 px across 105 mm (~15 px/mm), which
+# keeps a 7.5 mm digit cell around 114 px — more than any model input needs.
+CANONICAL_WIDTH_PX = 1600
 
 # Digit-cell preprocessing constants (must match scripts/train_digit_model.py).
 DIGIT_INPUT_SIZE = 28
@@ -52,8 +53,6 @@ EXPECTED_FIDUCIAL_IDS = ("tl", "tr", "br", "bl")
 GRAIN_LENGTH_KEY = "grain_length"
 GRAIN_WIDTH_KEY = "grain_width"
 RATIO_KEY = "length_width_ratio"
-
-CIRCUMFERENCE_APPROX_EPSILON = 0.02
 
 
 class ScanSpecError(ValueError):
@@ -106,8 +105,8 @@ class FieldSpec:
 @dataclass(frozen=True)
 class ScanSheetSpec:
     version: int
-    page_width_mm: float
-    page_height_mm: float
+    card_width_mm: float
+    card_height_mm: float
     title: str
     instructions: tuple[str, ...]
     fiducials: tuple[FiducialSpec, ...]
@@ -119,7 +118,7 @@ class ScanSheetSpec:
 
     @property
     def canonical_height_px(self) -> int:
-        return round(CANONICAL_WIDTH_PX * self.page_height_mm / self.page_width_mm)
+        return round(CANONICAL_WIDTH_PX * self.card_height_mm / self.card_width_mm)
 
     def field(self, key: str) -> FieldSpec:
         for field_spec in self.fields:
@@ -136,7 +135,7 @@ def _parse_rect(value: object, label: str) -> Rect:
     if width <= 0 or height <= 0:
         raise ScanSpecError(f"{label} must have a positive size.")
     if x < 0 or y < 0 or x + width > 1.0001 or y + height > 1.0001:
-        raise ScanSpecError(f"{label} must lie inside the page.")
+        raise ScanSpecError(f"{label} must lie inside the card.")
     return rect
 
 
@@ -178,10 +177,10 @@ def _parse_field(raw: object, index: int) -> FieldSpec:
 
 def parse_scan_sheet_spec(payload: object) -> ScanSheetSpec:
     if not isinstance(payload, dict):
-        raise ScanSpecError("The scan sheet spec must be a JSON object.")
-    page = payload.get("page")
-    if not isinstance(page, dict):
-        raise ScanSpecError("The scan sheet spec is missing its page section.")
+        raise ScanSpecError("The scan card spec must be a JSON object.")
+    card = payload.get("card")
+    if not isinstance(card, dict):
+        raise ScanSpecError("The scan card spec is missing its card section.")
     fiducials_raw = payload.get("fiducials")
     if not isinstance(fiducials_raw, list):
         raise ScanSpecError("The scan sheet spec is missing its fiducials.")
@@ -195,10 +194,10 @@ def parse_scan_sheet_spec(payload: object) -> ScanSheetSpec:
         if isinstance(raw, dict)
     )
     if {fid.id for fid in fiducials} != set(EXPECTED_FIDUCIAL_IDS):
-        raise ScanSpecError("The scan sheet spec must define exactly the four corner fiducials.")
+        raise ScanSpecError("The scan card spec must define exactly the four corner fiducials.")
     fields_raw = payload.get("fields")
     if not isinstance(fields_raw, list) or not fields_raw:
-        raise ScanSpecError("The scan sheet spec is missing its fields.")
+        raise ScanSpecError("The scan card spec is missing its fields.")
     fields = tuple(_parse_field(raw, index) for index, raw in enumerate(fields_raw))
     if len({field.key for field in fields}) != len(fields):
         raise ScanSpecError("Scan field keys must be unique.")
@@ -208,9 +207,9 @@ def parse_scan_sheet_spec(payload: object) -> ScanSheetSpec:
     )
     return ScanSheetSpec(
         version=int(payload.get("version", 1)),
-        page_width_mm=float(page.get("width_mm", 0.0)),
-        page_height_mm=float(page.get("height_mm", 0.0)),
-        title=str(payload.get("title", "Scan sheet")),
+        card_width_mm=float(card.get("width_mm", 0.0)),
+        card_height_mm=float(card.get("height_mm", 0.0)),
+        title=str(payload.get("title", "Scan card")),
         instructions=instructions,
         fiducials=fiducials,
         fields=fields,
@@ -220,9 +219,9 @@ def parse_scan_sheet_spec(payload: object) -> ScanSheetSpec:
 def load_scan_sheet_spec(templates_dir: Path, filename: str = SCAN_SPEC_FILENAME) -> ScanSheetSpec:
     spec_path = templates_dir / filename
     if not spec_path.is_file():
-        raise ScanSpecError(f"Scan sheet spec not found at {spec_path}.")
+        raise ScanSpecError(f"Scan card spec not found at {spec_path}.")
     try:
         payload = json.loads(spec_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
-        raise ScanSpecError(f"Scan sheet spec at {spec_path} is unreadable.") from error
+        raise ScanSpecError(f"Scan card spec at {spec_path} is unreadable.") from error
     return parse_scan_sheet_spec(payload)

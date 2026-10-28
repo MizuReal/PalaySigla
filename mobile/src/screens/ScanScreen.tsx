@@ -13,6 +13,7 @@ import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import { COLORS, GUTTER, SPACING, TYPE } from '../theme/designTokens'
 
 const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL
+const API_URL = process.env.EXPO_PUBLIC_API_URL
 const SHEET_PATH = '/palaysigla-scan-sheet.pdf'
 const PREVIEW_MAX_HEIGHT = 260
 const LINK_FAILED_MESSAGE = 'Could not open the scan sheet link.'
@@ -135,6 +136,9 @@ function ScanScreen() {
                 />
               </View>
             ) : null}
+            {__DEV__ && API_URL ? (
+              <Text style={[TYPE.captionSm, styles.debugCaption]}>API: {API_URL}</Text>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -172,6 +176,10 @@ const styles = StyleSheet.create({
   },
   errorAction: {
     marginTop: SPACING.md,
+  },
+  debugCaption: {
+    color: COLORS.mute,
+    marginTop: SPACING.sm,
   },
 })
 

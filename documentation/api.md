@@ -140,7 +140,7 @@ sheet. **Requires authentication** (same `Authorization: Bearer
 <access-token>` rule as `/api/chat`) and is the only path to the digit model.
 
 Body: `multipart/form-data` with a single `file` field — a JPEG or PNG photo
-of the filled sheet, at most 10 MB. The photo is warped to a canonical A4
+of the filled card, at most 10 MB. The photo is warped to a canonical card
 frame using the four printed corner marks, each digit cell is classified, and
 the values are range-checked.
 
@@ -192,8 +192,8 @@ Error responses:
 
 The printable sheet itself is not an API asset: the website renders
 `website/public/palaysigla-scan-sheet.pdf` at build time from
-`ocr_templates/scan-sheet-v1.json`, the same spec the backend loads for
-cropping.
+`ocr_templates/scan-sheet-v1.json` (four A6 cards per A4 page), the same spec
+the backend loads for cropping.
 
 ## Rate limits and caching
 

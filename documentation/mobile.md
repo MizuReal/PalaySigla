@@ -11,8 +11,9 @@ email/password auth** (login / register / forgot password with in-app
 email-link returns), toast notifications, the **profile surfaces** (Account /
 Farmer profile / Selling history / Purchases), the signed-in **farmer profile
 wall** with credential management, the **credentials nudge**, the **Palay
-Assistant chat** (root-level bottom sheet over the tabs), and the **scan-sheet
-OCR flow** (print the sheet, photograph it, review the six extracted values).
+Assistant chat** (root-level bottom sheet over the tabs), and the **scan-card
+OCR flow** (print the sheet, cut a card, photograph it, review the six
+extracted values).
 
 ## Requirements
 
@@ -116,7 +117,7 @@ src/
 │   │                       ratings + public aggregates), farmerProfile (wall RPCs), credentials (own
 │   │                       verification records + document uploads),
 │   │                       profile (fetch/upsert/name sync + avatar upload/remove/URLs),
-│   │                       scan (multipart POST /api/scan/ocr + envelope error mapping)
+│   │                       scan (File-part multipart POST /api/scan/ocr + envelope error mapping)
 ├── hooks/                  useListings (paginated feed), useListingDetail, useListingImageUrl,
 │   │                       useImagePicker (camera/library + permissions + compression), usePostListing,
 │   │                       useListingActions (reserve / mark sold / release / remove), useMyListings,
@@ -524,9 +525,9 @@ Backed by `services/scan.ts`, `hooks/useScanCapture.ts`, and the backend's
 geometry):
 
 - **Instructions + print.** `ScanCapturePanel` states the three steps (print
-  the sheet, write one digit per cell, keep the four corner marks visible)
-  over real actions: Take photo, Choose from library, and — when
-  `EXPO_PUBLIC_WEB_URL` is set — Print the scan sheet, which opens the
+  the sheet and cut one card, write one digit per cell, keep the four corner
+  marks visible) over real actions: Take photo, Choose from library, and —
+  when `EXPO_PUBLIC_WEB_URL` is set — Print the scan sheet, which opens the
   website-rendered PDF through `Linking`.
 - **Auth gate.** Capture is signed-in only (the endpoint validates the
   Supabase JWT); signed-out taps open the auth dialog in Login mode like the
@@ -536,14 +537,16 @@ geometry):
   same explicit camera-permission handling and Android pending-result recovery
   as the listing wizard apply.
 - **Upload + review.** The compressed JPEG posts as multipart form data with
-  the session token. Failures show the backend's retake guidance inline with a
-  Try again action; success renders `ScanResultsCard` — each field with an
-  editable decimal input (`decimal-pad`, local draft preserving half-typed
-  values), its confidence bar, and a `Review` chip on flagged fields. The
-  overall banner flips to "Some values need your review…" when any field needs
-  attention, and editing length/width recomputes the displayed
-  `Length ÷ width` ratio and re-flags the ratio cell when it drifts past
-  tolerance. "Scan another sheet" resets the flow.
+  the session token, wrapped in `expo-file-system`'s `File` part — Expo SDK
+  57's global fetch only serializes strings/Blobs/`bytes()` objects, so the
+  legacy React Native `{uri, name, type}` part is unsupported. Failures show
+  the backend's retake guidance inline with a Try again action; success renders
+  `ScanResultsCard` — each field with an editable decimal input (`decimal-pad`,
+  local draft preserving half-typed values), its confidence bar, and a `Review`
+  chip on flagged fields. The overall banner flips to "Some values need your
+  review…" when any field needs attention, and editing length/width recomputes
+  the displayed `Length ÷ width` ratio and re-flags the ratio cell when it
+  drifts past tolerance. "Scan another sheet" resets the flow.
 - **No persistence yet.** Values are a review model only; saving arrives with
   the assessment phase.
 

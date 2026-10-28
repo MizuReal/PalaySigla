@@ -8,6 +8,18 @@ jest.mock('../supabaseClient', () => {
   return { supabase: createSupabaseMock() }
 })
 
+jest.mock('expo-file-system', () => ({
+  File: class MockFile {
+    uri: string
+    name = 'scan.jpg'
+    type = 'image/jpeg'
+
+    constructor(uri: string) {
+      this.uri = uri
+    }
+  },
+}))
+
 import type { ScanData } from '../../types/api'
 import type { SupabaseMock } from '../../test/supabaseMock'
 import { supabase as supabaseClient } from '../supabaseClient'
@@ -61,10 +73,10 @@ describe('sendScanImage', () => {
     expect(init?.method).toBe('POST')
     expect(init?.headers).toEqual({ Authorization: 'Bearer token-1' })
     expect(init?.body).toBeInstanceOf(FormData)
-    expect(appendSpy).toHaveBeenCalledWith(
-      'file',
-      expect.objectContaining({ uri: IMAGE.uri, name: 'scan.jpg', type: 'image/jpeg' })
-    )
+    expect(appendSpy).toHaveBeenCalledTimes(1)
+    const [partName, part] = appendSpy.mock.calls[0]
+    expect(partName).toBe('file')
+    expect(part).toMatchObject({ uri: IMAGE.uri, name: 'scan.jpg', type: 'image/jpeg' })
   })
 
   it('requires a signed-in session', async () => {
@@ -83,14 +95,27 @@ describe('sendScanImage', () => {
     )
   })
 
-  it('reports network failures', async () => {
+  it('reports network failures with the target host', async () => {
     supabase.auth.getSession.mockResolvedValue({
       data: { session: { access_token: 'token-1' } },
     })
     jest.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
 
     await expect(sendScanImage(IMAGE)).rejects.toThrow(
-      'Could not reach the server. Check your connection.'
+      `Could not reach the server at ${API_BASE_URL}. Check your connection.`
+    )
+  })
+
+  it('reports an aborted request as a timeout', async () => {
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: { access_token: 'token-1' } },
+    })
+    const abortError = new Error('Aborted')
+    abortError.name = 'AbortError'
+    jest.spyOn(globalThis, 'fetch').mockRejectedValue(abortError)
+
+    await expect(sendScanImage(IMAGE)).rejects.toThrow(
+      'The scan took too long. Check your connection and try again.'
     )
   })
 

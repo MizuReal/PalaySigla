@@ -192,10 +192,13 @@ blocks the ASGI worker:
 
 1. **Validate + decode.** JPEG/PNG only, ≤ 10 MB, EXIF orientation normalized;
    readable bytes are re-encoded in memory, so no metadata reaches the model.
-2. **Register the sheet.** Detect the page quad, try the four corner
-   rotations, score the printed fiducials (the top-left anchor is larger,
-   which proves orientation), then refine the homography so the photo lands on
-   a canonical 2100×2970 A4 frame. Misses raise `422` with retake guidance.
+2. **Register the card (marker-first).** Solid square marker candidates are
+   filtered from the thresholded image, then grouped: the largest candidate is
+   the 8 mm anchor and three 6 mm markers must complete the spec's relative
+   layout (a three-marker affine predicts the fourth within tolerance, and
+   orientation-flipping homographies are rejected). The four centers map the
+   photo onto a canonical 1600×2263 card frame, verified against the expected
+   marker windows. Misses raise `422` with retake guidance.
 3. **Crop + classify.** Every digit cell is cropped from
    `ocr_templates/scan-sheet-v1.json`, thresholded, deskewed, centered into a
    28×28 MNIST-style tensor, and classified in one ONNX batch.
@@ -204,7 +207,7 @@ blocks the ASGI worker:
    `length_width_ratio` that disagrees with `grain_length ÷ grain_width` all
    set `needs_review`.
 
-The sheet spec and the model both load once in the FastAPI lifespan and a
+The card spec and the model both load once in the FastAPI lifespan and a
 missing/invalid artifact fails the boot. `OnnxDigitClassifier` refuses to load
 without `SCAN_DIGIT_MODEL_PATH` and optionally verifies
 `SCAN_DIGIT_MODEL_SHA256`. The artifact is never committed: train it with
@@ -212,6 +215,8 @@ without `SCAN_DIGIT_MODEL_PATH` and optionally verifies
 File mounted at `/etc/secrets/scan_digit.onnx` with the path set in the
 dashboard is the supported deploy path). Per-IP rate limiting and the
 `{data, error}` envelope match the rest of the API (see [api.md](api.md)).
+Four A6 cards tile each A4 page on the printed sheet, so one printed page
+covers four scans.
 
 ## Nominatim policy
 

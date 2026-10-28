@@ -34,7 +34,7 @@ describe('scan sheet PDF', () => {
     expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
   })
 
-  it('keeps every spec rect inside the page', () => {
+  it('keeps every spec rect inside the card', () => {
     const spec = loadScanSheetSpec(SPEC_PATH)
 
     const rects = [
@@ -48,5 +48,12 @@ describe('scan sheet PDF', () => {
       expect(x + width).toBeLessThanOrEqual(1.0001)
       expect(y + height).toBeLessThanOrEqual(1.0001)
     }
+  })
+
+  it('tiles whole cards across the A4 sheet', () => {
+    const spec = loadScanSheetSpec(SPEC_PATH)
+
+    expect(spec.sheet.columns * spec.card.width_mm).toBeCloseTo(spec.sheet.width_mm, 3)
+    expect(spec.sheet.rows * spec.card.height_mm).toBeCloseTo(spec.sheet.height_mm, 3)
   })
 })

@@ -41,9 +41,9 @@ npm run dev            # http://localhost:5173
 
 `predev` / `prebuild` run `scripts/generateScanSheet.mjs` first, which renders
 `public/palaysigla-scan-sheet.pdf` (gitignored) from
-`ocr_templates/scan-sheet-v1.json` with pdf-lib. The backend loads the same
-spec for its crop geometry, so the printable sheet and the recognizer can
-never drift apart.
+`ocr_templates/scan-sheet-v1.json` with pdf-lib. Four A6 scan cards tile each
+A4 page with dashed cut lines; the backend loads the same spec for its crop
+geometry, so the printable sheet and the recognizer can never drift apart.
 
 ## Testing
 

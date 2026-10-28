@@ -29,8 +29,10 @@ def test_committed_spec_loads_and_covers_six_fields():
 
     assert spec.version == 1
     assert {field.key for field in spec.fields} == EXPECTED_FIELD_KEYS
-    assert spec.canonical_width_px == 2100
-    assert spec.canonical_height_px == 2970
+    assert spec.card_width_mm == 105.0
+    assert spec.card_height_mm == 148.5
+    assert spec.canonical_width_px == 1600
+    assert spec.canonical_height_px == 2263
     for field in spec.fields:
         assert field.digit_cells
         assert field.integer_digits > 0

@@ -57,7 +57,7 @@ and how to run it.
   handing off into a bottom-tab shell — Marketplace (live browse feed, 3-step
   posting wizard with photo + map pin, listing detail with owner actions),
   Community (live forum: feed, categories, threads, comments, hearts,
-  photos), Scan (live sheet OCR: print the generated sheet, photograph it,
+  photos), Scan (live card OCR: print the sheet, cut a card, photograph it,
   review the six extracted values with confidence and review flags),
   Settings (Account / Farmer profile / Selling history / Purchases), and a
   fifth session action cell (Login signed-out / Logout signed-in) keeping the
@@ -69,6 +69,6 @@ and how to run it.
   covers render errors (root error boundary) and unknown addresses.
 
 The four assessment outputs (quality, mold, grade, variety) remain planned —
-no assessment model artifacts or endpoints exist. The scan-sheet OCR path
+no assessment model artifacts or endpoints exist. The scan-card OCR path
 that feeds them its six paper measurements is implemented (see
-[architecture.md](architecture.md#scan-sheet-ocr-handwritten-values)).
+[architecture.md](architecture.md#scan-card-ocr-handwritten-values)).

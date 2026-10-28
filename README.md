@@ -41,8 +41,8 @@ questions in English and Tagalog.
   with a "Get started" handoff into a bottom-tab shell — Marketplace (live
   browse feed, 3-step posting wizard with photo + map pin, listing detail
   with owner actions), Community (live forum: feed, categories, threads,
-  comments, hearts, photos), Scan (live sheet OCR: print the generated sheet,
-  photograph it, review the six extracted values), Settings (Account /
+  comments, hearts, photos), Scan (live card OCR: print the sheet, cut a
+  card, photograph it, review the six extracted values), Settings (Account /
   Farmer profile / Selling history / Purchases), and a fifth session action
   (Login while signed out / Logout while signed in) that keeps the bar at
   five even cells — full email/password auth with in-app email-link returns,
