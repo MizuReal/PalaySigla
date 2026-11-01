@@ -57,3 +57,30 @@ export interface ScanData {
 }
 
 export type ScanResponse = ApiEnvelope<ScanData>
+
+export type AssessmentSeverity = 'none' | 'low' | 'moderate' | 'high'
+export type AssessmentQuality = 'premium' | 'good' | 'fair' | 'poor'
+
+export interface DefectDetection {
+  class_key: string
+  label: string
+  confidence: number
+  /** Normalized [x, y, w, h] in the original photo. */
+  box: [number, number, number, number]
+  area_ratio: number
+}
+
+export interface AssessmentData {
+  available_outputs: string[]
+  unavailable_outputs: string[]
+  detections: DefectDetection[]
+  counts: Record<string, number>
+  defect_rate: number
+  severity: AssessmentSeverity
+  quality_status: AssessmentQuality
+  needs_review: boolean
+  inference_ms: number
+  imgsz: number
+}
+
+export type AssessmentResponse = ApiEnvelope<AssessmentData>

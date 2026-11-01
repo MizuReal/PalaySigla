@@ -1,8 +1,8 @@
 # HTTP API
 
 The backend serves the geocoding proxy, the Palay Assistant chat endpoint, the
-scan-sheet OCR endpoint, plus the health check. All responses use the
-project-wide envelope format.
+scan-sheet OCR endpoint, the grain assessment endpoint, plus the health check.
+All responses use the project-wide envelope format.
 
 ## Envelope
 
@@ -22,14 +22,14 @@ Error codes map to HTTP status:
 
 | HTTP | Code | When |
 |---|---|---|
-| 400 | `BAD_REQUEST` | Malformed request, unsupported/oversized/corrupt scan image |
-| 401 | `ERROR` | Missing or invalid session (`/api/chat`, `/api/scan/ocr`). No 401-specific code exists; unmapped statuses fall back to `ERROR`. |
+| 400 | `BAD_REQUEST` | Malformed request, unsupported/oversized/corrupt uploaded image |
+| 401 | `ERROR` | Missing or invalid session (`/api/chat`, `/api/scan/ocr`, `/api/assessments/image`). No 401-specific code exists; unmapped statuses fall back to `ERROR`. |
 | 404 | `NOT_FOUND` | Resource missing (e.g. reverse geocode with no result) |
 | 422 | `VALIDATION_ERROR` | Invalid query parameters or body; scan sheet or corner marks not found in the photo |
 | 429 | `RATE_LIMITED` | Per-IP rate limit exceeded, or Groq is busy |
-| 500 | `ERROR` | Unhandled server error (e.g. digit inference failure) |
+| 500 | `ERROR` | Unhandled server error (e.g. digit or detector inference failure) |
 | 502 | `UPSTREAM_ERROR` | Nominatim or Groq unreachable / errored |
-| 503 | `ERROR` | Backend auth service not configured, or Supabase unreachable (`/api/chat`, `/api/scan/ocr`) |
+| 503 | `ERROR` | Backend auth service not configured, or Supabase unreachable (`/api/chat`, `/api/scan/ocr`, `/api/assessments/image`) |
 
 Any status code without a row in the table above also yields the generic
 `ERROR` code.
@@ -195,6 +195,64 @@ The printable sheet itself is not an API asset: the website renders
 `ocr_templates/scan-sheet-v1.json` (four A6 cards per A4 page), the same spec
 the backend loads for cropping.
 
+### `POST /api/assessments/image`
+
+Detects mold and discolored grain in a top-down photo of a paddy sample.
+**Requires authentication** (the same bearer rule as `/api/chat`) and is the
+only path to the defect detector.
+
+Body: `multipart/form-data` with a single `file` field — a JPEG or PNG photo,
+at most 10 MB. The photo is stretched to the model's trained input size
+(1280×1280), decoded into boxes, and aggregated into a coverage estimate.
+
+```json
+{
+  "data": {
+    "available_outputs": ["mold", "quality_status"],
+    "unavailable_outputs": ["market_grade", "variety"],
+    "detections": [
+      {
+        "class_key": "mold_discoloration",
+        "label": "Mold / discoloration",
+        "confidence": 0.5871,
+        "box": [0.3001, 0.1433, 0.0233, 0.0269],
+        "area_ratio": 0.00063
+      }
+    ],
+    "counts": { "mold_discoloration": 12 },
+    "defect_rate": 0.0141,
+    "severity": "moderate",
+    "quality_status": "fair",
+    "needs_review": false,
+    "inference_ms": 512,
+    "imgsz": 1280
+  },
+  "error": null
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `detections[].box` | Bounding box in the original photo, normalized `[x, y, w, h]` |
+| `detections[].area_ratio` | Box area as a fraction of the frame |
+| `counts` | Detections per class key (always includes every configured class) |
+| `defect_rate` | Summed detection coverage, capped at 1.0 |
+| `severity` | `none` / `low` / `moderate` / `high`, banded on `defect_rate` |
+| `quality_status` | Derived from severity: `premium` / `good` / `fair` / `poor` |
+| `needs_review` | True when any detection falls below the review confidence (0.55 default) |
+| `unavailable_outputs` | Outputs this model cannot produce yet |
+
+Error responses:
+
+- `400 BAD_REQUEST` — not a JPEG/PNG, empty, corrupt, or larger than 10 MB.
+- `429 RATE_LIMITED` — per-IP assessment limit (10 requests / 60 s by default).
+- `503 ERROR` — auth backend unconfigured/unreachable, or the detector is not
+  loaded on this server.
+
+The detector's ONNX artifact is not committed: `ASSESS_MODEL_PATH` points at a
+deployed copy and `ASSESS_MODEL_SHA256` pins it. A missing or modified artifact
+fails the boot rather than degrading a request.
+
 ## Rate limits and caching
 
 - **Per-IP (geocode):** 10 requests per 10 seconds per client IP
@@ -208,6 +266,10 @@ the backend loads for cropping.
   (`SCAN_RATE_LIMIT_MAX_REQUESTS` / `SCAN_RATE_LIMIT_WINDOW_SECONDS`) — OCR is
   CPU-bound, so it is rate-limited tighter than geocode. Exceeding it returns
   `429 RATE_LIMITED`.
+- **Per-IP (assessment):** 10 requests per 60 seconds per client IP
+  (`ASSESS_RATE_LIMIT_MAX_REQUESTS` / `ASSESS_RATE_LIMIT_WINDOW_SECONDS`) —
+  detector inference is the heaviest request the API serves. Exceeding it
+  returns `429 RATE_LIMITED`.
 - **Nominatim:** the service enforces a hard 1 request/second throttle
   (`GEOCODE_MIN_INTERVAL_SECONDS`) and always sends
   `User-Agent: PalaySigla/<version> (<contact-email>)`.

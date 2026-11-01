@@ -57,6 +57,20 @@ class Settings(BaseSettings):
     scan_rate_limit_max_requests: int = 10
     scan_rate_limit_window_seconds: int = 60
 
+    # Assessment detector: a YOLO11-S ONNX artifact trained at ASSESS_IMGSZ.
+    # The boot validates the hash and the input shape, so a mismatched or
+    # missing artifact fails fast instead of degrading every request.
+    assess_model_path: str = ""
+    assess_model_sha256: str = ""
+    assess_imgsz: int = Field(default=1280, ge=320, le=1920)
+    assess_confidence_threshold: float = Field(default=0.25, ge=0.0, le=1.0)
+    assess_review_confidence_threshold: float = Field(default=0.55, ge=0.0, le=1.0)
+    assess_iou_threshold: float = Field(default=0.45, ge=0.0, le=1.0)
+    assess_max_image_bytes: int = Field(default=10 * 1024 * 1024, ge=1024)
+    assess_inference_max_workers: int = Field(default=1, ge=1, le=4)
+    assess_rate_limit_max_requests: int = 10
+    assess_rate_limit_window_seconds: int = 60
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

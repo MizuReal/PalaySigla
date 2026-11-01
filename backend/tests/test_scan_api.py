@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.main import create_app
 from app.ml.scan.digits import ScanModelError
 from app.ml.scan.spec import load_scan_sheet_spec
+from tests.assessment_fixtures import FakeDetector
 from tests.scan_fixtures import (
     FakeDigitClassifier,
     encode_png,
@@ -21,7 +22,7 @@ TEMPLATES_DIR = REPO_ROOT / "ocr_templates"
 
 @pytest.fixture
 def client():
-    app = create_app(scan_engine=FakeDigitClassifier())
+    app = create_app(scan_engine=FakeDigitClassifier(), detector=FakeDetector())
     app.dependency_overrides[get_current_user] = lambda: "user-1"
     with TestClient(app) as test_client:
         yield test_client
@@ -70,7 +71,7 @@ def test_scan_endpoint_reports_a_missing_sheet(client):
 
 
 def test_scan_endpoint_requires_authentication():
-    app = create_app(scan_engine=FakeDigitClassifier())
+    app = create_app(scan_engine=FakeDigitClassifier(), detector=FakeDetector())
     with TestClient(app) as test_client:
         response = test_client.post(
             "/api/scan/ocr",

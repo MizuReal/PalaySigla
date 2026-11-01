@@ -521,8 +521,37 @@ Notes:
   with `grain_length ÷ grain_width` all set `needs_review` for the client.
 - **The model loads once at boot** (`app.state.scan_service`) and inference
   runs in a bounded thread pool, never on the event loop. A missing or
-  hash-mismatched `scan_digit.onnx` fails startup; the four assessment models
-  (quality, mold, grade, variety) remain planned.
+  hash-mismatched `scan_digit.onnx` fails startup.
+
+## Defect and mold detection (current)
+
+The grain assessment endpoint runs a YOLO11-S detector fine-tuned on 292
+top-down paddy photos (one class, `mold_discoloration`) and exported to ONNX.
+
+- **Trained geometry is authoritative.** Roboflow generated the dataset with
+  `Resize: Stretch to 1280×1280`, so the backend **stretches** the photo to
+  1280×1280 (`cv2.resize`) rather than letterboxing it. Letterboxing here
+  would shift and rescale every predicted box — a silent accuracy loss that
+  looks like a modelling problem.
+- **No NMS in the graph.** The export emits raw `(1, 4 + classes, anchors)`
+  tensors; decoding, per-class `cv2.dnn.NMSBoxes`, and clamping happen in
+  `app/ml/detection/postprocess.py`. This keeps the artifact interchangeable
+  and the threshold configurable at runtime.
+- **Aggregate, don't guess.** `defect_rate` is the summed detection coverage,
+  capped at 1.0; `severity` bands it, and `quality_status` derives from
+  severity. `market_grade` and `variety` are returned as unavailable rather
+  than fabricated.
+- **Low confidence is surfaced, never hidden.** Any detection below
+  `ASSESS_REVIEW_CONFIDENCE_THRESHOLD` sets `needs_review`, which the mobile
+  card renders as a review banner.
+- **Same boot contract as OCR.** One hash-checked session at startup, a
+  bounded thread pool, and a fail-fast boot when the artifact is missing or
+  modified.
+
+Current limits are stated plainly: the detector covers one class, the training
+data came from a single 43-minute capture session, and median object size is
+~27 px at the model input. Those constrain generalization and small-object
+recall far more than any architecture choice.
 
 ## Repository layout
 

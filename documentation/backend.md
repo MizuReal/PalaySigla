@@ -10,8 +10,11 @@ FastAPI application. Serves two proxy/API features plus the health check:
 - **Scan-sheet OCR** (`POST /api/scan/ocr`) — warps a photographed sheet to a
   canonical A4 frame using its printed corner marks, classifies each
   handwritten digit cell with a small ONNX CNN, and returns the six
-  measurements with per-field confidence. The four assessment models (quality,
-  mold, grade, variety) remain planned.
+  measurements with per-field confidence.
+- **Grain assessment** (`POST /api/assessments/image`) — runs the YOLO11-S
+  defect detector (ONNX, loaded once at boot) on a top-down paddy photo and
+  returns detections, defect coverage, severity, and a derived quality status.
+  Market grade and variety remain planned: the model has a single defect class.
 - **`GET /health`**.
 
 ## Requirements
@@ -37,7 +40,10 @@ works without them). To exercise authenticated chat locally, set
 the `Chatbot` constructor refuses to start without the Groq key. To exercise
 scanning, train the digit model once (the steps above; requires the dev-only
 `torch` extra) and set `SCAN_DIGIT_MODEL_PATH=models/scan_digit.onnx` — the
-app fails fast at boot without a valid model.
+app fails fast at boot without a valid model. Grain assessment follows the
+same contract: export `best.onnx` from `machine_learning/` and set
+`ASSESS_MODEL_PATH=../machine_learning/models/best.onnx`. Both models are
+required at boot.
 
 ## Deployment (Render)
 
@@ -66,9 +72,28 @@ declared with `sync: false`, so they are supplied in the Render dashboard
 - `SCAN_DIGIT_MODEL_PATH` — path to the trained ONNX artifact (e.g. a Render
   Secret File at `/etc/secrets/scan_digit.onnx`)
 - `SCAN_DIGIT_MODEL_SHA256` — optional integrity hash, checked at startup
+- `ASSESS_MODEL_PATH` — path to the detector's ONNX artifact (e.g. a Render
+  Secret File at `/etc/secrets/mold_detector.onnx`)
+- `ASSESS_MODEL_SHA256` — hash of that artifact, checked at startup
+- `ASSESS_IMGSZ` — must equal the size the graph was exported at (1280)
 - `CORS_ORIGINS` — comma-separated allowlist; must include the deployed
   website origin. Wildcard `*` is forbidden in production.
 - `CONTACT_EMAIL` — used in the Nominatim `User-Agent`.
+
+### Detector resource profile
+
+Measured locally on a 4-core CPU with `CPUExecutionProvider`:
+
+| Metric | Value |
+|---|---|
+| Inference, 1280×1280 | 0.37–0.44 s bare, 0.5–0.7 s end-to-end (decode + NMS + aggregation) |
+| Peak RSS | ~730 MB |
+| Artifact | 36.7 MB ONNX, fp32 |
+
+Render's free instance provides 512 MB, so the detector needs the **Starter
+plan (2 GB)**. If that is not an option, export a second artifact at 960 or 640
+and serve it with the matching `ASSESS_IMGSZ` — accuracy drops, but the model
+still runs.
 
 ## Scripts
 
@@ -114,6 +139,16 @@ declared with `sync: false`, so they are supplied in the Render dashboard
 | `SCAN_INFERENCE_MAX_WORKERS` | `2` | Bounded thread pool for off-loop inference |
 | `SCAN_RATE_LIMIT_MAX_REQUESTS` | `10` | Per-IP sliding window cap (scan) |
 | `SCAN_RATE_LIMIT_WINDOW_SECONDS` | `60` | Per-IP sliding window length (scan) |
+| `ASSESS_MODEL_PATH` | *(empty)* | Path to the detector's `best.onnx`; **required** — boot fails without it |
+| `ASSESS_MODEL_SHA256` | *(empty)* | Optional artifact hash check at startup |
+| `ASSESS_IMGSZ` | `1280` | Input size baked into the ONNX graph; must match the export |
+| `ASSESS_CONFIDENCE_THRESHOLD` | `0.25` | Detections below this are dropped |
+| `ASSESS_REVIEW_CONFIDENCE_THRESHOLD` | `0.55` | Detections below this set `needs_review` |
+| `ASSESS_IOU_THRESHOLD` | `0.45` | NMS overlap threshold |
+| `ASSESS_MAX_IMAGE_BYTES` | `10485760` | Upload cap for assessment photos |
+| `ASSESS_INFERENCE_MAX_WORKERS` | `1` | Bounded thread pool for detector inference |
+| `ASSESS_RATE_LIMIT_MAX_REQUESTS` | `10` | Per-IP sliding window cap (assessment) |
+| `ASSESS_RATE_LIMIT_WINDOW_SECONDS` | `60` | Per-IP sliding window length (assessment) |
 
 ## Structure
 
@@ -127,20 +162,27 @@ app/
 │   ├── geocoder.py      Nominatim client: 1 req/s throttle, TTL cache, UA header
 │   ├── rate_limit.py    Per-IP sliding-window limiter
 │   ├── chatbot.py       Groq chat-completions client + two-stage topic guard
-│   └── scan.py          Scan OCR orchestration: decode, warp, classify, assemble, review flags
+│   ├── scan.py          Scan OCR orchestration: decode, warp, classify, assemble, review flags
+│   └── assessment.py    Detector orchestration: decode, infer, aggregate coverage/severity
 ├── ml/
-│   └── scan/
-│       ├── spec.py      Loads/validates ocr_templates/scan-sheet-v1.json + preprocessing constants
-│       ├── warp.py      Page + fiducial detection, homography, cell crops, inverse mapping
-│       └── digits.py    Cell preprocessing, DigitClassifier protocol, ONNX Runtime classifier
+│   ├── scan/
+│   │   ├── spec.py      Loads/validates ocr_templates/scan-sheet-v1.json + preprocessing constants
+│   │   ├── warp.py      Page + fiducial detection, homography, cell crops, inverse mapping
+│   │   └── digits.py    Cell preprocessing, DigitClassifier protocol, ONNX Runtime classifier
+│   └── detection/
+│       ├── constants.py Class keys, stretch-resize/scale constants, severity bands
+│       ├── postprocess.py Raw output decode (xywh→xyxy), per-class NMS
+│       └── detector.py  DefectDetector protocol + OnnxDetector (hash check, shape validation)
 ├── api/
 │   ├── geocode.py       /api/geocode/search, /api/geocode/reverse
 │   ├── chat.py          POST /api/chat (auth + per-IP rate limited)
-│   └── scan.py          POST /api/scan/ocr (auth + per-IP rate limited)
+│   ├── scan.py          POST /api/scan/ocr (auth + per-IP rate limited)
+│   └── assessment.py    POST /api/assessments/image (auth + per-IP rate limited)
 └── models/
     ├── geocode.py       Pydantic response models
     ├── chat.py          ChatTurn / ChatRequest / ChatReply / ChatResponse
-    └── scan.py          ScanDigit / ScanFieldResult / ScanData / ScanOcrResponse
+    ├── scan.py          ScanDigit / ScanFieldResult / ScanData / ScanOcrResponse
+    └── assessment.py    DefectDetection / AssessmentData / AssessmentResponse
 scripts/
 ├── build_scan_spec.py   Generates the shared sheet spec JSON
 └── train_digit_model.py Dev-only MNIST training + ONNX export

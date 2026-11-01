@@ -97,7 +97,10 @@ src/
 │   ├── messages/           ConversationList + ConversationListItem (inbox), MessageThread + MessageBubble +
 │   │                       MessageComposer + ListingContextBar + MessageSuggestions (listing-scoped chat)
 │   ├── scan/               ScanCapturePanel (instructions + capture actions), ScanResultsCard (editable
-│   │                       results + review banner), ScanFieldRow (value input + confidence bar + chip)
+│   │                       results + review banner), ScanFieldRow (value input + confidence bar + chip),
+│   │                       ScanModeTabs (Sheet scan / Grain photo switch)
+│   ├── assessment/         AssessmentCapturePanel, AssessmentResultsCard, DetectionOverlay (boxed
+│   │                       photo), GrainAssessmentPanel (capture → upload → result flow)
 │   └── landing/            LandingHero (carousel), SampleScan, FeatureGrid, HowItWorks, AudienceSection, LandingFooter
 ├── context/                authContext + AuthProvider (session + overlays), toastContext + ToastProvider
 │   │                       (root toast layer, under the modal overlays), messagingContext + MessagingProvider
@@ -548,7 +551,33 @@ geometry):
   the displayed `Length ÷ width` ratio and re-flags the ratio cell when it
   drifts past tolerance. "Scan another sheet" resets the flow.
 - **No persistence yet.** Values are a review model only; saving arrives with
-  the assessment phase.
+  a later assessment phase.
+
+### Grain assessment (current)
+
+The same **Scan** tab carries a second mode — `ScanModeTabs` switches between
+*Sheet scan* and *Grain photo* — so the four-tab plus action-cell chrome from
+DESIGN.md is untouched. Backed by `services/assessments.ts`,
+`hooks/useAssessmentCapture.ts`, and the backend's `POST
+/api/assessments/image`:
+
+- **Capture.** Grains are photographed top-down on a matte surface;
+  `useAssessmentCapture` reuses `useImagePicker` with
+  `MAX_ASSESSMENT_DIMENSION` (2048 px) and JPEG quality 0.9, supersampling the
+  detector's 1280 input so the server resize never invents detail.
+- **Auth gate + retry.** Signed-out taps open the auth dialog; failures render
+  the backend message with a Try again action, exactly like the sheet flow.
+- **Result.** `AssessmentResultsCard` shows a `{colors.surface-soft}` banner
+  (hairline when clean, 1px `{colors.error}` rule when `needs_review`), the
+  photo with every detection outlined in 2px `{colors.primary}`, summary rows
+  for defects found / defect area / severity / quality status, and up to five
+  per-detection confidence bars. A `{colors.surface-soft}` notice names the
+  outputs this model cannot produce yet (market grade, variety) instead of
+  omitting them silently.
+- **Box geometry.** `DetectionOverlay` sizes its frame to the photo's own
+  aspect ratio and fills it, so normalized `[x, y, w, h]` maps directly to
+  percentage offsets — no letterbox compensation, and a unit test pins the
+  mapping.
 
 ### Sign-in & accounts (auth phase)
 

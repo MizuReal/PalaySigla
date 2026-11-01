@@ -50,10 +50,13 @@ questions in English and Tagalog.
   over the tabs, and the credentials nudge — all rendered from the DESIGN.md
   token set via `mobile/src/theme/designTokens.ts`.
 
-The four assessment outputs (quality, mold, grade, variety) remain planned —
-no assessment model artifacts or endpoints exist. Scan-sheet OCR, which feeds
-them the six paper measurements, is implemented (see
-`documentation/architecture.md`).
+Mold and discoloration detection is implemented: a YOLO11-S detector trained
+in `machine_learning/` and exported to ONNX runs inside the backend behind
+`POST /api/assessments/image`, and the mobile Scan tab gains a "Grain photo"
+mode that outlines detected defects and reports the defect rate. Market grade
+and variety remain planned — the current model has a single defect class and
+cannot produce them. Scan-sheet OCR, which feeds the paper measurements, is
+also implemented (see `documentation/architecture.md`).
 
 ## Repository layout
 

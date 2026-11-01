@@ -8,12 +8,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.api.assessment import router as assessment_router
 from app.api.chat import router as chat_router
 from app.api.geocode import router as geocode_router
 from app.api.scan import router as scan_router
 from app.core.config import get_settings
+from app.ml.detection.detector import DefectDetector, OnnxDetector
 from app.ml.scan.digits import DigitClassifier, OnnxDigitClassifier
 from app.ml.scan.spec import load_scan_sheet_spec
+from app.services.assessment import AssessmentService
 from app.services.scan import ScanService
 
 
@@ -42,7 +45,10 @@ def _error_payload(status_code: int, detail: object) -> dict:
     }
 
 
-def create_app(scan_engine: DigitClassifier | None = None) -> FastAPI:
+def create_app(
+    scan_engine: DigitClassifier | None = None,
+    detector: DefectDetector | None = None,
+) -> FastAPI:
     settings = get_settings()
 
     @asynccontextmanager
@@ -64,10 +70,29 @@ def create_app(scan_engine: DigitClassifier | None = None) -> FastAPI:
             executor=executor,
             settings=settings,
         )
+
+        # The detector follows the same rule: hash-checked at boot, one session
+        # for the process lifetime, inference dispatched off the event loop.
+        defect_detector = (
+            detector
+            if detector is not None
+            else OnnxDetector(
+                settings.assess_model_path,
+                settings.assess_model_sha256,
+                settings.assess_imgsz,
+            )
+        )
+        assess_executor = ThreadPoolExecutor(max_workers=settings.assess_inference_max_workers)
+        app.state.assessment_service = AssessmentService(
+            detector=defect_detector,
+            executor=assess_executor,
+            settings=settings,
+        )
         try:
             yield
         finally:
             executor.shutdown(wait=False)
+            assess_executor.shutdown(wait=False)
 
     app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
 
@@ -109,6 +134,7 @@ def create_app(scan_engine: DigitClassifier | None = None) -> FastAPI:
     app.include_router(geocode_router)
     app.include_router(chat_router)
     app.include_router(scan_router)
+    app.include_router(assessment_router)
     return app
 
 

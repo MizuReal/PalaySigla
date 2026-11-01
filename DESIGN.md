@@ -1367,3 +1367,24 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
 
   All values still come from the standard token set; no new tokens were
   introduced.
+
+- **Scan tab — grain assessment mode.** The Scan tab gains a two-cell switch
+  above its content ("Sheet scan" / "Grain photo") built from existing tokens:
+  a 1px `{colors.hairline}` bottom rule, 44px cells, the active label in
+  `{colors.primary}` at `{typography.button-md}` with a 2px
+  `{colors.primary}` underline, the inactive label in `{colors.mute}`. The
+  grain mode reuses the capture-panel treatment (eyebrow,
+  `{typography.display-lg}` title, `{typography.body-md}` lead, hairline
+  `{colors.canvas}` card with three numbered steps, a full-width
+  `{component.button-primary}` "Take photo", and 44px `{colors.primary}` text
+  actions). Results card: a `{colors.surface-soft}` banner (hairline rule when
+  clean, 1px `{colors.error}` rule when `needs_review`), the captured photo in
+  a `{colors.surface-soft}` frame sized to the photo's aspect ratio with every
+  detection outlined in 2px `{colors.primary}`, four divided readout rows
+  (defects found, defect area, severity, quality status) pairing
+  `{typography.caption-sm}` `{colors.mute}` labels with
+  `{typography.body-strong}` values, up to five per-detection rows each with a
+  4px `{colors.primary}`-on-`{colors.surface-soft}` confidence bar, a
+  `{colors.surface-soft}` notice naming the outputs the model cannot produce
+  yet, and one full-width `{component.button-primary}` "Assess another photo".
+  No new tokens were introduced.

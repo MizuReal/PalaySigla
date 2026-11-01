@@ -5,7 +5,10 @@ import { useCallback, useMemo, useState } from 'react'
 import { Image as ExpoImage } from 'expo-image'
 import { Linking, StyleSheet, Text, View } from 'react-native'
 import Button from '../components/Button'
+import GrainAssessmentPanel from '../components/assessment/GrainAssessmentPanel'
 import ScanCapturePanel from '../components/scan/ScanCapturePanel'
+import ScanModeTabs from '../components/scan/ScanModeTabs'
+import type { ScanMode } from '../components/scan/ScanModeTabs'
 import ScanResultsCard from '../components/scan/ScanResultsCard'
 import TabScreen from '../components/TabScreen'
 import useScanCapture from '../hooks/useScanCapture'
@@ -37,6 +40,7 @@ function ScanScreen() {
     openSettings,
   } = useScanCapture()
   const [linkError, setLinkError] = useState('')
+  const [mode, setMode] = useState<ScanMode>('sheet')
 
   const sheetUrl = useMemo(() => {
     if (!WEB_URL) {
@@ -83,8 +87,18 @@ function ScanScreen() {
   const error = scanError || linkError
   const isBusy = status === 'uploading' || isProcessing
 
+  if (mode === 'grain') {
+    return (
+      <TabScreen>
+        <ScanModeTabs mode={mode} onChange={setMode} />
+        <GrainAssessmentPanel />
+      </TabScreen>
+    )
+  }
+
   return (
     <TabScreen>
+      <ScanModeTabs mode={mode} onChange={setMode} />
       <View style={styles.panel}>
         {image ? (
           <ExpoImage

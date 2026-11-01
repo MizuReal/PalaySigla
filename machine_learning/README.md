@@ -92,9 +92,14 @@ output_dir: /kaggle/working/runs
 
 ```
 ASSESS_MODEL_PATH=/etc/secrets/mold_detector.onnx
-ASSESS_MODEL_SHA256=<hash printed by export>
+ASSESS_MODEL_SHA256=79e6e321661d1546bdf92b30fa320c00a6f9f01d722012d86ebf2ca991d9fa59
 ASSESS_IMGSZ=1280
 ```
+
+The checked-in `models/` folder is gitignored; the artifact travels as a
+deploy secret. The current export is a 36.7 MB fp32 graph with input
+`[1, 3, 1280, 1280]` and output `[1, 5, 33600]`, one class
+(`Palay-Molds-and-Discoloration`).
 
 The ONNX input must be `[1, 3, 1280, 1280]`; `export` fails loudly if it is not.
 Inference must reproduce the same preprocessing (stretch-resize to 1280, RGB,

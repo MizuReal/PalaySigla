@@ -4,6 +4,9 @@ services:
     runtime: python
     rootDir: backend
     region: singapore
+    # The free plan's 512 MB cannot serve the defect detector: one 1280x1280
+    # ONNX pass peaks around 730 MB RSS. Switch to `starter` (2 GB) before
+    # setting ASSESS_MODEL_PATH, or serve a smaller export (ASSESS_IMGSZ=960).
     plan: free
     branch: main
     buildCommand: pip install -r requirements.txt
@@ -27,3 +30,9 @@ services:
         sync: false
       - key: CONTACT_EMAIL
         sync: false
+      - key: ASSESS_MODEL_PATH
+        sync: false
+      - key: ASSESS_MODEL_SHA256
+        sync: false
+      - key: ASSESS_IMGSZ
+        value: "1280"

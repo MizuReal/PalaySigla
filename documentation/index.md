@@ -68,7 +68,9 @@ and how to run it.
   token set via `mobile/src/theme/designTokens.ts`. A full-page message shell
   covers render errors (root error boundary) and unknown addresses.
 
-The four assessment outputs (quality, mold, grade, variety) remain planned —
-no assessment model artifacts or endpoints exist. The scan-card OCR path
-that feeds them its six paper measurements is implemented (see
+Mold and discoloration detection is implemented: a YOLO11-S detector runs
+in the backend behind `POST /api/assessments/image` and the mobile Scan tab
+gains a grain-photo mode. Market grade and variety remain planned — the model
+carries a single defect class. The scan-card OCR path that feeds the paper
+measurements is also implemented (see
 [architecture.md](architecture.md#scan-card-ocr-handwritten-values)).

@@ -20,6 +20,13 @@ export const MAX_AVATAR_DIMENSION = 512
 // after the backend warps the sheet, so the long edge runs higher than the
 // listing pipeline's 1600 px.
 export const MAX_SCAN_DIMENSION = 2400
+// Grain captures are downscaled to the detector's 1280 input server-side, so
+// supersampling above that keeps the resize from inventing detail. 2048 is the
+// smallest power-of-two-ish size that still beats 1280 after JPEG compression.
+export const MAX_ASSESSMENT_DIMENSION = 2048
+// The detector was trained on JPEGs at 90 quality; matching it here keeps the
+// compression artifacts the model learned on.
+export const ASSESSMENT_JPEG_QUALITY = 0.9
 const JPEG_QUALITY = 0.82
 export const SCAN_JPEG_QUALITY = 0.9
 const PROCESS_FAILED_MESSAGE = 'Could not process the photo.'
