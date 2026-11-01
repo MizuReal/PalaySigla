@@ -1,0 +1,47 @@
+# PalaySigla defect/mold detector — YOLO11-S training recipe.
+#
+# Every value that changes model behaviour lives here, so a run is reproducible
+# from the commit that produced it. Paths are resolved against the repository
+# root; override with absolute paths on Kaggle (e.g. /kaggle/input/palay-mold).
+
+dataset_root: backend/datasets/mold   # unzipped Roboflow "YOLOv11" export (contains data.yaml)
+output_dir: machine_learning/runs
+run_name: yolo11s-1280
+
+model: yolo11s.pt                     # COCO-pretrained starting point
+
+train:
+  imgsz: 1280                         # defects are ~2% of frame width; 640 puts them below 16 px
+  epochs: 150
+  patience: 30
+  batch: 8                            # drop to 4 if a 16 GB card runs out of memory
+  device: 0                           # "cpu" when no GPU is available
+  workers: 4                          # Kaggle has 4 vCPU; more thrashes the data loader
+  seed: 0
+  deterministic: true
+  pretrained: true
+  cache: false                        # 1280px tensors do not fit in a 13 GB RAM session
+  exist_ok: false
+
+  # Augmentation simulates the camera, never an image filter. Erasing/cutout is
+  # off because an erased square is larger than the defects it would blank out.
+  hsv_h: 0.015
+  hsv_s: 0.15
+  hsv_v: 0.20
+  degrees: 15.0
+  translate: 0.10
+  scale: 0.20
+  shear: 10.0
+  perspective: 0.0
+  flipud: 0.5
+  fliplr: 0.5
+  mosaic: 1.0
+  close_mosaic: 20
+  mixup: 0.0
+  copy_paste: 0.0
+  erasing: 0.0
+
+  plots: true
+  save: true
+  save_period: 10                     # checkpoint every 10 epochs; survives a session timeout
+  val: true

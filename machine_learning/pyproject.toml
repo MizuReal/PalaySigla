@@ -1,0 +1,9 @@
+# Tooling config only; this is not an installable distribution.
+# Matches backend/pyproject.toml so both Python trees format identically.
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.black]
+line-length = 100

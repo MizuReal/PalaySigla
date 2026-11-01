@@ -1,0 +1,19 @@
+# Datasets and training artifacts never enter git: the Roboflow export alone is
+# ~1 GB, and model weights are referenced by path + SHA-256 instead.
+datasets/
+backend/datasets/
+machine_learning/runs/
+machine_learning/datasets/
+*.onnx
+*.pt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-*/
+.ruff_cache/
+.pytest_cache/
+
+#ZIP
+Palay Molds and Discoloration.v3i.yolov11.zip

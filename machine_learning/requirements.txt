@@ -1,0 +1,8 @@
+# Training-only dependencies. Kept out of backend/requirements.txt on purpose:
+# torch + ultralytics would add gigabytes to the API image, which has to fit
+# Render's free tier. The backend only ever loads the exported ONNX artifact.
+ultralytics>=8.3.0
+pyyaml>=6.0
+onnx>=1.16
+onnxruntime>=1.20
+numpy>=2.0
