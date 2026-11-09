@@ -34,7 +34,7 @@ from app.ml.detection.constants import (
 )
 from app.ml.detection.detector import DefectDetector, DetectorError
 from app.ml.detection.postprocess import RawDetection
-from app.models.assessment import AssessmentData, DefectDetection, Severity
+from app.models.assessment import AssessmentData, DefectDetection, Severity, SeverityBands
 
 ALLOWED_CONTENT_TYPES = frozenset({"image/jpeg", "image/png"})
 MAX_IMAGE_DIMENSION_PX = 12000
@@ -115,6 +115,7 @@ class AssessmentService:
 
     def _assemble(self, detections: list[RawDetection], inference_ms: int) -> AssessmentData:
         input_size = float(self._settings.assess_imgsz)
+        review_threshold = self._settings.assess_review_confidence_threshold
         counts: dict[str, int] = dict.fromkeys(CLASS_NAMES, 0)
         converted: list[DefectDetection] = []
         covered_area = 0.0
@@ -138,6 +139,7 @@ class AssessmentService:
                     confidence=round(detection.confidence, CONFIDENCE_DECIMALS),
                     box=normalized,
                     area_ratio=round(area_ratio, BOX_DECIMALS),
+                    needs_review=detection.confidence < review_threshold,
                 )
             )
             counts[class_key] += 1
@@ -145,10 +147,6 @@ class AssessmentService:
 
         defect_rate = round(min(1.0, covered_area), RATIO_DECIMALS)
         severity = classify_severity(defect_rate)
-        needs_review = any(
-            detection.confidence < self._settings.assess_review_confidence_threshold
-            for detection in detections
-        )
         return AssessmentData(
             available_outputs=list(AVAILABLE_OUTPUTS),
             unavailable_outputs=list(UNAVAILABLE_OUTPUTS),
@@ -156,8 +154,14 @@ class AssessmentService:
             counts=counts,
             defect_rate=defect_rate,
             severity=severity,
+            severity_bands=SeverityBands(
+                none_max=SEVERITY_NONE_MAX,
+                low_max=SEVERITY_LOW_MAX,
+                moderate_max=SEVERITY_MODERATE_MAX,
+            ),
             quality_status=QUALITY_BY_SEVERITY[severity],
-            needs_review=needs_review,
+            needs_review=any(item.needs_review for item in converted),
+            review_confidence_threshold=round(review_threshold, CONFIDENCE_DECIMALS),
             inference_ms=inference_ms,
             imgsz=self._settings.assess_imgsz,
         )

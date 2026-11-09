@@ -541,9 +541,12 @@ top-down paddy photos (one class, `mold_discoloration`) and exported to ONNX.
   capped at 1.0; `severity` bands it, and `quality_status` derives from
   severity. `market_grade` and `variety` are returned as unavailable rather
   than fabricated.
-- **Low confidence is surfaced, never hidden.** Any detection below
-  `ASSESS_REVIEW_CONFIDENCE_THRESHOLD` sets `needs_review`, which the mobile
-  card renders as a review banner.
+- **Low confidence is surfaced, never hidden.** Each detection carries
+  `needs_review` when it falls below `ASSESS_REVIEW_CONFIDENCE_THRESHOLD`, the
+  response repeats the cutoff as `review_confidence_threshold`, and the mobile
+  card renders the outcome as a review banner plus a per-row chip. The
+  `severity_bands` cutoffs ship with the result too, so the UI quotes the
+  actual limits instead of hardcoding them.
 - **Same boot contract as OCR.** One hash-checked session at startup, a
   bounded thread pool, and a fail-fast boot when the artifact is missing or
   modified.

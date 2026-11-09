@@ -568,12 +568,22 @@ DESIGN.md is untouched. Backed by `services/assessments.ts`,
 - **Auth gate + retry.** Signed-out taps open the auth dialog; failures render
   the backend message with a Try again action, exactly like the sheet flow.
 - **Result.** `AssessmentResultsCard` shows a `{colors.surface-soft}` banner
-  (hairline when clean, 1px `{colors.error}` rule when `needs_review`), the
-  photo with every detection outlined in 2px `{colors.primary}`, summary rows
-  for defects found / defect area / severity / quality status, and up to five
-  per-detection confidence bars. A `{colors.surface-soft}` notice names the
-  outputs this model cannot produce yet (market grade, variety) instead of
-  omitting them silently.
+  that states the confidence outcome in one sentence (hairline when clean, 1px
+  `{colors.error}` rule when `needs_review`), the photo with every detection
+  outlined in 1px `{colors.primary}`, a verdict strip naming the quality status
+  and the coverage band behind it, two stat cells (flagged areas, photo
+  coverage) with a caption defining coverage as the share of the photo inside
+  the flagged areas rather than the share of grains affected, and up to five
+  area rows ranked by confidence. Each row shows a number badge, the exact
+  confidence, and a "Low confidence" chip when the detection sits below the
+  review threshold; tapping a row moves the 2px `{colors.primary}` box and
+  `{colors.primary-wash}` fill to that area on the photo. A
+  `{colors.surface-soft}` notice names the outputs this model cannot produce
+  yet (market grade, variety) instead of omitting them silently.
+- **Thresholds come from the server.** The coverage bands and the review
+  confidence cutoff ship in the response (`severity_bands`,
+  `review_confidence_threshold`, per-detection `needs_review`), so the copy
+  quotes the real cutoffs instead of hardcoded ones.
 - **Box geometry.** `DetectionOverlay` sizes its frame to the photo's own
   aspect ratio and fills it, so normalized `[x, y, w, h]` maps directly to
   percentage offsets — no letterbox compensation, and a unit test pins the

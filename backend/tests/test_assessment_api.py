@@ -37,6 +37,11 @@ def test_assessment_returns_the_envelope_with_detections(client):
     assert data["available_outputs"] == ["mold", "quality_status"]
     assert data["unavailable_outputs"] == ["market_grade", "variety"]
     assert len(data["detections"]) == 1
+    assert data["detections"][0]["needs_review"] is False
+    assert data["review_confidence_threshold"] == pytest.approx(0.55)
+    assert data["severity_bands"]["none_max"] == pytest.approx(0.0025)
+    assert data["severity_bands"]["low_max"] == pytest.approx(0.01)
+    assert data["severity_bands"]["moderate_max"] == pytest.approx(0.03)
 
 
 def test_assessment_requires_auth():

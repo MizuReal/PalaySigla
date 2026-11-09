@@ -19,6 +19,9 @@ export const COLORS = Object.freeze({
   primary: '#76b900',
   onPrimary: '#000000',
   primaryDark: '#5a8d00',
+  // Translucent brand green for detector-box fills; the wash reads as a
+  // highlighted region without hiding the grain underneath.
+  primaryWash: 'rgba(118, 185, 0, 0.16)',
   ink: '#000000',
   canvas: '#ffffff',
   surfaceDark: '#000000',

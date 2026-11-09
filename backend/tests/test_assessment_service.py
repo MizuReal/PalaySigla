@@ -36,9 +36,14 @@ async def test_process_aggregates_detections_into_a_reviewable_result() -> None:
     assert data.counts == {"mold_discoloration": 2}
     assert data.defect_rate == pytest.approx(0.02)
     assert data.severity == SEVERITY_MODERATE
+    assert data.severity_bands.none_max == pytest.approx(0.0025)
+    assert data.severity_bands.low_max == pytest.approx(0.01)
+    assert data.severity_bands.moderate_max == pytest.approx(0.03)
     assert data.quality_status == "fair"
     assert data.needs_review is False
+    assert data.review_confidence_threshold == pytest.approx(0.55)
     assert data.detections[0].box == [0.0, 0.0, 0.1, 0.1]
+    assert data.detections[0].needs_review is False
     assert data.available_outputs == ["mold", "quality_status"]
     assert data.unavailable_outputs == ["market_grade", "variety"]
     assert data.imgsz == 1280
@@ -67,6 +72,23 @@ async def test_low_confidence_detection_sets_needs_review() -> None:
 
     assert data.needs_review is True
     assert data.detections[0].confidence == pytest.approx(0.4)
+    assert data.detections[0].needs_review is True
+    assert data.review_confidence_threshold == pytest.approx(0.55)
+
+
+async def test_only_low_confidence_detections_are_flagged() -> None:
+    service = _service(
+        [
+            make_detection(confidence=0.9),
+            make_detection(confidence=0.30, box=(200.0, 200.0, 260.0, 260.0)),
+        ],
+        assess_review_confidence_threshold=0.55,
+    )
+
+    data = await service.process(encode_image(), "image/png")
+
+    assert [detection.needs_review for detection in data.detections] == [False, True]
+    assert data.needs_review is True
 
 
 async def test_detector_receives_the_decoded_photo_untouched() -> None:

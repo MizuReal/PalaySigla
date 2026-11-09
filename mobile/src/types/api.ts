@@ -61,6 +61,13 @@ export type ScanResponse = ApiEnvelope<ScanData>
 export type AssessmentSeverity = 'none' | 'low' | 'moderate' | 'high'
 export type AssessmentQuality = 'premium' | 'good' | 'fair' | 'poor'
 
+/** Coverage cutoffs behind severity, served by the backend so clients never guess. */
+export interface SeverityBands {
+  none_max: number
+  low_max: number
+  moderate_max: number
+}
+
 export interface DefectDetection {
   class_key: string
   label: string
@@ -68,6 +75,7 @@ export interface DefectDetection {
   /** Normalized [x, y, w, h] in the original photo. */
   box: [number, number, number, number]
   area_ratio: number
+  needs_review: boolean
 }
 
 export interface AssessmentData {
@@ -77,8 +85,10 @@ export interface AssessmentData {
   counts: Record<string, number>
   defect_rate: number
   severity: AssessmentSeverity
+  severity_bands: SeverityBands
   quality_status: AssessmentQuality
   needs_review: boolean
+  review_confidence_threshold: number
   inference_ms: number
   imgsz: number
 }

@@ -20,6 +20,17 @@ class DefectDetection(BaseModel):
         le=1.0,
         description="Box area as a fraction of the whole frame.",
     )
+    needs_review: bool = Field(
+        description="True when this box falls below the review confidence threshold.",
+    )
+
+
+class SeverityBands(BaseModel):
+    """Coverage cutoffs behind ``severity``, so clients never hardcode them."""
+
+    none_max: float = Field(ge=0.0, le=1.0, description="Coverage at or below is 'none'.")
+    low_max: float = Field(ge=0.0, le=1.0, description="Coverage at or below is 'low'.")
+    moderate_max: float = Field(ge=0.0, le=1.0, description="Coverage at or below is 'moderate'.")
 
 
 class AssessmentData(BaseModel):
@@ -37,9 +48,17 @@ class AssessmentData(BaseModel):
         description="Share of the frame covered by defect boxes.",
     )
     severity: Severity
+    severity_bands: SeverityBands = Field(
+        description="Coverage cutoffs that produced this severity.",
+    )
     quality_status: QualityStatus
     needs_review: bool = Field(
         description="True when a detection sits below the review confidence threshold.",
+    )
+    review_confidence_threshold: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Detections below this confidence are flagged for review.",
     )
     inference_ms: int
     imgsz: int

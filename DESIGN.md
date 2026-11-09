@@ -8,6 +8,7 @@ colors:
   primary: "#76b900"
   on-primary: "#000000"
   primary-dark: "#5a8d00"
+  primary-wash: "rgba(118,185,0,0.16)"
   ink: "#000000"
   canvas: "#ffffff"
   surface-dark: "#000000"
@@ -531,6 +532,13 @@ components:
     typography: "{typography.caption-sm}"
     rounded: "{rounded.sm}"
     padding: 4px 10px
+  detector-box:
+    backgroundColor: "transparent"
+    rounded: "{rounded.none}"
+  detector-box-selected:
+    backgroundColor: "{colors.primary-wash}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.none}"
 ---
 
 ## Overview
@@ -557,6 +565,7 @@ The black-canvas hero and footer chapters are the system's "headline moments" �
 ### Brand & Accent
 - **NVIDIA Green** (`{colors.primary}` — `#76b900`): the brand. Every primary CTA, every active state, every link affordance on dark surfaces, every corner square, and the brand wordmark itself.
 - **NVIDIA Green Dark** (`{colors.primary-dark}` — `#5a8d00`): pressed state for the primary button — a single notch deeper than the brand green.
+- **Primary Wash** (`{colors.primary-wash}` — `rgba(118,185,0,0.16)`): translucent brand green filling the selected detector box on the grain-assessment photo. It marks one annotation over photography and is never used as a surface fill.
 - **Accent Green Pale** (`{colors.accent-green-pale}` — `#bff230`): rare highlight tint used in editorial callouts and decorative micro-blocks; never on chrome.
 
 ### Surface
@@ -776,6 +785,9 @@ The system is aggressively angular. Outside of avatar/icon circles, no element e
 **`corner-square`**
 - 12×12px solid `{colors.primary}` square anchored to a card corner. The brand's signature ornamental motif.
 - Used on resource cards, feature cards, and editorial callouts. Position varies (top-left, bottom-right) but the size and color are constant.
+
+**`detector-box`** + **`detector-box-selected`**
+- Detection annotation drawn over a captured photo: 1px `{colors.primary}` border with no fill. The selected annotation thickens to 2px and fills `{colors.primary-wash}` so a listed area can be matched to its box on the photo. Square corners; annotations never intercept touches.
 
 ### Navigation
 
@@ -1377,14 +1389,27 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   `{typography.display-lg}` title, `{typography.body-md}` lead, hairline
   `{colors.canvas}` card with three numbered steps, a full-width
   `{component.button-primary}` "Take photo", and 44px `{colors.primary}` text
-  actions). Results card: a `{colors.surface-soft}` banner (hairline rule when
-  clean, 1px `{colors.error}` rule when `needs_review`), the captured photo in
-  a `{colors.surface-soft}` frame sized to the photo's aspect ratio with every
-  detection outlined in 2px `{colors.primary}`, four divided readout rows
-  (defects found, defect area, severity, quality status) pairing
-  `{typography.caption-sm}` `{colors.mute}` labels with
-  `{typography.body-strong}` values, up to five per-detection rows each with a
-  4px `{colors.primary}`-on-`{colors.surface-soft}` confidence bar, a
-  `{colors.surface-soft}` notice naming the outputs the model cannot produce
-  yet, and one full-width `{component.button-primary}` "Assess another photo".
-  No new tokens were introduced.
+  actions). Results card: a `{colors.surface-soft}` banner stating the
+  confidence outcome in one sentence (hairline rule when clean, 1px
+  `{colors.error}` rule when `needs_review`), the captured photo in a
+  `{colors.surface-soft}` frame sized to the photo's aspect ratio with every
+  detection outlined in 1px `{colors.primary}` and the selected area in 2px
+  `{colors.primary}` over a `{colors.primary-wash}` fill, a "Tap an area below
+  to locate it on the photo" `{typography.caption-sm}` `{colors.mute}` hint, a
+  `{colors.surface-soft}` verdict strip pairing the uppercase
+  `{typography.caption-md}` `{colors.mute}` "Quality status" eyebrow with a
+  `{typography.heading-md}` value and a `{typography.body-sm}` sentence naming
+  the coverage band behind it, two hairline-divided stat cells (flagged areas,
+  photo coverage) with `{typography.heading-md}` figures and
+  `{typography.caption-sm}` `{colors.mute}` labels, a
+  `{typography.caption-sm}` line defining coverage as the share of the photo
+  inside the flagged areas rather than the share of grains affected, up to five
+  ranked area rows (number badge, class label, exact confidence percentage, 4px
+  `{colors.primary}`-on-`{colors.hairline}` bar) that move the photo highlight
+  on tap and carry a `{colors.accent-yellow-pale}` "Low confidence" chip when
+  the detection falls below the review threshold, a `{colors.surface-soft}`
+  notice naming the outputs the model cannot produce yet, and one full-width
+  `{component.button-primary}` "Assess another photo". The coverage bands and
+  the review threshold ship in the backend response, so the copy never
+  hardcodes a cutoff. `{colors.primary-wash}` is the only token this surface
+  adds.

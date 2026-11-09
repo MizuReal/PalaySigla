@@ -216,14 +216,17 @@ at most 10 MB. The photo is stretched to the model's trained input size
         "label": "Mold / discoloration",
         "confidence": 0.5871,
         "box": [0.3001, 0.1433, 0.0233, 0.0269],
-        "area_ratio": 0.00063
+        "area_ratio": 0.00063,
+        "needs_review": false
       }
     ],
     "counts": { "mold_discoloration": 12 },
     "defect_rate": 0.0141,
     "severity": "moderate",
+    "severity_bands": { "none_max": 0.0025, "low_max": 0.0100, "moderate_max": 0.0300 },
     "quality_status": "fair",
     "needs_review": false,
+    "review_confidence_threshold": 0.55,
     "inference_ms": 512,
     "imgsz": 1280
   },
@@ -235,11 +238,14 @@ at most 10 MB. The photo is stretched to the model's trained input size
 |---|---|
 | `detections[].box` | Bounding box in the original photo, normalized `[x, y, w, h]` |
 | `detections[].area_ratio` | Box area as a fraction of the frame |
+| `detections[].needs_review` | True when this box falls below `review_confidence_threshold` |
 | `counts` | Detections per class key (always includes every configured class) |
 | `defect_rate` | Summed detection coverage, capped at 1.0 |
 | `severity` | `none` / `low` / `moderate` / `high`, banded on `defect_rate` |
+| `severity_bands` | Coverage cutoffs behind `severity` (`none_max`, `low_max`, `moderate_max`) |
 | `quality_status` | Derived from severity: `premium` / `good` / `fair` / `poor` |
 | `needs_review` | True when any detection falls below the review confidence (0.55 default) |
+| `review_confidence_threshold` | The cutoff that set `needs_review` |
 | `unavailable_outputs` | Outputs this model cannot produce yet |
 
 Error responses:

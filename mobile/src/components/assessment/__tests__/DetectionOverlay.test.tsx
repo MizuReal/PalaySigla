@@ -10,6 +10,7 @@ const DETECTION: DefectDetection = {
   confidence: 0.78,
   box: [0.1, 0.2, 0.3, 0.4],
   area_ratio: 0.12,
+  needs_review: false,
 }
 
 describe('DetectionOverlay', () => {
@@ -20,6 +21,7 @@ describe('DetectionOverlay', () => {
         imageWidth={1000}
         imageHeight={500}
         detections={[DETECTION]}
+        highlightIndex={null}
       />
     )
 
@@ -38,6 +40,7 @@ describe('DetectionOverlay', () => {
         imageWidth={1000}
         imageHeight={1000}
         detections={[DETECTION, { ...DETECTION, box: [0.5, 0.5, 0.1, 0.1], confidence: 0.6 }]}
+        highlightIndex={null}
       />
     )
 
@@ -51,6 +54,7 @@ describe('DetectionOverlay', () => {
         imageWidth={1200}
         imageHeight={800}
         detections={[]}
+        highlightIndex={null}
       />
     )
 
@@ -58,5 +62,43 @@ describe('DetectionOverlay', () => {
     const style = StyleSheet.flatten(frame.props.style)
     expect(style.aspectRatio).toBeCloseTo(1.5)
     expect(screen.queryAllByTestId('detection-box')).toHaveLength(0)
+  })
+
+  it('draws every box hairline and emphasises only the selected one', async () => {
+    const screen = await render(
+      <DetectionOverlay
+        imageUri="file:///cache/paddy.jpg"
+        imageWidth={1000}
+        imageHeight={1000}
+        detections={[DETECTION, { ...DETECTION, box: [0.5, 0.5, 0.1, 0.1], confidence: 0.6 }]}
+        highlightIndex={1}
+      />
+    )
+
+    const [first, second] = screen.getAllByTestId('detection-box')
+    const firstStyle = StyleSheet.flatten(first.props.style)
+    const secondStyle = StyleSheet.flatten(second.props.style)
+    expect(firstStyle.borderWidth).toBe(1)
+    expect(firstStyle.backgroundColor).toBeUndefined()
+    expect(secondStyle.borderWidth).toBe(2)
+    expect(secondStyle.backgroundColor).toBe('rgba(118, 185, 0, 0.16)')
+  })
+
+  it('never intercepts touches and labels the outlined areas', async () => {
+    const screen = await render(
+      <DetectionOverlay
+        imageUri="file:///cache/paddy.jpg"
+        imageWidth={1000}
+        imageHeight={1000}
+        detections={[DETECTION]}
+        highlightIndex={0}
+      />
+    )
+
+    const [box] = screen.getAllByTestId('detection-box')
+    expect(box.props.pointerEvents).toBe('none')
+    expect(
+      screen.getByLabelText('Assessed paddy sample with 1 flagged area outlined')
+    ).toBeTruthy()
   })
 })

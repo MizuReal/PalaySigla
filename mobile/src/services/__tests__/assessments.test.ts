@@ -42,8 +42,10 @@ const ASSESSMENT_DATA: AssessmentData = {
   counts: { mold_discoloration: 0 },
   defect_rate: 0,
   severity: 'none',
+  severity_bands: { none_max: 0.0025, low_max: 0.01, moderate_max: 0.03 },
   quality_status: 'premium',
   needs_review: false,
+  review_confidence_threshold: 0.55,
   inference_ms: 640,
   imgsz: 1280,
 }
