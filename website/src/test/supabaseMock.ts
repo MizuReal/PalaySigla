@@ -111,6 +111,7 @@ export interface SupabaseMock {
     signInWithPassword: Mock
     signUp: Mock
     resetPasswordForEmail: Mock
+    resend: Mock
     signOut: Mock
     getSession: Mock
     updateUser: Mock
@@ -131,6 +132,7 @@ export function createSupabaseMock(): SupabaseMock {
     signInWithPassword: vi.fn(),
     signUp: vi.fn(),
     resetPasswordForEmail: vi.fn(),
+    resend: vi.fn(),
     signOut: vi.fn(),
     getSession: vi.fn(),
     updateUser: vi.fn(),
@@ -157,6 +159,7 @@ export function resetSupabaseMock(supabase: SupabaseMock): void {
   supabase.auth.signInWithPassword.mockResolvedValue({ data: null, error: null })
   supabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: null })
   supabase.auth.resetPasswordForEmail.mockResolvedValue({ data: null, error: null })
+  supabase.auth.resend.mockResolvedValue({ data: {}, error: null })
   supabase.auth.signOut.mockResolvedValue({ error: null })
   supabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null })
   supabase.auth.updateUser.mockResolvedValue({ data: null, error: null })

@@ -2,7 +2,11 @@ import { useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useAuth } from '../context/authContext'
 import { TOAST_VARIANTS, useToast } from '../context/toastContext'
-import { getAuthUrlHint } from '../utils/authUrlHint'
+import {
+  clearAuthUrlHash,
+  getAuthErrorMessage,
+  getAuthUrlHint,
+} from '../utils/authUrlHint'
 import { triggerProfileNudge } from '../utils/profileNudge'
 import { getDisplayName } from '../utils/userProfile'
 
@@ -12,6 +16,23 @@ function AuthToasts() {
   const isFirstObservedUserRef = useRef(true)
   const previousUserRef = useRef<User | null>(null)
   const hasShownEmailToastRef = useRef(false)
+  const hasShownAuthErrorRef = useRef(false)
+
+  // failed email-link return: show the actionable reason immediately and
+  // remove the raw error fragment from the address bar. This is independent
+  // of auth initialization because no session is created on an error link.
+  useEffect(() => {
+    if (hasShownAuthErrorRef.current) {
+      return undefined
+    }
+    const message = getAuthErrorMessage(getAuthUrlHint())
+    if (!message) {
+      return undefined
+    }
+    hasShownAuthErrorRef.current = true
+    showToast(message, TOAST_VARIANTS.ERROR)
+    clearAuthUrlHash()
+  }, [showToast])
 
   useEffect(() => {
     if (isInitializing) {

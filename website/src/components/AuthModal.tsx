@@ -15,6 +15,7 @@ import { TOAST_VARIANTS, useToast } from '../context/toastContext'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
+  resendConfirmationEmail,
   sendPasswordReset,
 } from '../services/auth'
 import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation'
@@ -196,6 +197,8 @@ function AuthModal() {
   const [forgotErrors, setForgotErrors] = useState<FieldErrors>({})
   const [isRegisterSent, setIsRegisterSent] = useState(false)
   const [isForgotSent, setIsForgotSent] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [resendError, setResendError] = useState('')
 
   const clearFieldError = (
     errorsSetter: Dispatch<SetStateAction<FieldErrors>>,
@@ -230,6 +233,7 @@ function AuthModal() {
 
   const switchView = (nextView: AuthView) => {
     setFormError('')
+    setResendError('')
     setView(nextView)
   }
 
@@ -322,6 +326,26 @@ function AuthModal() {
     }
   }
 
+  const handleResendConfirmation = async () => {
+    setResendError('')
+    setIsResending(true)
+    try {
+      await resendConfirmationEmail(registerEmail.trim())
+      showToast(
+        'Verification email sent again — check your inbox.',
+        TOAST_VARIANTS.INFO
+      )
+    } catch (error) {
+      setResendError(
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong. Please try again.'
+      )
+    } finally {
+      setIsResending(false)
+    }
+  }
+
   const copy = VIEW_COPY[view]
 
   const renderForm = () => {
@@ -403,8 +427,19 @@ function AuthModal() {
             <SentConfirmation
               icon="check"
               title="Check your inbox."
-              message={`We sent a confirmation link to ${registerEmail.trim()}. Click it to activate your account.`}
+              message={`We sent a confirmation link to ${registerEmail.trim()}. Click it to activate your account. The link expires, so request a new one if needed.`}
             />
+            <div className="mt-4 space-y-3">
+              <Button
+                variant="outline"
+                onClick={handleResendConfirmation}
+                disabled={isResending}
+                className="w-full justify-center"
+              >
+                {isResending ? 'Resending\u2026' : 'Resend email'}
+              </Button>
+              {resendError && <FormError message={resendError} />}
+            </div>
           </div>
         )
       }

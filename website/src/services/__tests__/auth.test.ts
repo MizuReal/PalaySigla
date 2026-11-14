@@ -11,6 +11,7 @@ import { supabase as supabaseClient } from '../supabaseClient'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
+  resendConfirmationEmail,
   sendPasswordReset,
   signInWithEmail,
   signOut,
@@ -82,6 +83,7 @@ describe('signInWithEmail', () => {
 
 describe('signUpWithEmail', () => {
   it('reports that email confirmation is required when no session is returned', async () => {
+    vi.stubEnv('VITE_AUTH_REDIRECT_URL', 'https://redirect.test/auth/callback')
     supabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: null })
 
     await expect(signUpWithEmail('Juan', 'juan@example.com', 'secret123')).resolves.toEqual({
@@ -90,7 +92,10 @@ describe('signUpWithEmail', () => {
     expect(supabase.auth.signUp).toHaveBeenCalledWith({
       email: 'juan@example.com',
       password: 'secret123',
-      options: { data: { full_name: 'Juan' } },
+      options: {
+        data: { full_name: 'Juan' },
+        emailRedirectTo: 'https://redirect.test/auth/callback',
+      },
     })
   })
 
@@ -131,6 +136,32 @@ describe('sendPasswordReset', () => {
     })
 
     await expect(sendPasswordReset('juan@example.com')).rejects.toThrow(
+      'Too many emails sent. Please wait a moment and try again.'
+    )
+  })
+})
+
+describe('resendConfirmationEmail', () => {
+  it('resends the signup email with the configured redirect URL', async () => {
+    vi.stubEnv('VITE_AUTH_REDIRECT_URL', 'https://redirect.test/auth/callback')
+
+    await resendConfirmationEmail('juan@example.com')
+
+    expect(supabase.auth.resend).toHaveBeenCalledWith({
+      type: 'signup',
+      email: 'juan@example.com',
+      options: {
+        emailRedirectTo: 'https://redirect.test/auth/callback',
+      },
+    })
+  })
+
+  it('maps errors through toFriendlyError', async () => {
+    supabase.auth.resend.mockResolvedValue({
+      error: { code: 'over_email_send_rate_limit' },
+    })
+
+    await expect(resendConfirmationEmail('juan@example.com')).rejects.toThrow(
       'Too many emails sent. Please wait a moment and try again.'
     )
   })

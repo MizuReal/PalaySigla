@@ -1,3 +1,4 @@
+import { getAuthRedirectUrl } from '../utils/authRedirect'
 import { supabase } from './supabaseClient'
 
 export const PASSWORD_MIN_LENGTH = 8
@@ -58,6 +59,7 @@ export async function signUpWithEmail(
     password,
     options: {
       data: { full_name: name },
+      emailRedirectTo: getAuthRedirectUrl(),
     },
   })
   if (error) {
@@ -69,7 +71,20 @@ export async function signUpWithEmail(
 
 export async function sendPasswordReset(email: string): Promise<void> {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: import.meta.env.VITE_AUTH_REDIRECT_URL,
+    redirectTo: getAuthRedirectUrl(),
+  })
+  if (error) {
+    throw toFriendlyError(error)
+  }
+}
+
+export async function resendConfirmationEmail(email: string): Promise<void> {
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: {
+      emailRedirectTo: getAuthRedirectUrl(),
+    },
   })
   if (error) {
     throw toFriendlyError(error)
