@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { useAuth } from '../context/authContext'
+import { AUTH_MODAL_MODES, useAuth } from '../context/authContext'
 import { TOAST_VARIANTS, useToast } from '../context/toastContext'
 import {
   clearAuthUrlHash,
@@ -11,12 +11,13 @@ import { triggerProfileNudge } from '../utils/profileNudge'
 import { getDisplayName } from '../utils/userProfile'
 
 function AuthToasts() {
-  const { user, isInitializing } = useAuth()
+  const { user, isInitializing, openAuthModal } = useAuth()
   const { showToast } = useToast()
   const isFirstObservedUserRef = useRef(true)
   const previousUserRef = useRef<User | null>(null)
   const hasShownEmailToastRef = useRef(false)
   const hasShownAuthErrorRef = useRef(false)
+  const hasOpenedRecoveryRef = useRef(false)
 
   // failed email-link return: show the actionable reason immediately and
   // remove the raw error fragment from the address bar. This is independent
@@ -34,14 +35,31 @@ function AuthToasts() {
     clearAuthUrlHash()
   }, [showToast])
 
+  // recovery link return: the link already created a session, but the user
+  // must choose a new password before the session is useful
+  useEffect(() => {
+    if (isInitializing || hasOpenedRecoveryRef.current) {
+      return undefined
+    }
+    const hint = getAuthUrlHint()
+    if (hint.type !== 'recovery' || hint.error || hint.errorCode) {
+      return undefined
+    }
+    hasOpenedRecoveryRef.current = true
+    openAuthModal(AUTH_MODAL_MODES.RESET_PASSWORD)
+    clearAuthUrlHash()
+  }, [isInitializing, openAuthModal])
+
   useEffect(() => {
     if (isInitializing) {
       return undefined
     }
 
+    const authHint = getAuthUrlHint()
+
     // email confirmation link return: the session was restored from the URL,
     // so this is a verification completion, not a fresh login
-    if (getAuthUrlHint().type === 'signup') {
+    if (authHint.type === 'signup') {
       if (!hasShownEmailToastRef.current) {
         hasShownEmailToastRef.current = true
         showToast(

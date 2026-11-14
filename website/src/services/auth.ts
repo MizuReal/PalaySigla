@@ -21,6 +21,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     'Password recovery is not enabled on this account yet.',
   provider_not_enabled:
     'Google sign-in is not available right now. Please use email instead.',
+  same_password: 'Choose a password you have not used before.',
+  session_not_found: 'This reset link has expired. Please request a new one.',
   network_error:
     'Could not reach the server. Check your connection and try again.',
 }
@@ -101,6 +103,13 @@ export async function resendConfirmationEmail(email: string): Promise<void> {
       emailRedirectTo: getAuthRedirectUrl(),
     },
   })
+  if (error) {
+    throw toFriendlyError(error)
+  }
+}
+
+export async function updatePassword(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
   if (error) {
     throw toFriendlyError(error)
   }

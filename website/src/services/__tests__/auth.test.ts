@@ -17,6 +17,7 @@ import {
   signInWithGoogle,
   signOut,
   signUpWithEmail,
+  updatePassword,
 } from '../auth'
 
 // vi.mock swaps in a mock instance; the real SupabaseClient type exposes no mock helpers
@@ -191,6 +192,26 @@ describe('resendConfirmationEmail', () => {
 
     await expect(resendConfirmationEmail('juan@example.com')).rejects.toThrow(
       'Too many emails sent. Please wait a moment and try again.'
+    )
+  })
+})
+
+describe('updatePassword', () => {
+  it('updates the signed-in user password', async () => {
+    await updatePassword('new-secret-123')
+
+    expect(supabase.auth.updateUser).toHaveBeenCalledWith({
+      password: 'new-secret-123',
+    })
+  })
+
+  it('maps same-password errors through toFriendlyError', async () => {
+    supabase.auth.updateUser.mockResolvedValue({
+      error: { code: 'same_password' },
+    })
+
+    await expect(updatePassword('secret123')).rejects.toThrow(
+      'Choose a password you have not used before.'
     )
   })
 })

@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js'
 export const AUTH_MODAL_MODES = Object.freeze({
   LOGIN: 'login',
   REGISTER: 'register',
+  RESET_PASSWORD: 'resetPassword',
 } as const)
 
 export type AuthModalMode = (typeof AUTH_MODAL_MODES)[keyof typeof AUTH_MODAL_MODES]

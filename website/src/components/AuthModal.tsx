@@ -18,6 +18,7 @@ import {
   PASSWORD_MIN_LENGTH,
   resendConfirmationEmail,
   sendPasswordReset,
+  updatePassword,
 } from '../services/auth'
 import { EMAIL_PATTERN, NAME_PATTERN } from '../utils/validation'
 import { triggerProfileNudge } from '../utils/profileNudge'
@@ -28,6 +29,7 @@ const VIEWS = Object.freeze({
   LOGIN: 'login',
   REGISTER: 'register',
   FORGOT: 'forgot',
+  RESET_PASSWORD: 'resetPassword',
 } as const)
 
 type AuthView = (typeof VIEWS)[keyof typeof VIEWS]
@@ -54,6 +56,11 @@ const VIEW_COPY: Record<AuthView, ViewCopy> = Object.freeze({
     title: 'Reset your password.',
     description: 'We&rsquo;ll email you a link to set a new one.',
   },
+  [VIEWS.RESET_PASSWORD]: {
+    eyebrow: 'Password reset',
+    title: 'Set a new password.',
+    description: 'Choose a new password for your PalaySigla account.',
+  },
 })
 
 const FIELD_ERRORS = Object.freeze({
@@ -62,6 +69,7 @@ const FIELD_ERRORS = Object.freeze({
   loginPassword: 'Please enter your password.',
   registerPasswordShort: `Your password must be at least ${PASSWORD_MIN_LENGTH} characters long.`,
   registerPasswordLong: `Your password must be at most ${PASSWORD_MAX_LENGTH} characters long.`,
+  passwordMismatch: 'Passwords do not match.',
 })
 
 const INPUT_CLASSES =
@@ -97,6 +105,9 @@ const validateRegisterPassword = (value: string): string => {
   }
   return ''
 }
+
+const validateConfirmPassword = (password: string, confirm: string): string =>
+  password === confirm ? '' : FIELD_ERRORS.passwordMismatch
 
 interface TextFieldProps {
   id: string
@@ -189,8 +200,14 @@ function SentConfirmation({ icon, title, message }: SentConfirmationProps) {
 type FieldErrors = Record<string, string | undefined>
 
 function AuthModal() {
-  const { authModalMode, closeAuthModal, signIn, signInWithGoogle, signUp } =
-    useAuth()
+  const {
+    user,
+    authModalMode,
+    closeAuthModal,
+    signIn,
+    signInWithGoogle,
+    signUp,
+  } = useAuth()
   const { showToast } = useToast()
 
   // mounted only while the modal is open, so initial state is always fresh
@@ -205,11 +222,15 @@ function AuthModal() {
   const [registerEmail, setRegisterEmail] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
   const [forgotEmail, setForgotEmail] = useState('')
+  const [resetPassword, setResetPassword] = useState('')
+  const [resetConfirm, setResetConfirm] = useState('')
   const [loginErrors, setLoginErrors] = useState<FieldErrors>({})
   const [registerErrors, setRegisterErrors] = useState<FieldErrors>({})
   const [forgotErrors, setForgotErrors] = useState<FieldErrors>({})
+  const [resetErrors, setResetErrors] = useState<FieldErrors>({})
   const [isRegisterSent, setIsRegisterSent] = useState(false)
   const [isForgotSent, setIsForgotSent] = useState(false)
+  const [isResetSent, setIsResetSent] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [resendError, setResendError] = useState('')
 
@@ -346,6 +367,37 @@ function AuthModal() {
     try {
       await sendPasswordReset(forgotEmail.trim())
       setIsForgotSent(true)
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleResetSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!user) {
+      setFormError('This reset link has expired. Please request a new one.')
+      return
+    }
+    const errors: FieldErrors = {
+      password: validateRegisterPassword(resetPassword),
+      confirm: validateConfirmPassword(resetPassword, resetConfirm),
+    }
+    setResetErrors(errors)
+    if (errors.password || errors.confirm) {
+      document
+        .getElementById(errors.password ? 'reset-password' : 'reset-confirm')
+        ?.focus()
+      return
+    }
+    setFormError('')
+    setIsSubmitting(true)
+    try {
+      await updatePassword(resetPassword)
+      setIsResetSent(true)
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : 'Something went wrong. Please try again.'
@@ -553,6 +605,116 @@ function AuthModal() {
               className="body-strong text-link-blue transition-colors hover:text-primary"
             >
               Sign in
+            </button>
+          </p>
+        </form>
+      )
+    }
+
+    if (view === VIEWS.RESET_PASSWORD) {
+      if (isResetSent) {
+        return (
+          <div className="mt-6">
+            <SentConfirmation
+              icon="check"
+              title="Password updated."
+              message="Your new password is active and you are signed in."
+            />
+            <div className="mt-4">
+              <Button
+                onClick={closeAuthModal}
+                className="w-full justify-center"
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        )
+      }
+
+      if (!user) {
+        return (
+          <div className="mt-6 space-y-4">
+            <FormError message="This reset link is invalid or has expired. Please request a new one." />
+            <Button
+              onClick={() => switchView(VIEWS.FORGOT)}
+              className="w-full justify-center"
+            >
+              Request a new link
+            </Button>
+            <p className="body-sm text-center text-mute">
+              <button
+                type="button"
+                onClick={() => switchView(VIEWS.LOGIN)}
+                className="body-strong text-link-blue transition-colors hover:text-primary"
+              >
+                Back to sign in
+              </button>
+            </p>
+          </div>
+        )
+      }
+
+      return (
+        <form onSubmit={handleResetSubmit} noValidate className="mt-6 space-y-4">
+          <TextField
+            id="reset-password"
+            label="New password"
+            type="password"
+            value={resetPassword}
+            onChange={(event) => {
+              setResetPassword(event.target.value)
+              clearFieldError(setResetErrors, 'password')
+              clearFieldError(setResetErrors, 'confirm')
+            }}
+            onBlur={() =>
+              blurValidate(
+                setResetErrors,
+                'password',
+                resetPassword,
+                validateRegisterPassword
+              )
+            }
+            placeholder={`${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters`}
+            autoComplete="new-password"
+            error={resetErrors.password}
+          />
+          <TextField
+            id="reset-confirm"
+            label="Confirm new password"
+            type="password"
+            value={resetConfirm}
+            onChange={(event) => {
+              setResetConfirm(event.target.value)
+              clearFieldError(setResetErrors, 'confirm')
+            }}
+            onBlur={() =>
+              blurValidate(
+                setResetErrors,
+                'confirm',
+                resetConfirm,
+                (value) => validateConfirmPassword(resetPassword, value)
+              )
+            }
+            placeholder="Repeat your new password"
+            autoComplete="new-password"
+            error={resetErrors.confirm}
+          />
+          {formError && <FormError message={formError} />}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full justify-center"
+          >
+            {isSubmitting ? 'Updating password\u2026' : 'Update password'}
+          </Button>
+          <p className="body-sm text-center text-mute">
+            <button
+              type="button"
+              onClick={() => switchView(VIEWS.FORGOT)}
+              className="body-strong text-link-blue transition-colors hover:text-primary"
+            >
+              Request a new link
             </button>
           </p>
         </form>
