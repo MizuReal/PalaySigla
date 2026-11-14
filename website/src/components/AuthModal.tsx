@@ -7,6 +7,7 @@ import type {
   SetStateAction,
 } from 'react'
 import Button from './Button'
+import { GoogleSignInButton } from './GoogleSignInButton'
 import Icon from './Icon'
 import type { IconName } from './Icon'
 import Modal from './Modal'
@@ -163,6 +164,16 @@ interface SentConfirmationProps {
   message: string
 }
 
+function AuthDivider() {
+  return (
+    <div className="flex items-center gap-3" aria-hidden="true">
+      <span className="h-px flex-1 bg-hairline" />
+      <span className="caption-sm text-mute">or</span>
+      <span className="h-px flex-1 bg-hairline" />
+    </div>
+  )
+}
+
 function SentConfirmation({ icon, title, message }: SentConfirmationProps) {
   return (
     <div className="flex items-start gap-3 border border-primary bg-surface-soft p-6">
@@ -178,12 +189,14 @@ function SentConfirmation({ icon, title, message }: SentConfirmationProps) {
 type FieldErrors = Record<string, string | undefined>
 
 function AuthModal() {
-  const { authModalMode, closeAuthModal, signIn, signUp } = useAuth()
+  const { authModalMode, closeAuthModal, signIn, signInWithGoogle, signUp } =
+    useAuth()
   const { showToast } = useToast()
 
   // mounted only while the modal is open, so initial state is always fresh
   const [view, setView] = useState<AuthView>(authModalMode)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [formError, setFormError] = useState('')
 
   const [loginEmail, setLoginEmail] = useState('')
@@ -259,6 +272,22 @@ function AuthModal() {
       )
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setFormError('')
+    setIsGoogleLoading(true)
+    try {
+      await signInWithGoogle()
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong. Please try again.'
+      )
+    } finally {
+      setIsGoogleLoading(false)
     }
   }
 
@@ -352,6 +381,11 @@ function AuthModal() {
     if (view === VIEWS.LOGIN) {
       return (
         <form onSubmit={handleLoginSubmit} noValidate className="mt-6 space-y-4">
+          <GoogleSignInButton
+            onClick={handleGoogleSignIn}
+            disabled={isSubmitting || isGoogleLoading}
+          />
+          <AuthDivider />
           <TextField
             id="login-email"
             label="Email"
@@ -401,7 +435,7 @@ function AuthModal() {
           {formError && <FormError message={formError} />}
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isGoogleLoading}
             className="w-full justify-center"
           >
             {isSubmitting ? 'Signing in\u2026' : 'Sign in'}
@@ -445,6 +479,11 @@ function AuthModal() {
       }
       return (
         <form onSubmit={handleRegisterSubmit} noValidate className="mt-6 space-y-4">
+          <GoogleSignInButton
+            onClick={handleGoogleSignIn}
+            disabled={isSubmitting || isGoogleLoading}
+          />
+          <AuthDivider />
           <TextField
             id="register-name"
             label="Full name"
@@ -501,7 +540,7 @@ function AuthModal() {
           {formError && <FormError message={formError} />}
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isGoogleLoading}
             className="w-full justify-center"
           >
             {isSubmitting ? 'Creating account\u2026' : 'Create account'}

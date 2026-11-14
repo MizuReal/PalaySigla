@@ -109,6 +109,7 @@ export interface SupabaseMock {
   storage: { from: Mock }
   auth: {
     signInWithPassword: Mock
+    signInWithOAuth: Mock
     signUp: Mock
     resetPasswordForEmail: Mock
     resend: Mock
@@ -130,6 +131,7 @@ export function createSupabaseMock(): SupabaseMock {
   storageFrom.mockImplementation(() => createStorageBucketMock())
   const auth = {
     signInWithPassword: vi.fn(),
+    signInWithOAuth: vi.fn(),
     signUp: vi.fn(),
     resetPasswordForEmail: vi.fn(),
     resend: vi.fn(),
@@ -157,6 +159,10 @@ export function resetSupabaseMock(supabase: SupabaseMock): void {
   supabase.removeChannel.mockResolvedValue('ok')
   supabase.storage.from.mockImplementation(() => createStorageBucketMock())
   supabase.auth.signInWithPassword.mockResolvedValue({ data: null, error: null })
+  supabase.auth.signInWithOAuth.mockResolvedValue({
+    data: { provider: 'google', url: 'https://accounts.google.com/o/oauth2/auth' },
+    error: null,
+  })
   supabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: null })
   supabase.auth.resetPasswordForEmail.mockResolvedValue({ data: null, error: null })
   supabase.auth.resend.mockResolvedValue({ data: {}, error: null })

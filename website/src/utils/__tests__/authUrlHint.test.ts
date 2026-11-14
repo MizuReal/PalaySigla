@@ -52,16 +52,14 @@ describe('getAuthErrorMessage', () => {
     expect(
       getAuthErrorMessage(parseAuthUrlHash('#error=access_denied'))
     ).toBe(
-      'This email link is invalid or has expired. Please request a new link.'
+      'Sign-in was cancelled or the link is invalid. Please try again or request a new link.'
     )
   })
 
   it('falls back for unknown error codes', () => {
     expect(
       getAuthErrorMessage(parseAuthUrlHash('#error_code=something_new'))
-    ).toBe(
-      'We could not verify this email link. Please request a new link.'
-    )
+    ).toBe('We could not complete sign-in. Please try again.')
   })
 
   it('returns null when there is no error', () => {

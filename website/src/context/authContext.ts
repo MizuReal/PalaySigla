@@ -16,6 +16,7 @@ export interface AuthContextValue {
   openAuthModal: (mode?: AuthModalMode) => void
   closeAuthModal: () => void
   signIn: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   signUp: (
     name: string,
     email: string,

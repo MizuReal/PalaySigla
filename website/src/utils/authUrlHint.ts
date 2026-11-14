@@ -25,11 +25,11 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   otp_expired:
     'This email link has expired or was already used. Please request a new link.',
   access_denied:
-    'This email link is invalid or has expired. Please request a new link.',
+    'Sign-in was cancelled or the link is invalid. Please try again or request a new link.',
 }
 
 const DEFAULT_AUTH_ERROR_MESSAGE =
-  'We could not verify this email link. Please request a new link.'
+  'We could not complete sign-in. Please try again.'
 
 export function getAuthUrlHint(): AuthUrlHint {
   return AUTH_HINT

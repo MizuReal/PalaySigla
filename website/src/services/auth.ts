@@ -19,6 +19,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   email_address_invalid: 'Please enter a valid email address.',
   password_recovery_disabled:
     'Password recovery is not enabled on this account yet.',
+  provider_not_enabled:
+    'Google sign-in is not available right now. Please use email instead.',
   network_error:
     'Could not reach the server. Check your connection and try again.',
 }
@@ -43,6 +45,19 @@ export async function signInWithEmail(email: string, password: string): Promise<
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
+  })
+  if (error) {
+    throw toFriendlyError(error)
+  }
+}
+
+export async function signInWithGoogle(): Promise<void> {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: getAuthRedirectUrl(),
+      queryParams: { prompt: 'select_account' },
+    },
   })
   if (error) {
     throw toFriendlyError(error)

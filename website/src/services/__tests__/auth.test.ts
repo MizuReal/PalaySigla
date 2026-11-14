@@ -14,6 +14,7 @@ import {
   resendConfirmationEmail,
   sendPasswordReset,
   signInWithEmail,
+  signInWithGoogle,
   signOut,
   signUpWithEmail,
 } from '../auth'
@@ -77,6 +78,33 @@ describe('signInWithEmail', () => {
     supabase.auth.signInWithPassword.mockResolvedValue({ error: {} })
     await expect(signInWithEmail('a@b.c', 'x')).rejects.toThrow(
       'Something went wrong. Please try again.'
+    )
+  })
+})
+
+describe('signInWithGoogle', () => {
+  it('starts Google OAuth with the configured redirect', async () => {
+    vi.stubEnv('VITE_AUTH_REDIRECT_URL', 'https://redirect.test/auth/callback')
+
+    await signInWithGoogle()
+
+    expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'google',
+      options: {
+        redirectTo: 'https://redirect.test/auth/callback',
+        queryParams: { prompt: 'select_account' },
+      },
+    })
+  })
+
+  it('maps provider errors through toFriendlyError', async () => {
+    supabase.auth.signInWithOAuth.mockResolvedValue({
+      data: { provider: 'google', url: null },
+      error: { code: 'provider_not_enabled' },
+    })
+
+    await expect(signInWithGoogle()).rejects.toThrow(
+      'Google sign-in is not available right now. Please use email instead.'
     )
   })
 })
