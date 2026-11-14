@@ -11,6 +11,7 @@
     "predev": "node scripts/generateScanSheet.mjs",
     "build": "vite build",
     "prebuild": "node scripts/generateScanSheet.mjs",
+    "postbuild": "node scripts/prerenderLegal.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

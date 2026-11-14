@@ -14,9 +14,10 @@ function PrivacyPage() {
       <LegalSection title="Who we are">
         <p className="body-md text-body">
           PalaySigla is an image-based paddy quality monitoring service for rice
-          mills, farmers, and buyers in the Philippines. This policy explains what
-          we collect, why we collect it, how we use it, and the choices you have.
-          Questions or requests can be sent to{' '}
+          mills, farmers, and buyers in the Philippines. PalaySigla is the data
+          controller for the personal information described in this policy. This
+          policy explains what we collect, why we collect it, how we use it, and
+          the choices you have. Questions or requests can be sent to{' '}
           <a href={`mailto:${CONTACT_EMAIL}`} className={LEGAL_INLINE_LINK_CLASS}>
             {CONTACT_EMAIL}
           </a>
@@ -95,7 +96,19 @@ function PrivacyPage() {
           </a>
           , including the Limited Use requirements. Google user data is not sold,
           used for advertising, or shared with third parties except as necessary to
-          provide the email delivery service or comply with the law.
+          provide the email delivery service or comply with the law. We do not use
+          Google user data to develop, improve, or train generalized AI or
+          machine-learning models, and we do not allow humans to read Google user
+          data unless required for security, legal compliance, or with your
+          explicit consent.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Cookies and local storage">
+        <p className="body-md text-body">
+          We use browser local storage to keep you signed in, retain assistant
+          chat history on your device, and remember interface preferences. We do
+          not use advertising cookies or third-party tracking pixels.
         </p>
       </LegalSection>
 
@@ -143,9 +156,10 @@ function PrivacyPage() {
         <p className="body-md text-body">
           Data is transmitted over HTTPS and stored with our service providers.
           We use row-level security, short-lived signed URLs for uploaded images,
-          access controls, and hashed passwords. No method of storage or
-          transmission is completely secure, so we cannot guarantee absolute
-          security.
+          access controls, and hashed passwords. Our providers may process
+          information in countries other than the Philippines. No method of
+          storage or transmission is completely secure, so we cannot guarantee
+          absolute security.
         </p>
       </LegalSection>
 
