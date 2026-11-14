@@ -235,15 +235,17 @@ blocks the ASGI worker:
 1. **Validate + decode.** JPEG/PNG only, ≤ 10 MB, EXIF orientation normalized;
    readable bytes are re-encoded in memory, so no metadata reaches the model.
 2. **Register the card (marker-first).** Solid square marker candidates are
-   filtered from the thresholded image, then grouped: the largest candidate is
-   the 8 mm anchor and three 6 mm markers must complete the spec's relative
-   layout (a three-marker affine predicts the fourth within tolerance, and
-   orientation-flipping homographies are rejected). The four centers map the
+   filtered from the thresholded image, re-thresholded at darker cuts so a
+   marker joined to a shadow is still isolated, then grouped: the largest
+   candidate is the 8 mm anchor and three 6 mm markers must complete the spec's
+   relative layout (a three-marker affine predicts the fourth within tolerance,
+   and orientation-flipping homographies are rejected). The four centers map the
    photo onto a canonical 1600×2263 card frame, verified against the expected
    marker windows. Misses raise `422` with retake guidance.
 3. **Crop + classify.** Every digit cell is cropped from
-   `ocr_templates/scan-sheet-v1.json`, thresholded, deskewed, centered into a
-   28×28 MNIST-style tensor, and classified in one ONNX batch.
+   `ocr_templates/scan-sheet-v1.json` inside its printed border, thresholded,
+   deskewed, centered into a 28×28 MNIST-style tensor, and classified in one
+   ONNX batch.
 4. **Assemble + review.** Digits become a value per field; range checks run
    against the spec; blank cells, low confidence, out-of-range values, and a
    `length_width_ratio` that disagrees with `grain_length ÷ grain_width` all

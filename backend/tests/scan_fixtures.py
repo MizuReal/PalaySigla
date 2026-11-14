@@ -41,6 +41,10 @@ SCENE_MARGIN_PX = 60
 BACKGROUND_GRAY = 40
 PAPER_GRAY = 255
 MARKER_GRAY = 0
+CELL_BORDER_GRAY = 90
+CELL_BORDER_THICKNESS_PX = 2
+SHADOW_GRAY = 120
+SHADOW_BRIDGE_WIDTH_PX = 40
 FILLED_DIGIT_RADIUS_RATIO = 0.3
 CLASSIFIER_CONFIDENCE = 0.95
 SHEET_COLUMNS = 2
@@ -116,6 +120,16 @@ def _draw_card(
             -1,
         )
     for field_spec in spec.fields:
+        for cell in field_spec.cells:
+            x, y, width, height = to_px(cell.rect)
+            cv2.rectangle(
+                canvas,
+                (x, y),
+                (x + width, y + height),
+                (CELL_BORDER_GRAY, CELL_BORDER_GRAY, CELL_BORDER_GRAY),
+                CELL_BORDER_THICKNESS_PX,
+            )
+    for field_spec in spec.fields:
         cell_index = 0
         for cell in field_spec.cells:
             if not cell.is_digit:
@@ -142,6 +156,32 @@ def render_synthetic_photo(
     )
     _draw_card(canvas, spec, SCENE_MARGIN_PX, SCENE_MARGIN_PX, card_width_px, skipped_cells)
     return canvas
+
+
+def render_shadowed_photo(spec: ScanSheetSpec) -> np.ndarray:
+    """One card with shadow bridges joining each bottom marker to the edge.
+
+    The bridges are lighter than the fiducials, so a global Otsu cut merges
+    them with the dark background and the bottom markers vanish. That is the
+    failure real photos show when the card sits in a shadow.
+    """
+    photo = render_synthetic_photo(spec)
+    card_height_px = _card_height_px(spec, CARD_WIDTH_PX)
+    card_bottom_px = SCENE_MARGIN_PX + card_height_px + SCENE_MARGIN_PX
+    for fiducial in spec.fiducials:
+        if fiducial.rect[1] < 0.5:
+            continue
+        center_x = SCENE_MARGIN_PX + (fiducial.rect[0] + fiducial.rect[2] / 2) * CARD_WIDTH_PX
+        marker_bottom_px = SCENE_MARGIN_PX + (fiducial.rect[1] + fiducial.rect[3]) * card_height_px
+        half_width = SHADOW_BRIDGE_WIDTH_PX // 2
+        cv2.rectangle(
+            photo,
+            (round(center_x) - half_width, round(marker_bottom_px)),
+            (round(center_x) + half_width, card_bottom_px),
+            (SHADOW_GRAY, SHADOW_GRAY, SHADOW_GRAY),
+            -1,
+        )
+    return photo
 
 
 def render_tiled_photo(

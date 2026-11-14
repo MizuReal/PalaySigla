@@ -28,9 +28,10 @@ BLANK_INK_RATIO = 0.02
 MNIST_MEAN = 0.1307
 MNIST_STD = 0.3081
 
-# Cell crops are padded outward so a digit touching a printed border is not
-# clipped before classification.
-CELL_CROP_MARGIN_RATIO = 0.08
+# Cell crops are inset from the spec rect. The printed cell border must stay
+# outside the crop: the ink mask would otherwise treat the border as
+# handwriting and squeeze the digit out of the model input.
+CELL_CROP_INSET_RATIO = 0.06
 
 # Fiducial search: window size relative to the expected marker, and the
 # minimum ink-covered fraction before a contour counts as a marker.

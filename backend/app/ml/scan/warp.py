@@ -4,7 +4,7 @@ The captured photo does not have to fill the frame, be cut out, or sit on a
 contrasting surface: the four printed corner markers are found directly in the
 image, grouped into a card quad by their 8 mm/6 mm anchor-size ratio and the
 spec's relative geometry, and mapped to a canonical card frame. Every digit
-cell is then cropped at the spec's known coordinates.
+cell is then cropped inside its printed border at the spec's coordinates.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import numpy as np
 from app.ml.scan.spec import (
     ANCHOR_FIDUCIAL_ID,
     ANCHOR_SIZE_FACTOR,
-    CELL_CROP_MARGIN_RATIO,
+    CELL_CROP_INSET_RATIO,
     FIDUCIAL_AREA_TOLERANCE,
     FIDUCIAL_MAX_OFFSET_RATIO,
     FIDUCIAL_MIN_AREA_RATIO,
@@ -37,6 +37,13 @@ MARKER_MIN_AREA_RATIO = 0.0001
 MARKER_MAX_AREA_RATIO = 0.02
 MARKER_SQUARENESS = 0.75
 MARKER_FILL_RATIO = 0.9
+
+# A single global Otsu cut loses fiducials that touch a shadow or the card
+# edge, because the shadow joins them into one oversized contour. The same
+# blobs are re-thresholded at darker cuts, where the shadow falls away.
+MARKER_THRESHOLD_SCALES = (1.0, 0.7, 0.5, 0.35)
+MARKER_MIN_THRESHOLD = 30.0
+CANDIDATE_MERGE_DISTANCE_RATIO = 0.5
 
 # Grouping bounds: candidates are sorted by area, so only the largest few can
 # be the anchor; the smaller markers are capped for pairwise enumeration.
@@ -126,14 +133,12 @@ def _downscale(image: np.ndarray) -> np.ndarray:
     )
 
 
-def _detect_marker_candidates(gray: np.ndarray) -> list[MarkerCandidate]:
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    _, mask = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+def _threshold_candidates(
+    blurred: np.ndarray, threshold: float, min_area: float, max_area: float
+) -> list[MarkerCandidate]:
+    _, mask = cv2.threshold(blurred, threshold, 255, cv2.THRESH_BINARY_INV)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
     contours, _ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    image_area = float(gray.shape[0] * gray.shape[1])
-    min_area = max(MARKER_MIN_AREA_PX, image_area * MARKER_MIN_AREA_RATIO)
-    max_area = image_area * MARKER_MAX_AREA_RATIO
     candidates: list[MarkerCandidate] = []
     for contour in contours:
         area = cv2.contourArea(contour)
@@ -157,6 +162,28 @@ def _detect_marker_candidates(gray: np.ndarray) -> list[MarkerCandidate]:
                 side=(width + height) / 2,
             )
         )
+    return candidates
+
+
+def _detect_marker_candidates(gray: np.ndarray) -> list[MarkerCandidate]:
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    otsu_threshold, _ = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    image_area = float(gray.shape[0] * gray.shape[1])
+    min_area = max(MARKER_MIN_AREA_PX, image_area * MARKER_MIN_AREA_RATIO)
+    max_area = image_area * MARKER_MAX_AREA_RATIO
+    candidates: list[MarkerCandidate] = []
+    for scale in MARKER_THRESHOLD_SCALES:
+        threshold = max(MARKER_MIN_THRESHOLD, float(otsu_threshold) * scale)
+        for candidate in _threshold_candidates(blurred, threshold, min_area, max_area):
+            # The same marker reappears at every darker cut; keep the first
+            # sighting so duplicates cannot dominate the anchor enumeration.
+            if any(
+                math.hypot(candidate.x - seen.x, candidate.y - seen.y)
+                < max(candidate.side, seen.side) * CANDIDATE_MERGE_DISTANCE_RATIO
+                for seen in candidates
+            ):
+                continue
+            candidates.append(candidate)
     candidates.sort(key=lambda candidate: candidate.area, reverse=True)
     return candidates[:MAX_MARKER_CANDIDATES]
 
@@ -434,12 +461,12 @@ def crop_cells(canonical_bgr: np.ndarray, spec: ScanSheetSpec) -> list[CellCrop]
             y_px = y * height_px
             width_cell = width * width_px
             height_cell = height * height_px
-            margin_x = width_cell * CELL_CROP_MARGIN_RATIO
-            margin_y = height_cell * CELL_CROP_MARGIN_RATIO
-            x0 = int(max(0, round(x_px - margin_x)))
-            y0 = int(max(0, round(y_px - margin_y)))
-            x1 = int(min(width_px, round(x_px + width_cell + margin_x)))
-            y1 = int(min(height_px, round(y_px + height_cell + margin_y)))
+            inset_x = width_cell * CELL_CROP_INSET_RATIO
+            inset_y = height_cell * CELL_CROP_INSET_RATIO
+            x0 = int(max(0, round(x_px + inset_x)))
+            y0 = int(max(0, round(y_px + inset_y)))
+            x1 = int(min(width_px, round(x_px + width_cell - inset_x)))
+            y1 = int(min(height_px, round(y_px + height_cell - inset_y)))
             if x1 - x0 < 4 or y1 - y0 < 4:
                 raise ScanImageError(
                     f"Digit cell {field_spec.key}[{cell_index}] falls outside the card."

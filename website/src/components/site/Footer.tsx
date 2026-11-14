@@ -1,4 +1,10 @@
+import { Link } from 'react-router-dom'
 import Container from '../Container'
+
+const LEGAL_LINKS = [
+  { label: 'Privacy Policy', to: '/privacy' },
+  { label: 'Terms of Service', to: '/terms' },
+]
 
 const FOOTER_COLUMNS = [
   {
@@ -64,9 +70,28 @@ function Footer() {
           ))}
         </div>
         <div className="mt-16 border-t border-hairline pt-6">
-          <p className="utility-xs text-mute">
-            © 2026 PalaySigla — post-harvest paddy quality monitoring
-          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="utility-xs text-mute">
+              © 2026 PalaySigla — post-harvest paddy quality monitoring
+            </p>
+            <nav className="flex flex-wrap gap-5" aria-label="Legal">
+              {LEGAL_LINKS.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="utility-xs text-mute transition-colors hover:text-primary"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <a
+                href="mailto:PalaySigla@gmail.com"
+                className="utility-xs text-mute transition-colors hover:text-primary"
+              >
+                Contact
+              </a>
+            </nav>
+          </div>
         </div>
       </Container>
     </footer>

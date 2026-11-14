@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import AuthModal from './components/AuthModal'
 import AuthToasts from './components/AuthToasts'
 import ChatWidget from './components/chat/ChatWidget'
+import ProfileNudgeModal from './components/ProfileNudgeModal'
 import AuthProvider from './context/AuthProvider'
 import MessagingProvider from './context/MessagingProvider'
 import ToastProvider from './context/ToastProvider'
@@ -12,9 +13,10 @@ import Home from './pages/Home'
 import MarketplacePage from './pages/MarketplacePage'
 import MessagesPage from './pages/MessagesPage'
 import NotFoundPage from './pages/NotFoundPage'
+import PrivacyPage from './pages/PrivacyPage'
 import ProfilePage from './pages/ProfilePage'
 import RouteErrorPage from './pages/RouteErrorPage'
-import ProfileNudgeModal from './components/ProfileNudgeModal'
+import TermsPage from './pages/TermsPage'
 
 const router = createBrowserRouter([
   {
@@ -47,6 +49,14 @@ const router = createBrowserRouter([
       {
         path: '/farmers/:userId',
         element: <FarmerProfilePage />,
+      },
+      {
+        path: '/privacy',
+        element: <PrivacyPage />,
+      },
+      {
+        path: '/terms',
+        element: <TermsPage />,
       },
       {
         path: '*',
