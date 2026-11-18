@@ -1,43 +1,47 @@
 // Assistant chat bottom sheet — the phone-native equivalent of the website's
-// chat widget panel: a canvas sheet floating above the tab bar (56px bar +
-// bottom inset + 16px gap, side gutters ~ the web panel's right-6 width) over
-// a light dim backdrop, level-3 soft shadow permitted as floating chrome.
-// While the keyboard is open the sheet anchors 8px above it instead. The root
-// unmounts the sheet whenever it closes, so every open reloads the
-// conversation from AsyncStorage (same behavior as the web panel). Sign-in is
-// the gate: the modal only renders with a session.
+// chat widget panel: a canvas sheet floating above the tab bar over a light dim
+// backdrop. While the keyboard is open the sheet anchors just above it. The
+// root unmounts the sheet whenever it closes, so every open reloads the
+// conversation from AsyncStorage. Sign-in is the gate: the modal only renders
+// with a session.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react-native'
 import {
-  Animated,
   Keyboard,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { TAB_BAR_HEIGHT } from '../AppTabBar'
+import ChatBubble from './ChatBubble'
+import ChatComposer from './ChatComposer'
+import ChatErrorBanner from './ChatErrorBanner'
+import {
+  CHAT_BRAND_TILE_SIZE,
+  CHAT_SHEET_BACKDROP_COLOR,
+  CHAT_SHEET_ELEVATION,
+  CHAT_SHEET_SHADOW_OPACITY,
+  CHAT_SHEET_SHADOW_RADIUS,
+  CHAT_SHEET_SIDE_GUTTER,
+  chatSheetHeight,
+} from './chatSheetLayout'
+import TypingBubble from './TypingBubble'
 import { useAuth } from '../../context/authContext'
+import { useChatSheetBottomGap } from '../../hooks/useChatSheetBottomGap'
 import usePalayAssistant, { MAX_MESSAGE_CHARS } from '../../hooks/usePalayAssistant'
-import usePulseOpacity from '../../hooks/usePulseOpacity'
-import type { ChatTurn } from '../../types/api'
 import Icon from '../Icon'
-import { BORDER_WIDTH, COLORS, RADIUS, SPACING, TYPE } from '../../theme/designTokens'
+import {
+  BORDER_WIDTH,
+  COLORS,
+  RADIUS,
+  SPACING,
+  TOUCH_TARGET,
+  TYPE,
+} from '../../theme/designTokens'
 
 const CLEAR_CONFIRM_RESET_MS = 4000
-const SHEET_MAX_HEIGHT = 512
-const SHEET_MIN_HEIGHT = 320
-const SHEET_SIDE_GUTTER = SPACING.xl
-// iOS modals do not resize for the keyboard (offset = keyboard height + air);
-// Android's adjustResize already shrinks the window, so only a small gap is needed
-const KEYBOARD_OPEN_BOTTOM_GAP_IOS = SPACING.sm
-const KEYBOARD_OPEN_BOTTOM_GAP_ANDROID = SPACING.lg + SPACING.sm
 
 const WELCOME_TEXT =
   'Hello! Ako ang PalaySigla Assistant — nandito ako para sa mga tanong tungkol sa palay at bigas: ' +
@@ -50,34 +54,14 @@ const SUGGESTED_QUESTIONS = Object.freeze([
   'Paano malalaman kung may amag o bukbok ang bigas?',
 ])
 
-function TypingDot() {
-  const opacity = usePulseOpacity()
-  return <Animated.View style={[styles.typingDot, { opacity }]} />
-}
-
-interface MessageBubbleProps {
-  message: ChatTurn
-}
-
-function MessageBubble({ message }: MessageBubbleProps) {
-  const isUser = message.role === 'user'
-  return (
-    <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
-      <Text style={isUser ? styles.bubbleTextUser : styles.bubbleTextAssistant}>
-        {message.content}
-      </Text>
-    </View>
-  )
-}
-
 interface WelcomeBubbleProps {
   onPick: (question: string) => void
 }
 
 function WelcomeBubble({ onPick }: WelcomeBubbleProps) {
   return (
-    <View style={[styles.bubble, styles.bubbleAssistant]}>
-      <Text style={styles.bubbleTextAssistant}>{WELCOME_TEXT}</Text>
+    <View style={styles.welcomeBubble}>
+      <Text style={[TYPE.bodySm, styles.welcomeText]}>{WELCOME_TEXT}</Text>
       <View style={styles.chipList}>
         {SUGGESTED_QUESTIONS.map((question) => (
           <Pressable
@@ -96,12 +80,11 @@ function WelcomeBubble({ onPick }: WelcomeBubbleProps) {
 
 interface ChatSheetProps {
   onClose: () => void
-  bottomGap: number
+  sheetHeight: number
 }
 
-function ChatSheet({ onClose, bottomGap }: ChatSheetProps) {
+function ChatSheet({ onClose, sheetHeight }: ChatSheetProps) {
   const { user } = useAuth()
-  const { height: windowHeight } = useWindowDimensions()
   const {
     messages,
     isWaiting,
@@ -114,16 +97,10 @@ function ChatSheet({ onClose, bottomGap }: ChatSheetProps) {
   } = usePalayAssistant(user?.id ?? null)
 
   const [draft, setDraft] = useState('')
-  const [isInputFocused, setIsInputFocused] = useState(false)
   const [isConfirmingClear, setIsConfirmingClear] = useState(false)
 
   const scrollRef = useRef<ScrollView | null>(null)
   const clearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const sheetHeight = Math.min(
-    SHEET_MAX_HEIGHT,
-    Math.max(SHEET_MIN_HEIGHT, Math.round(windowHeight - bottomGap - SPACING.md))
-  )
 
   const resetClearConfirmation = useCallback(() => {
     if (clearTimeoutRef.current !== null) {
@@ -232,105 +209,44 @@ function ChatSheet({ onClose, bottomGap }: ChatSheetProps) {
           <WelcomeBubble onPick={handlePickQuestion} />
         ) : (
           messages.map((message, index) => (
-            <MessageBubble key={`${message.role}-${index}`} message={message} />
+            <ChatBubble
+              key={`${message.role}-${index}`}
+              role={message.role}
+              content={message.content}
+            />
           ))
         )}
-        {isWaiting ? (
-          <View
-            accessibilityRole="alert"
-            accessibilityLabel="The assistant is typing"
-            style={[styles.bubble, styles.bubbleAssistant, styles.typingBubble]}
-          >
-            <TypingDot />
-            <TypingDot />
-            <TypingDot />
-          </View>
-        ) : null}
+        {isWaiting ? <TypingBubble /> : null}
         {errorMessage ? (
-          <View style={styles.errorBanner}>
-            <Icon name="info" size={20} color={COLORS.error} />
-            <View style={styles.errorBody}>
-              <Text style={[TYPE.bodySm, styles.errorText]}>{errorMessage}</Text>
-              {failedContent !== null ? (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={retryFailedMessage}
-                  style={({ pressed }) => [styles.retryButton, pressed && styles.pressedDim]}
-                >
-                  <Text style={[TYPE.bodyStrong, styles.retryText]}>Try again</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          </View>
+          <ChatErrorBanner
+            message={errorMessage}
+            onRetry={failedContent !== null ? retryFailedMessage : undefined}
+          />
         ) : null}
       </ScrollView>
 
-      <View style={styles.composerRow}>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          onFocus={() => setIsInputFocused(true)}
-          onBlur={() => setIsInputFocused(false)}
-          placeholder="Tanong tungkol sa palay o bigas…"
-          placeholderTextColor={COLORS.mute}
-          returnKeyType="send"
-          onSubmitEditing={() => handleSend(draft)}
-          blurOnSubmit={false}
-          maxLength={MAX_MESSAGE_CHARS}
-          accessibilityLabel="Message"
-          style={[styles.input, isInputFocused && styles.inputFocused]}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Send message"
-          disabled={!canSend}
-          onPress={() => handleSend(draft)}
-          style={({ pressed }) => [
-            styles.sendButton,
-            !canSend && styles.sendButtonDisabled,
-            pressed && canSend && styles.sendButtonPressed,
-          ]}
-        >
-          <Icon name="send" size={20} color={canSend ? COLORS.onPrimary : COLORS.ash} />
-        </Pressable>
-      </View>
+      <ChatComposer
+        value={draft}
+        onChangeText={setDraft}
+        onSend={() => handleSend(draft)}
+        canSend={canSend}
+        maxLength={MAX_MESSAGE_CHARS}
+        placeholder="Tanong tungkol sa palay o bigas…"
+      />
     </View>
   )
 }
 
 function ChatModal() {
   const { isChatOpen, closeChat, user } = useAuth()
-  const insets = useSafeAreaInsets()
-  const [keyboardHeight, setKeyboardHeight] = useState(0)
-
-  // anchor the sheet above the tab bar, or above the keyboard while typing
-  const bottomGap =
-    keyboardHeight > 0
-      ? Platform.OS === 'ios'
-        ? keyboardHeight + KEYBOARD_OPEN_BOTTOM_GAP_IOS
-        : KEYBOARD_OPEN_BOTTOM_GAP_ANDROID + insets.bottom
-      : TAB_BAR_HEIGHT + insets.bottom + SPACING.lg
-
-  useEffect(() => {
-    if (!isChatOpen) {
-      return undefined
-    }
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
-    const handleShow = (event: KeyboardEvent) =>
-      setKeyboardHeight(event.endCoordinates.height)
-    const handleHide = () => setKeyboardHeight(0)
-    const showSubscription = Keyboard.addListener(showEvent, handleShow)
-    const hideSubscription = Keyboard.addListener(hideEvent, handleHide)
-    return () => {
-      showSubscription.remove()
-      hideSubscription.remove()
-    }
-  }, [isChatOpen])
+  const { height: windowHeight } = useWindowDimensions()
+  const bottomGap = useChatSheetBottomGap(isChatOpen && user !== null)
 
   if (!isChatOpen || !user) {
     return null
   }
+
+  const sheetHeight = chatSheetHeight(windowHeight, bottomGap)
 
   return (
     <Modal visible transparent animationType="slide" statusBarTranslucent onRequestClose={closeChat}>
@@ -342,7 +258,11 @@ function ChatModal() {
           style={styles.backdrop}
         />
         <View style={[styles.sheetSlot, { bottom: bottomGap }]}>
-          <ChatSheet key={user.id} onClose={closeChat} bottomGap={bottomGap} />
+          <ChatSheet
+            key={user.id}
+            onClose={closeChat}
+            sheetHeight={sheetHeight}
+          />
         </View>
       </View>
     </Modal>
@@ -357,19 +277,19 @@ const styles = StyleSheet.create({
   backdrop: {
     // RN 0.86 dropped absoluteFillObject; absoluteFill is the same plain object
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(26, 26, 26, 0.35)',
+    backgroundColor: CHAT_SHEET_BACKDROP_COLOR,
   },
   sheetSlot: {
-    marginHorizontal: SHEET_SIDE_GUTTER,
+    marginHorizontal: CHAT_SHEET_SIDE_GUTTER,
     shadowColor: COLORS.ink,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOpacity: CHAT_SHEET_SHADOW_OPACITY,
+    shadowRadius: CHAT_SHEET_SHADOW_RADIUS,
+    elevation: CHAT_SHEET_ELEVATION,
   },
   sheet: {
     backgroundColor: COLORS.canvas,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.hairline,
     borderColor: COLORS.hairline,
     borderRadius: RADIUS.sm,
     overflow: 'hidden',
@@ -378,14 +298,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: BORDER_WIDTH.hairline,
     borderBottomColor: COLORS.hairline,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
   },
   brandTile: {
-    width: 40,
-    height: 40,
+    width: CHAT_BRAND_TILE_SIZE,
+    height: CHAT_BRAND_TILE_SIZE,
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
@@ -403,8 +323,8 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xxs,
   },
   headerButton: {
-    width: 44,
-    height: 44,
+    width: TOUCH_TARGET,
+    height: TOUCH_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -412,7 +332,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   clearConfirming: {
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.hairline,
     borderColor: COLORS.error,
   },
   scroll: {
@@ -424,27 +344,16 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     flexGrow: 1,
   },
-  bubble: {
+  welcomeBubble: {
     maxWidth: '85%',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     alignSelf: 'flex-start',
-  },
-  bubbleUser: {
-    alignSelf: 'flex-end',
-    backgroundColor: COLORS.primary,
-  },
-  bubbleAssistant: {
     borderWidth: BORDER_WIDTH.hairline,
     borderColor: COLORS.hairline,
     backgroundColor: COLORS.surfaceSoft,
   },
-  bubbleTextUser: {
-    ...TYPE.bodySm,
-    color: COLORS.onPrimary,
-  },
-  bubbleTextAssistant: {
-    ...TYPE.bodySm,
+  welcomeText: {
     color: COLORS.ink,
   },
   chipList: {
@@ -452,9 +361,9 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   chip: {
-    minHeight: 44,
+    minHeight: TOUCH_TARGET,
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.hairline,
     borderColor: COLORS.hairline,
     backgroundColor: COLORS.canvas,
     paddingHorizontal: SPACING.md,
@@ -465,80 +374,6 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: COLORS.ink,
-  },
-  typingBubble: {
-    flexDirection: 'row',
-    gap: SPACING.xs,
-    alignItems: 'center',
-  },
-  typingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.mute,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.error,
-    backgroundColor: COLORS.surfaceSoft,
-    padding: SPACING.lg,
-    alignSelf: 'stretch',
-  },
-  errorBody: {
-    flex: 1,
-  },
-  errorText: {
-    color: COLORS.ink,
-  },
-  retryButton: {
-    alignSelf: 'flex-start',
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingRight: SPACING.sm,
-    marginTop: SPACING.xxs,
-  },
-  retryText: {
-    color: COLORS.primary,
-  },
-  composerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.hairline,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: COLORS.hairline,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.canvas,
-    paddingHorizontal: SPACING.lg,
-    color: COLORS.ink,
-    ...TYPE.bodyMd,
-  },
-  inputFocused: {
-    borderWidth: BORDER_WIDTH.focus,
-    borderColor: COLORS.primary,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: COLORS.surfaceSoft,
-  },
-  sendButtonPressed: {
-    backgroundColor: COLORS.primaryDark,
   },
 })
 

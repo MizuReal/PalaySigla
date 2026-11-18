@@ -94,3 +94,25 @@ export interface AssessmentData {
 }
 
 export type AssessmentResponse = ApiEnvelope<AssessmentData>
+
+export type AssessmentAdviceLanguage = 'english' | 'tagalog'
+
+/** The compact measurements the advice endpoint accepts; the backend derives the verdict. */
+export interface AssessmentAdviceContext {
+  defect_rate: number
+  counts: Record<string, number>
+  highest_confidence: number | null
+  lowest_confidence: number | null
+}
+
+export interface AssessmentAdviceRequest {
+  assessment: AssessmentAdviceContext
+  messages: ChatTurn[]
+  language: AssessmentAdviceLanguage
+}
+
+export interface AssessmentAdviceReply {
+  reply: string
+}
+
+export type AssessmentAdviceResponse = ApiEnvelope<AssessmentAdviceReply>

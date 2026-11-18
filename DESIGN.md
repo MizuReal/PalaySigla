@@ -1413,3 +1413,32 @@ All interactive elements meet WCAG AA (≥ 44×44px). `{component.button-primary
   the review threshold ship in the backend response, so the copy never
   hardcodes a cutoff. `{colors.primary-wash}` is the only token this surface
   adds.
+
+- **Scan tab — AI analysis after a grain photo.** Every completed assessment
+  generates an opening advice message automatically; no tap is required to
+  read it. The message sits inside the results card directly under the verdict
+  strip in a 1px `{colors.hairline}` box on `{colors.surface-soft}`: an
+  uppercase `{typography.caption-md}` `{colors.primary}` "AI analysis" eyebrow,
+  an English/Tagalog toggle (44px cells, active label in `{colors.primary}`
+  with a 2px underline, inactive in `{colors.mute}`), the advice body in
+  `{typography.body-sm}` `{colors.ink}`, a `{typography.caption-sm}`
+  `{colors.mute}` "AI guidance based on this scan. Not a laboratory result."
+  disclaimer, and a 44px hairline-topped "Ask a follow-up" row carrying the
+  `chat` and `chevron-right` glyphs in `{colors.primary}`. Generation uses the
+  chat surface's three-dot `{colors.surface-soft}` typing bubble with an
+  "Analyzing this result…" `{typography.caption-sm}` line; failures reuse the
+  `{component.form-alert-error}` treatment with Try again. Tapping the box
+  opens the full conversation as a bottom-sheet modal with the same chrome as
+  the assistant chat: 40px `{colors.primary}` brand tile, `{typography.card-title}`
+  "PalaySigla Assistant", a `{typography.caption-sm}` `{colors.mute}` summary
+  line ("Good · Low severity · 2 flagged areas"), 44px close, the disclaimer,
+  the language toggle until the first follow-up, the opening and follow-up
+  bubbles (user turns `{colors.primary}` / `{colors.on-primary}`, assistant
+  turns `{colors.surface-soft}` with a 1px hairline), three tap-to-ask starter
+  chips in the selected language, three-dot typing, and the 44px
+  `{component.form-field}` composer with a `{colors.primary}` send square.
+  Follow-ups mirror the farmer's own language and the toggle disappears after
+  the first one. The opening message and conversation are held in memory for
+  the current photo only; "Assess another photo" resets them, while the
+  English/Tagalog preference persists per user in AsyncStorage. No new tokens
+  are introduced.

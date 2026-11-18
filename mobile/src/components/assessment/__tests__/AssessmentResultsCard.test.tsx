@@ -1,6 +1,7 @@
 /// <reference types="jest" />
+import type { ReactNode } from 'react'
 import { fireEvent, render } from '@testing-library/react-native'
-import { StyleSheet } from 'react-native'
+import { StyleSheet, Text } from 'react-native'
 import AssessmentResultsCard from '../AssessmentResultsCard'
 import type { AssessmentData, DefectDetection } from '../../../types/api'
 
@@ -35,7 +36,11 @@ const DATA: AssessmentData = {
   imgsz: 1280,
 }
 
-function renderCard(overrides: Partial<AssessmentData> = {}, onRetake = jest.fn()) {
+function renderCard(
+  overrides: Partial<AssessmentData> = {},
+  onRetake = jest.fn(),
+  adviceSection?: ReactNode
+) {
   return render(
     <AssessmentResultsCard
       data={{ ...DATA, ...overrides }}
@@ -43,6 +48,7 @@ function renderCard(overrides: Partial<AssessmentData> = {}, onRetake = jest.fn(
       imageWidth={1280}
       imageHeight={1280}
       onRetake={onRetake}
+      adviceSection={adviceSection}
     />
   )
 }
@@ -166,5 +172,15 @@ describe('AssessmentResultsCard', () => {
     await fireEvent.press(screen.getByText('Assess another photo'))
 
     expect(onRetake).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders the advice section above the retake action', async () => {
+    const screen = await renderCard(
+      {},
+      jest.fn(),
+      <Text>AI guidance</Text>
+    )
+
+    expect(screen.getByText('AI guidance')).toBeTruthy()
   })
 })

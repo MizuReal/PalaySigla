@@ -71,6 +71,11 @@ class Settings(BaseSettings):
     assess_rate_limit_max_requests: int = 10
     assess_rate_limit_window_seconds: int = 60
 
+    # Assessment advice uses the same metered Groq key as the chat assistant,
+    # so it gets its own strict per-IP window.
+    assess_advice_rate_limit_max_requests: int = 6
+    assess_advice_rate_limit_window_seconds: int = 60
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

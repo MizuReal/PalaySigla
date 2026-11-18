@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { Image as ExpoImage } from 'expo-image'
 import { StyleSheet, Text, View } from 'react-native'
 import Button from '../Button'
+import AssessmentAdviceSection from './AssessmentAdviceSection'
 import AssessmentCapturePanel from './AssessmentCapturePanel'
 import AssessmentResultsCard from './AssessmentResultsCard'
 import useAssessmentCapture from '../../hooks/useAssessmentCapture'
@@ -68,6 +69,13 @@ function GrainAssessmentPanel() {
           imageWidth={image.width}
           imageHeight={image.height}
           onRetake={handleRetake}
+          adviceSection={
+            <AssessmentAdviceSection
+              key={image.uri}
+              assessment={result}
+              userId={user?.id ?? null}
+            />
+          }
         />
       ) : (
         <>

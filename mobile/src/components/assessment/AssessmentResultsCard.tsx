@@ -3,6 +3,7 @@
 // figures, and a ranked list of the flagged areas. Every number states what it
 // measures, so the readout never implies more than the detector can see.
 import { useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Button from '../Button'
 import DetectionOverlay from './DetectionOverlay'
@@ -48,6 +49,7 @@ interface AssessmentResultsCardProps {
   imageWidth: number
   imageHeight: number
   onRetake: () => void
+  adviceSection?: ReactNode
 }
 
 function formatConfidence(value: number): `${number}%` {
@@ -109,6 +111,7 @@ function AssessmentResultsCard({
   imageWidth,
   imageHeight,
   onRetake,
+  adviceSection,
 }: AssessmentResultsCardProps) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const ranked = useMemo(
@@ -149,6 +152,8 @@ function AssessmentResultsCard({
           {severityLine(data.severity, data.severity_bands)}
         </Text>
       </View>
+
+      {adviceSection}
 
       <View style={styles.measurements}>
         <View style={styles.stats}>
