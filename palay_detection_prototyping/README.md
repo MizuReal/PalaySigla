@@ -6,6 +6,20 @@ Read the [images](#images) at the bottom — they show each rule.
 
 ---
 
+## TL;DR — the fixed numbers
+
+| Item | Value |
+|---|---|
+| Photos per variety | **20** (5 sessions × 4 photos) |
+| Photos total (8 varieties) | **160** |
+| Tiles annotated per variety | **10** (2 per session) |
+| Tiles annotated total | **80** |
+| Boxes per tile | **80** |
+| Boxes total | **6,400** (800 per variety) |
+| Approx. total effort | **~10 hours** |
+
+---
+
 ## The core idea
 
 **Annotate grains, not piles.**
@@ -34,7 +48,7 @@ Read the [images](#images) at the bottom — they show each rule.
 Grains must be **separated** so their full shape is visible. Shape is the main variety cue; overlap destroys it.
 
 - **Single layer**, no stacking.
-- **~50% coverage** of the frame. Grains separated by about half a grain width.
+- **~20–25% coverage** of the frame — about **one grain-width of white space** between neighbours. This is what makes a 512×512 tile hold ~80 grains.
 - **Re-scatter for every shot.** Never reuse the same arrangement.
 - A few touching pairs are fine — the model must learn to split them. Do not build a perfect grid.
 - Matte background: plain white or light gray. No glossy paper, no wood, no fabric.
@@ -59,21 +73,22 @@ Grains must be **separated** so their full shape is visible. Shape is the main v
 
 ## 4. How many pictures
 
-8 varieties in scope.
+8 varieties in scope. These are **fixed targets**, not ranges.
 
-| | Minimum | Good |
-|---|---|---|
-| Sessions per variety | 3 | 5 |
-| Photos per session | 4 | 5 |
-| **Photos per variety** | **12** | **25** |
-| **Total (8 varieties)** | **96** | **200** |
+| Item | Value |
+|---|---|
+| Shooting sessions | **5** |
+| Photos per variety per session | **4** |
+| **Photos per variety** | **20** |
+| **Photos total (all 8 varieties)** | **160** |
 
-**Two rules that matter more than the counts:**
+**Shoot all 8 varieties in the same session.** Same light, same paper, same camera. This is what stops the model from learning "bright = variety3".
 
-1. **Shoot all 8 varieties in the same session.** Same light, same paper, same camera. This is what stops the model from learning "bright = variety3".
-2. **Hold out one whole session for validation.** Never random-split photos — split by session, or validation lies to you.
+**Hold out session 5 for validation.** Never random-split photos — split by session, or validation lies to you.
 
 Also swap which varieties sit on the left/right when using a two-tray setup, so position never becomes a cue.
+
+One session = 8 varieties × 4 photos ≈ **45 minutes**.
 
 ## 5. Annotation rules
 
@@ -81,7 +96,7 @@ Also swap which varieties sit on the left/right when using a two-tray setup, so 
 
 ![Tile vs resize](images/04_tile_vs_resize.png)
 
-- **Annotate every fully visible grain in the tile.** 50–80 boxes per tile.
+- **Annotate every fully visible grain in the tile.** **80 boxes per tile.**
 - **Skip** any grain that overlaps a neighbour or is sliced by the tile edge.
 - **One grain per box. Tight.** Both tips inside the box. Never a box around a group.
 - **Never partially annotate a tile.** Unboxed grains are treated as background and actively teach the model to *suppress* grains.
@@ -89,15 +104,27 @@ Also swap which varieties sit on the left/right when using a two-tray setup, so 
 
 ![Sample annotation](images/05_sample_annotation.png)
 
-**Volume:**
+**Annotation volume — fixed:**
 
-| | Target |
+| Item | Value |
 |---|---|
-| Tiles per variety | 8–12 |
-| Tiles total (8 varieties) | ~100 |
-| Boxes per tile | 50–80 |
-| **Boxes total** | **~6,000** |
-| Class balance | within ~2× of each other |
+| Tiles annotated per session per variety | **2** |
+| **Tiles annotated per variety** | **10** |
+| **Tiles annotated total (8 varieties)** | **80** |
+| **Boxes per tile** | **80** |
+| **Boxes per variety** | **800** |
+| **Boxes total** | **6,400** |
+
+Which tiles to pick — 2 per session per variety, so every lighting condition is represented:
+
+```
+Session 1..4   ->  8 tiles per variety  ->  training
+Session 5      ->  2 tiles per variety  ->  validation + test   (never trained on)
+```
+
+Keep class counts within ~2× of each other.
+
+**Time:** ~4 h shooting + ~4 h fixing auto-labels + ~1 h training ≈ **10 hours**, over 1–2 weeks. Do not hand-draw 6,400 boxes — use the auto-label script and correct it.
 
 ## 6. Classes
 
